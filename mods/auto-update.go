@@ -110,6 +110,9 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 
 	// Clear switchboard guard so update-engine.service can start.
 	_ = os.Remove(disableUpdateEngine)
+	// Drop stale status from a prior inhibited auto-update so the UI does not
+	// flash "auto-update inhibited" while the URL OTA is starting.
+	_ = os.RemoveAll(updateEngineStateDir)
 	_ = os.MkdirAll(filepath.Dir(updateEngineEnvPath), 0777)
 
 	env := strings.Join([]string{
@@ -227,6 +230,14 @@ func (m *AutoUpdate) writeStatus(w http.ResponseWriter) {
 	// "Unclean exit" is the service pre-seed; ignore until a real phase progresses.
 	if st.Error == "Unclean exit" && !st.Done && st.Progress == 0 {
 		st.Error = ""
+	}
+	// Leftover from blocked background auto-update; URL OTAs set UPDATE_ENGINE_URL
+	// and never take the "auto" inhibit path — do not surface as a failed manual update.
+	if st.Error == "auto-update inhibited" && !st.Done && st.Progress == 0 {
+		st.Error = ""
+		if st.Phase == "starting" || st.Phase == "waiting" {
+			st.Phase = "waiting"
+		}
 	}
 	// If exit_code exists and non-zero, prefer mapping.
 	if code := readTrim(filepath.Join(updateEngineStateDir, "exit_code")); code != "" && code != "0" {

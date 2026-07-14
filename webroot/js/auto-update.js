@@ -246,4 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         markOtaUrlField(v.ok);
     });
+    // Always show progress + log chrome so the Update tab looks complete before start.
+    otaShowProgress(true);
+    const box = document.getElementById('otaLogBox');
+    if (box) box.style.display = 'block';
 });

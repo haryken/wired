@@ -16,6 +16,10 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewJdocSettings(),
 	mods.NewFaces(),
 	mods.NewXiaozhi(),
+	mods.NewControl(),
+	mods.NewAlexa(),
+	mods.NewPhotos(),
+	mods.NewStimStats(),
 }
 
 func main() {

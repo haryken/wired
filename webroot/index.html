@@ -408,15 +408,6 @@
             </p>
         </div>
         <div id="autoUpdateStatus"></div>
-        <div id="otaProgressWrap" class="ota-progress-wrap" style="display:none;">
-            <div class="ota-progress-meta">
-                <span id="otaPhaseLabel">—</span>
-                <span id="otaPctLabel">0%</span>
-            </div>
-            <div class="ota-progress-bar"><div id="otaProgressFill" class="ota-progress-fill"></div></div>
-            <div id="otaDetailLine" class="ota-detail"></div>
-        </div>
-        <pre id="otaLogBox" class="ota-log" style="display:none;" aria-live="polite"></pre>
         <div class="button-container" style="align-items:stretch;">
             <label for="otaUrl">URL file OTA <small>(OTA file URL)</small>:</label>
             <input type="url" id="otaUrl" placeholder="URL chuẩn từ Võ Duy Linh…"
@@ -424,6 +415,16 @@
             <button type="button" id="otaStartBtn" onclick="startOtaFromURL()">Cập nhật từ URL <small>(Update)</small></button>
             <button type="button" id="otaRefreshLogBtn" onclick="refreshOtaLogOnly()">Làm mới log <small>(Refresh log)</small></button>
         </div>
+        <div id="otaProgressWrap" class="ota-progress-wrap">
+            <div class="ota-progress-meta">
+                <span id="otaPhaseLabel">chờ bắt đầu</span>
+                <span id="otaPctLabel">0%</span>
+            </div>
+            <div class="ota-progress-bar"><div id="otaProgressFill" class="ota-progress-fill"></div></div>
+            <div id="otaDetailLine" class="ota-detail">Thanh tiến trình hiện khi đang tải/cài OTA. (Progress shows while downloading/installing.)</div>
+        </div>
+        <pre id="otaLogBox" class="ota-log" aria-live="polite">Log cập nhật sẽ hiện ở đây (timeline + journalctl update-engine).
+(Update log appears here.)</pre>
     </div>
 
     <div id="xiaozhi" class="container mod-section tab-content">
