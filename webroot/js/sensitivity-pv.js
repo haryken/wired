@@ -10,7 +10,7 @@ async function setSensitivity() {
 async function sendSensitivity() {
     const raw = document.getElementById('sensitivityInput').value;
     const v = parseFloat(raw);
-    if (!validateSensitivity(v)) return alert('value must be between 0.001 and 0.999');
+    if (!validateSensitivity(v)) return alert('Giá trị phải từ 0.001 đến 0.999. (Value must be between 0.001 and 0.999)');
     await fetch(`/api/mods/SensitivityPV/set?value=${v}`);
     console.log('sensitivity set to', v);
     RestartVic();

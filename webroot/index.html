@@ -1,181 +1,650 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mods</title>
+    <title>Cài đặt robot</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <header>
-        <h1>Robot Settings</h1>
-    </header>
-    <div class="tabs">
-        <button class="active" data-target="#home"><code>wired</code></button>
-        <button data-target="#mainmods">Performance Profiles</button>
-        <button data-target="#cww">Custom Wake Word</button>
-        <button data-target="#aud">Auto Updates</button>
-        <button data-target="#sensitivity">Wakeword Sensitivity</button>
-        <button data-target="#jdocsettings">User Preferences</button>
-        <button data-target="#faces">Face Manager</button>
-    </div>
-
-    <div id="home" class="container tab-content active">
-        <h2><code>wired</code></h2>
-        <p>This is where extra configuration options exist.</p>
-        <p>Click the tabs to navigate the options.</p>
-    </div>
-
-    <div id="mainmods" class="container mod-section tab-content">
-        <div id="modStatus"></div>
-        <div id="mods">
-            <h2>Performance Profiles</h2>
-            <p>Brings better SDK performance, but may cause overheating.</p>
-            <form>
-                <input type="radio" id="regular" name="frequency" value="0" onchange="FreqChange_Submit()">
-                <label class="buttonlabel" for="regular">Regular</label>
-                <input type="radio" id="balanced" name="frequency" value="1" onchange="FreqChange_Submit()">
-                <label class="buttonlabel" for="balanced">Balanced</label>
-                <input type="radio" id="performance" name="frequency" value="2" onchange="FreqChange_Submit()">
-                <label class="buttonlabel" for="performance">Performance</label>
-            </form>
+        <div class="brand">
+            <span class="brand-logo" aria-hidden="true">🤖</span>
+            <h1>Cài đặt robot <small class="sub">(Robot Settings)</small></h1>
         </div>
-    </div>
+    </header>
+    <nav class="site-nav" aria-label="Sections">
+        <label class="nav-select-wrap" for="navSelect">
+            <span class="nav-select-label">Menu</span>
+            <select id="navSelect">
+                <option value="#botsettings">Cài đặt bot (Bot Settings)</option>
+                <option value="#aud">Cập nhật OS (OS Update)</option>
+                <option value="#xiaozhi">Xiaozhi</option>
+                <option value="#alexa">Alexa</option>
+                <option value="#control">Điều khiển (Control)</option>
+                <option value="#about">Giới thiệu (About)</option>
+            </select>
+        </label>
+        <div class="tabs" role="tablist">
+            <button type="button" class="active" data-target="#botsettings">Cài đặt bot</button>
+            <button type="button" data-target="#aud">Cập nhật OS</button>
+            <button type="button" data-target="#xiaozhi">Xiaozhi</button>
+            <button type="button" data-target="#alexa">Alexa</button>
+            <button type="button" data-target="#control">Điều khiển</button>
+            <button type="button" data-target="#about">Giới thiệu</button>
+        </div>
+    </nav>
 
-    <div id="cww" class="container mod-section tab-content">
-        <h2>Custom Wake Word</h2>
-        <p>At least two syllables, at least 5 letters.</p>
+    <div id="botsettings" class="container mod-section tab-content active">
+        <h2>Cài đặt bot <small class="sub">(Bot Settings)</small></h2>
+        <p class="bot-intro">Chọn một mục bên dưới. <em>(Pick a tile below.)</em></p>
+        <div id="jdocStatus"></div>
+        <div class="bot-nav">
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-volume')">
+                <span class="bot-ico" aria-hidden="true">🔊</span>
+                Âm lượng<br><small>(Volume)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-eyes')">
+                <span class="bot-ico" aria-hidden="true">👁</span>
+                Màu mắt<br><small>(Eye Color)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-faces')">
+                <span class="bot-ico" aria-hidden="true">👤</span>
+                Khuôn mặt<br><small>(Faces)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-photos')">
+                <span class="bot-ico" aria-hidden="true">📷</span>
+                Ảnh<br><small>(Photos)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-location')">
+                <span class="bot-ico" aria-hidden="true">📍</span>
+                Vị trí<br><small>(Location)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-timezone')">
+                <span class="bot-ico" aria-hidden="true">🕒</span>
+                Múi giờ<br><small>(Time Zone)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-temp')">
+                <span class="bot-ico" aria-hidden="true">🌡</span>
+                Đơn vị nhiệt<br><small>(Units)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-perf')">
+                <span class="bot-ico" aria-hidden="true">⚡</span>
+                Hiệu năng<br><small>(Performance)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-wake')">
+                <span class="bot-ico" aria-hidden="true">🎤</span>
+                Từ đánh thức<br><small>(Wake Word)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-sens')">
+                <span class="bot-ico" aria-hidden="true">📶</span>
+                Độ nhạy<br><small>(Sensitivity)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
+                <span class="bot-ico" aria-hidden="true">😊</span>
+                Stim<br><small>(Kích thích)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stats')">
+                <span class="bot-ico" aria-hidden="true">📊</span>
+                Thống kê<br><small>(Statistics)</small>
+            </button>
+        </div>
         <hr class="smallhr">
-        <div id="wakeWordStatus"></div>
-        <div class="button-container">
-            <label id="keywordLabel" for="keyword">Desired wake word:</label>
-            <input type="text" placeholder="Hey Vector" id="keyword">
-            <button id="genWakeWord" onclick="genWakeWord()">Generate Wake Word</button>
-            <button id="revertDefaultWakeWord" onclick="revertDefaultWakeWord()">Revert To Default</button>
+
+        <div id="bot-volume" class="bot-section" style="display:none;">
+            <h3>🔊 Âm lượng <small class="sub">(Volume)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Chọn mức âm lượng — thay đổi áp dụng ngay. <em>(Pick a level; applies immediately.)</em></li>
+                    <li>Tắt (Mute) = robot không phát tiếng. <em>(Mute silences the robot.)</em></li>
+                </ol>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="vol" value="0" onchange="setMasterVolumeVal(0)"> Tắt <small>(Mute)</small></label>
+                <label><input type="radio" name="vol" value="1" onchange="setMasterVolumeVal(1)"> Thấp <small>(Low)</small></label>
+                <label><input type="radio" name="vol" value="2" onchange="setMasterVolumeVal(2)"> Trung thấp <small>(Medium Low)</small></label>
+                <label><input type="radio" name="vol" value="3" onchange="setMasterVolumeVal(3)"> Trung bình <small>(Medium)</small></label>
+                <label><input type="radio" name="vol" value="4" onchange="setMasterVolumeVal(4)"> Trung cao <small>(Medium High)</small></label>
+                <label><input type="radio" name="vol" value="5" onchange="setMasterVolumeVal(5)"> Cao <small>(High)</small></label>
+            </div>
+        </div>
+
+        <div id="bot-eyes" class="bot-section" style="display:none;">
+            <h3>👁 Màu mắt <small class="sub">(Eye Color)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Chọn preset (gồm Cầu vồng / Đỏ) — đổi ngay. <em>(Pick a preset incl. Rainbow / Red.)</em></li>
+                    <li>Hoặc dùng <b>màu tùy chỉnh</b>: kéo thanh / chọn ô màu rồi Áp dụng. <em>(Or custom: sliders / color picker → Apply.)</em></li>
+                </ol>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="eye" value="0" onchange="setEyePresetVal(0)"> Xanh ngọc <small>(Teal)</small></label>
+                <label><input type="radio" name="eye" value="1" onchange="setEyePresetVal(1)"> Cam <small>(Orange)</small></label>
+                <label><input type="radio" name="eye" value="2" onchange="setEyePresetVal(2)"> Vàng <small>(Yellow)</small></label>
+                <label><input type="radio" name="eye" value="3" onchange="setEyePresetVal(3)"> Xanh chanh <small>(Lime Green)</small></label>
+                <label><input type="radio" name="eye" value="4" onchange="setEyePresetVal(4)"> Xanh dương <small>(Azure Blue)</small></label>
+                <label><input type="radio" name="eye" value="5" onchange="setEyePresetVal(5)"> Tím <small>(Purple)</small></label>
+                <label><input type="radio" name="eye" value="6" onchange="setEyePresetVal(6)"> Xanh khác <small>(Other Green)</small></label>
+                <label><input type="radio" name="eye" value="7" onchange="setEyePresetVal(7)"> Cầu vồng <small>(Rainbow)</small></label>
+                <label><input type="radio" name="eye" value="8" onchange="setEyePresetVal(8)"> Đỏ <small>(Red)</small></label>
+            </div>
+            <hr class="smallhr">
+            <h4>Màu tùy chỉnh <small class="sub">(Custom color)</small></h4>
+            <div class="eye-custom">
+                <div class="eye-custom-row">
+                    <label for="eyeColorPicker">Chọn màu <small>(Picker)</small></label>
+                    <input type="color" id="eyeColorPicker" value="#00c8c8" oninput="onEyePickerInput()">
+                    <span id="eyeCustomSwatch" class="eye-swatch" aria-hidden="true"></span>
+                </div>
+                <div class="eye-custom-row">
+                    <label for="eyeHue">Hue <span id="eyeHueVal">0.50</span></label>
+                    <input type="range" id="eyeHue" min="0" max="1" step="0.001" value="0.5" oninput="onEyeSliderInput()">
+                </div>
+                <div class="eye-custom-row">
+                    <label for="eyeSat">Độ bão hòa <small>(Saturation)</small> <span id="eyeSatVal">1.00</span></label>
+                    <input type="range" id="eyeSat" min="0" max="1" step="0.001" value="1" oninput="onEyeSliderInput()">
+                </div>
+                <button type="button" onclick="applyCustomEyeColor()">Áp dụng màu tùy chỉnh <small>(Apply custom)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-faces" class="bot-section" style="display:none;">
+            <h3>👤 Quản lý khuôn mặt <small class="sub">(Face Manager)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Nhập tên → <b>Bắt đầu ghi</b> → nhìn thẳng vào Vector. <em>(Enter name → Start Enroll → look at Vector.)</em></li>
+                    <li>Đổi tên / Xóa trên danh sách đã lưu. <em>(Rename / Delete from the list.)</em></li>
+                    <li>Bấm Làm mới nếu danh sách chưa cập nhật. <em>(Refresh if the list looks stale.)</em></li>
+                </ol>
+            </div>
+            <div id="facesStatus" class="faces-status" style="display:none;"></div>
+            <h4>Thêm khuôn mặt <small class="sub">(Enroll new face)</small></h4>
+            <div class="button-container" style="gap: 6px;">
+                <label for="faceNewName">Tên <small>(Name)</small>:</label>
+                <input type="text" id="faceNewName" placeholder="Jeff">
+                <button type="button" onclick="faceTrain()">Bắt đầu ghi <small>(Start Enroll)</small></button>
+            </div>
+            <hr class="smallhr">
+            <h4>Đã lưu <small class="sub">(Enrolled faces)</small></h4>
+            <div class="button-container" style="gap: 6px;">
+                <button type="button" id="facesRefreshBtn" onclick="facesRefresh()">Làm mới <small>(Refresh)</small></button>
+            </div>
+            <div id="facesList" class="faces-list"></div>
+        </div>
+
+        <div id="bot-photos" class="bot-section" style="display:none;">
+            <h3>📷 Ảnh đã chụp <small class="sub">(Photos)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Bấm thumbnail để xem ảnh lớn. <em>(Tap a thumbnail to view full size.)</em></li>
+                    <li>Xóa từng ảnh bằng nút Xóa. <em>(Delete with the Delete button.)</em></li>
+                    <li>Ảnh lấy từ bộ nhớ robot (Xiaozhi / lệnh chụp). <em>(From robot storage — Xiaozhi / take photo.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container" style="gap: 6px;">
+                <button type="button" id="photosRefreshBtn" onclick="photosRefresh()">Làm mới <small>(Refresh)</small></button>
+            </div>
+            <div id="photosStatus" class="faces-status" style="display:none;"></div>
+            <div id="photosGrid" class="photos-grid"></div>
+            <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="photosCloseLightbox(event)">
+                <div class="photo-lightbox-inner">
+                    <img id="photoLightboxImg" alt="photo">
+                    <div class="photo-lightbox-actions">
+                        <button type="button" onclick="photosCloseLightbox()">Đóng <small>(Close)</small></button>
+                        <button type="button" id="photoLightboxDelete" onclick="photosDeleteFromLightbox()">Xóa <small>(Delete)</small></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="bot-location" class="bot-section" style="display:none;">
+            <h3>📍 Vị trí <small class="sub">(Location)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Gõ thành phố / địa danh (vd. Ho Chi Minh City). <em>(Type a city / place name.)</em></li>
+                    <li>Bấm Lưu — dùng cho thời tiết / ngữ cảnh. <em>(Save — used for weather / context.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <input type="text" placeholder="Ho Chi Minh City, Vietnam" id="location">
+                <button id="locationSet" onclick="setLocation()">Lưu vị trí <small>(Set Location)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-timezone" class="bot-section" style="display:none;">
+            <h3>🕒 Múi giờ <small class="sub">(Time Zone)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Chọn múi giờ gần bạn nhất (vd. Asia/Ho_Chi_Minh ≈ Asia/Bangkok). <em>(Pick the closest zone; VN ≈ Asia/Bangkok.)</em></li>
+                    <li>Bấm Lưu múi giờ. <em>(Tap Set Timezone.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <select name="timezone" id="timezone">
+                    <option value="Pacific/Honolulu">Pacific/Honolulu</option>
+                    <option value="America/Juneau">America/Juneau</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    <option value="America/Phoenix">America/Phoenix</option>
+                    <option value="America/Denver">America/Denver</option>
+                    <option value="America/Lima">America/Lima</option>
+                    <option value="America/Chicago">America/Chicago</option>
+                    <option value="America/Bogota">America/Bogota</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
+                    <option value="America/Santiago">America/Santiago</option>
+                    <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+                    <option value="America/Halifax">America/Halifax</option>
+                    <option value="America/St_Johns">America/St_Johns</option>
+                    <option value="GMT">GMT</option>
+                    <option value="Europe/Lisbon">Europe/Lisbon</option>
+                    <option value="Europe/London">Europe/London</option>
+                    <option value="Europe/Paris">Europe/Paris</option>
+                    <option value="Europe/Athens">Europe/Athens</option>
+                    <option value="Europe/Istanbul">Europe/Istanbul</option>
+                    <option value="Europe/Moscow">Europe/Moscow</option>
+                    <option value="Africa/Lagos">Africa/Lagos</option>
+                    <option value="Africa/Harare">Africa/Harare</option>
+                    <option value="Africa/Addis_Ababa">Africa/Addis_Ababa</option>
+                    <option value="Asia/Dubai">Asia/Dubai</option>
+                    <option value="Asia/Tehran">Asia/Tehran</option>
+                    <option value="Asia/Karachi">Asia/Karachi</option>
+                    <option value="Asia/Kolkata">Asia/Kolkata</option>
+                    <option value="Asia/Dhaka">Asia/Dhaka</option>
+                    <option value="Asia/Bangkok">Asia/Bangkok</option>
+                    <option value="Asia/Jakarta">Asia/Jakarta</option>
+                    <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+                    <option value="Asia/Singapore">Asia/Singapore</option>
+                    <option value="Asia/Manila">Asia/Manila</option>
+                    <option value="Asia/Seoul">Asia/Seoul</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo</option>
+                    <option value="Australia/Perth">Australia/Perth</option>
+                    <option value="Australia/Darwin">Australia/Darwin</option>
+                    <option value="Australia/Adelaide">Australia/Adelaide</option>
+                    <option value="Australia/Brisbane">Australia/Brisbane</option>
+                    <option value="Australia/Sydney">Australia/Sydney</option>
+                    <option value="Australia/Auckland">Australia/Auckland</option>
+                </select>
+                <button id="timezoneSet" onclick="setTimezone()">Lưu múi giờ <small>(Set Timezone)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-temp" class="bot-section" style="display:none;">
+            <h3>🌡 Đơn vị nhiệt <small class="sub">(Temp Units)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Chọn °C hoặc °F rồi Lưu. <em>(Pick °C or °F, then Save.)</em></li>
+                    <li>Ảnh hưởng cách robot nói về nhiệt độ. <em>(Affects how the robot reports temperature.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <select name="tUnits" id="tUnits">
+                    <option value="c">Độ C (Celsius)</option>
+                    <option value="f">Độ F (Fahrenheit)</option>
+                </select>
+                <button onclick="setTempUnits()">Lưu đơn vị <small>(Set Units)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-perf" class="bot-section" style="display:none;">
+            <h3>⚡ Hồ sơ hiệu năng <small class="sub">(Performance Profiles)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li><b>Thường</b> — ổn định, ít nóng. <em>(Regular — stable, cooler.)</em></li>
+                    <li><b>Cân bằng</b> — giữa ổn định và tốc độ. <em>(Balanced — middle ground.)</em></li>
+                    <li><b>Hiệu năng cao</b> — SDK nhanh hơn, máy có thể nóng. <em>(Performance — faster SDK, may overheat.)</em></li>
+                    <li>Chọn xong có thể cần <b>khởi động lại</b> robot. <em>(A restart may be required after changing.)</em></li>
+                </ol>
+                <p class="help-warn">Đừng để Hiệu năng cao lâu nếu robot nóng bất thường. <em>(Avoid long Performance mode if the robot runs hot.)</em></p>
+            </div>
+            <div id="modStatus"></div>
+            <div id="mods">
+                <form>
+                    <input type="radio" id="regular" name="frequency" value="0" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="regular">Thường <small>(Regular)</small></label>
+                    <input type="radio" id="balanced" name="frequency" value="1" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="balanced">Cân bằng <small>(Balanced)</small></label>
+                    <input type="radio" id="performance" name="frequency" value="2" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="performance">Hiệu năng cao <small>(Performance)</small></label>
+                </form>
+            </div>
+        </div>
+
+        <div id="bot-wake" class="bot-section" style="display:none;">
+            <h3>🎤 Từ đánh thức tùy chỉnh <small class="sub">(Custom Wake Word)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Nhập từ muốn dùng — ít nhất <b>2 âm tiết</b>, <b>5+ chữ cái</b>. <em>(At least two syllables, 5+ letters.)</em></li>
+                    <li>Bấm <b>Tạo từ đánh thức</b> — robot sẽ tải model rồi khởi động lại. <em>(Generate — installs model then restarts.)</em></li>
+                    <li>Muốn về “Hey Vector”: bấm <b>Về mặc định</b>. <em>(Revert restores the default wake word.)</em></li>
+                </ol>
+                <p class="help-warn">Trong lúc khởi động lại, đợi trang báo xong rồi mới gọi. <em>(Wait until restart finishes before calling the robot.)</em></p>
+            </div>
+            <div id="wakeWordStatus"></div>
+            <div class="button-container">
+                <label id="keywordLabel" for="keyword">Từ muốn dùng <small>(Desired wake word)</small>:</label>
+                <input type="text" placeholder="Hey Vector" id="keyword">
+                <button id="genWakeWord" onclick="genWakeWord()">Tạo từ đánh thức <small>(Generate)</small></button>
+                <button id="revertDefaultWakeWord" onclick="revertDefaultWakeWord()">Về mặc định <small>(Revert)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-sens" class="bot-section" style="display:none;">
+            <h3>📶 Độ nhạy từ đánh thức <small class="sub">(Wakeword Sensitivity)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Kéo thanh hoặc gõ số (mặc định <b>0.45</b>). <em>(Drag or type; default 0.45.)</em></li>
+                    <li><b>Cao hơn</b> = dễ đánh thức hơn (dễ nhầm tiếng ồn). <em>(Higher = easier wake, more false triggers.)</em></li>
+                    <li><b>Thấp hơn</b> = khó đánh thức hơn (ít nhầm). <em>(Lower = harder wake, fewer false triggers.)</em></li>
+                    <li>Bấm <b>Đặt</b> — robot khởi động lại để áp dụng. <em>(Set — robot restarts to apply.)</em></li>
+                </ol>
+                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. <em>(Valid range: 0.001 – 0.999.)</em></p>
+            </div>
+            <div class="button-container">
+                <input type="range" id="sensitivitySlider" min="0.001" max="0.999" step="0.001" value="0.500"
+                    oninput="document.getElementById('sensitivityInput').value = this.value">
+                <input type="number" id="sensitivityInput" min="0.001" max="0.999" step="0.001" value="0.500"
+                    oninput="document.getElementById('sensitivitySlider').value = this.value">
+                <button id="setSensitivityBtn" onclick="sendSensitivity()">Đặt <small>(Set)</small></button>
+            </div>
+        </div>
+
+        <div id="bot-stim" class="bot-section" style="display:none;">
+            <h3>😊 Kích thích <small class="sub">(Stimulation)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Mở mục này để xem mức kích thích realtime của Vector. <em>(Open to watch live stimulation.)</em></li>
+                    <li>Vuốt / chạm / chơi với robot — đường sẽ nhảy. <em>(Pet / play — the graph moves.)</em></li>
+                </ol>
+            </div>
+            <div id="stimStatus" class="faces-status" style="display:none;"></div>
+            <div class="stim-wrap">
+                <canvas id="stimCanvas" width="480" height="180" aria-label="stimulation chart"></canvas>
+                <div class="stim-value">Giá trị <small>(Value)</small>: <b id="stimValueLabel">—</b></div>
+            </div>
+        </div>
+
+        <div id="bot-stats" class="bot-section" style="display:none;">
+            <h3>📊 Thống kê lifetime <small class="sub">(Statistics)</small></h3>
+            <div class="help-box">
+                <strong>Cách dùng <small>(How to use)</small></strong>
+                <ol>
+                    <li>Bấm Làm mới để đọc số liệu từ robot. <em>(Refresh to pull jdoc stats.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container" style="gap:6px;">
+                <button type="button" onclick="statsRefresh()">Làm mới <small>(Refresh)</small></button>
+            </div>
+            <div id="statsStatus" class="faces-status" style="display:none;"></div>
+            <div id="statsSection" class="stats-list"></div>
         </div>
     </div>
 
     <div id="aud" class="container mod-section tab-content">
-        <h2>Auto Updates</h2>
+        <h2>🔄 Cập nhật OS <small class="sub">(OS Update)</small></h2>
+        <div class="help-box">
+            <strong>Cách dùng <small>(How to use)</small></strong>
+            <ol>
+                <li>Chỉ dùng URL OTA do bên mình cung cấp. <em>(Only use the OTA URL we provide.)</em></li>
+                <li>Dán URL đầy đủ vào ô bên dưới → bấm <b>Cập nhật</b>. <em>(Paste URL → Update.)</em></li>
+                <li>Đợi thanh tiến trình / log → xong robot tự khởi động lại. <em>(Watch progress; auto-reboot when done.)</em></li>
+            </ol>
+            <p class="help-warn">
+                <b>Quan trọng:</b> Không dùng OTA lạ / nguồn không rõ — dễ làm hỏng robot.
+                <em>(Do not use unknown OTA URLs — may brick the robot.)</em><br>
+                Liên hệ lấy URL chuẩn: <b>Võ Duy Linh</b> — SĐT <a href="tel:0394273773" style="color:#c4a0ff;">0394273773</a>.
+            </p>
+        </div>
         <div id="autoUpdateStatus"></div>
-        <div class="button-container">
-            <button id="autoUpdateInhibit" onclick="autoUpdateInhibit()">Disable</button>
-            <button id="autoUpdateAllow" onclick="autoUpdateAllow()">Enable</button>
-        </div>
-    </div>
-
-    <div id="sensitivity" class="container mod-section tab-content">
-        <h2>Wakeword Sensitivity</h2>
-        <p>Default is 0.45. 0.999 is max, 0.001 is minimum.</p>
-        <div class="button-container">
-            <input type="range" id="sensitivitySlider" min="0.001" max="0.999" step="0.001" value="0.500"
-                oninput="document.getElementById('sensitivityInput').value = this.value">
-            <input type="number" id="sensitivityInput" min="0.001" max="0.999" step="0.001" value="0.500"
-                oninput="document.getElementById('sensitivitySlider').value = this.value">
-            <button id="setSensitivityBtn" onclick="sendSensitivity()">Set</button>
-        </div>
-    </div>
-
-    <div id="jdocsettings" class="container mod-section tab-content">
-        <h2>User Preferences</h2>
-        <div id="jdocStatus"></div>
-        <div class="button-container">
-            <label id="locationLabel" for="location">Location:</label>
-            <input type="text" placeholder="San Francisco, California" id="location">
-            <button id="locationSet" onclick="setLocation()">Set Location</button>
-            <hr class="smallhr">
-            <label id="timezoneLabel" for="timezone">Time Zone:</label>
-            <select name="timezone" id="timezone">
-                <option value="Pacific/Honolulu">Pacific/Honolulu</option>
-                <option value="America/Juneau">America/Juneau</option>
-                <option value="America/Los_Angeles">America/Los_Angeles</option>
-                <option value="America/Phoenix">America/Phoenix</option>
-                <option value="America/Denver">America/Denver</option>
-                <option value="America/Lima">America/Lima</option>
-                <option value="America/Chicago">America/Chicago</option>
-                <option value="America/Bogota">America/Bogota</option>
-                <option value="America/New_York">America/New_York</option>
-                <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
-                <option value="America/Santiago">America/Santiago</option>
-                <option value="America/Sao_Paulo">America/Sao_Paulo</option>
-                <option value="America/Halifax">America/Halifax</option>
-                <option value="America/St_Johns">America/St_Johns</option>
-                <option value="GMT">GMT</option>
-                <option value="Europe/Lisbon">Europe/Lisbon</option>
-                <option value="Europe/London">Europe/London</option>
-                <option value="Europe/Paris">Europe/Paris</option>
-                <option value="Europe/Athens">Europe/Athens</option>
-                <option value="Europe/Istanbul">Europe/Istanbul</option>
-                <option value="Europe/Moscow">Europe/Moscow</option>
-                <option value="Africa/Lagos">Africa/Lagos</option>
-                <option value="Africa/Harare">Africa/Harare</option>
-                <option value="Africa/Addis_Ababa">Africa/Addis_Ababa</option>
-                <option value="Asia/Dubai">Asia/Dubai</option>
-                <option value="Asia/Tehran">Asia/Tehran</option>
-                <option value="Asia/Karachi">Asia/Karachi</option>
-                <option value="Asia/Kolkata">Asia/Kolkata</option>
-                <option value="Asia/Dhaka">Asia/Dhaka</option>
-                <option value="Asia/Bangkok">Asia/Bangkok</option>
-                <option value="Asia/Jakarta">Asia/Jakarta</option>
-                <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
-                <option value="Asia/Singapore">Asia/Singapore</option>
-                <option value="Asia/Manila">Asia/Manila</option>
-                <option value="Asia/Seoul">Asia/Seoul</option>
-                <option value="Asia/Tokyo">Asia/Tokyo</option>
-                <option value="Australia/Perth">Australia/Perth</option>
-                <option value="Australia/Darwin">Australia/Darwin</option>
-                <option value="Australia/Adelaide">Australia/Adelaide</option>
-                <option value="Australia/Brisbane">Australia/Brisbane</option>
-                <option value="Australia/Sydney">Australia/Sydney</option>
-                <option value="Australia/Auckland">Australia/Auckland</option>
-            </select>
-            <button id="timezoneSet" onclick="setTimezone()">Set Timezone</button>
-            <hr class="smallhr">
-            <label id="tempLabel" for="tUnits">Temp Units:</label>
-            <select name="tUnits" id="tUnits">
-                <option value="f">Fahrenheit</option>
-                <option value="c">Celsius</option>
-            </select>
-            <button id="timezoneSet" onclick="setTempUnits()">Set Temp Units</button>
-        </div>
-    </div>
-
-    <div id="faces" class="container mod-section tab-content">
-        <h2>Face Manager</h2>
-        <p>Manage enrolled faces: list, rename, delete, or enroll a new one.</p>
-        <hr class="smallhr">
-
-        <div id="facesStatus" class="faces-status" style="display:none;"></div>
-
-        <div style="margin-top: 10px;">
-            <h3 style="margin: 8px 0; color: #a855f7;">Enroll new face</h3>
-            <div class="button-container" style="gap: 6px;">
-                <label for="faceNewName">Name:</label>
-                <input type="text" id="faceNewName" placeholder="Jeff">
-                <button type="button" onclick="faceTrain()">Start Enroll</button>
+        <div id="otaProgressWrap" class="ota-progress-wrap" style="display:none;">
+            <div class="ota-progress-meta">
+                <span id="otaPhaseLabel">—</span>
+                <span id="otaPctLabel">0%</span>
             </div>
+            <div class="ota-progress-bar"><div id="otaProgressFill" class="ota-progress-fill"></div></div>
+            <div id="otaDetailLine" class="ota-detail"></div>
+        </div>
+        <pre id="otaLogBox" class="ota-log" style="display:none;" aria-live="polite"></pre>
+        <div class="button-container" style="align-items:stretch;">
+            <label for="otaUrl">URL file OTA <small>(OTA file URL)</small>:</label>
+            <input type="url" id="otaUrl" placeholder="URL chuẩn từ Võ Duy Linh…"
+                style="width:100%; box-sizing:border-box; min-height:44px; font-size:15px;">
+            <button type="button" id="otaStartBtn" onclick="startOtaFromURL()">Cập nhật từ URL <small>(Update)</small></button>
+            <button type="button" id="otaRefreshLogBtn" onclick="refreshOtaLogOnly()">Làm mới log <small>(Refresh log)</small></button>
+        </div>
+    </div>
+
+    <div id="xiaozhi" class="container mod-section tab-content">
+        <h2>💜 Xiaozhi AI</h2>
+        <div class="help-box">
+            <strong>Cách dùng <small>(How to use)</small></strong>
+            <ol>
+                <li>Điền OTA / WebSocket (hoặc để mặc định). <em>(Fill OTA / WebSocket, or keep defaults.)</em></li>
+                <li>Bật <b>Xiaozhi</b> → <b>Lưu</b>. <em>(Enable → Save.)</em></li>
+                <li><b>Lấy mã kích hoạt</b> → nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. <em>(Get Code → enter at xiaozhi.me.)</em></li>
+                <li>Hội thoại <b>liên tục</b> = nói tiếp sau câu trả lời; <b>một lượt</b> = tắt mic sau một câu. <em>(Continuous vs single turn.)</em></li>
+                <li>Timeout im lặng = giây chờ trước khi đóng mic. <em>(Idle timeout closes the mic after silence.)</em></li>
+            </ol>
+            <p class="help-warn">Hủy ghép sẽ xóa token — cần lấy mã lại. <em>(Unpair clears the token; you’ll need a new code.)</em></p>
         </div>
         <hr class="smallhr">
+        <div id="xiaozhiStatus"></div>
 
+        <div class="button-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <label>Máy chủ OTA <small>(Server / OTA base URL)</small>:</label>
+            <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
 
-        <div style="margin-top: 12px;">
-            <h3 style="margin: 8px 0; color: #a855f7;">Currently enrolled faces:</h3>
-            <div class="button-container" style="gap: 6px;">
-                <button type="button" id="facesRefreshBtn" onclick="facesRefresh()">Refresh</button>
+            <label>Đầu cuối WebSocket <small>(Endpoint)</small>:</label>
+            <input type="text" id="xzEndpoint" placeholder="wss://api.tenclass.net/xiaozhi/v1/" style="width:100%;max-width:420px">
+
+            <label>ID thiết bị (MAC — để trống sẽ tự điền) <small>(Device ID, auto if blank)</small>:</label>
+            <input type="text" id="xzDeviceID" placeholder="auto" style="width:100%;max-width:420px">
+
+            <label>ID client (UUID — để trống sẽ tự điền) <small>(Client ID, auto if blank)</small>:</label>
+            <input type="text" id="xzClientID" placeholder="auto" style="width:100%;max-width:420px">
+
+            <label>Token:</label>
+            <input type="text" id="xzToken" placeholder="(từ mã kích hoạt / from generate code)" style="width:100%;max-width:420px">
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; align-items:center;">
+                <input type="checkbox" id="xzEnabled">
+                <label class="buttonlabel" for="xzEnabled">Bật Xiaozhi <small>(Enable)</small></label>
+                <input type="checkbox" id="xzAutoApplyOTA">
+                <label class="buttonlabel" for="xzAutoApplyOTA">Tự áp OTA websocket <small>(Auto-apply)</small></label>
             </div>
-            <div id="facesList" class="faces-list"></div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+                <label>Chế độ TTS <small>(TTS Mode)</small>:</label>
+                <select id="xzTTSMode">
+                    <option value="xiaozhi">xiaozhi</option>
+                    <option value="acapela">acapela</option>
+                </select>
+                <label>Hội thoại <small>(Conversation)</small>:</label>
+                <select id="xzConvMode">
+                    <option value="continuous">liên tục (continuous)</option>
+                    <option value="single">một lượt (single)</option>
+                </select>
+                <label>Timeout im lặng (giây) <small>(Idle s)</small>:</label>
+                <input type="number" id="xzIdleTimeout" min="5" max="120" value="20" style="width:70px">
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button onclick="xzSave()">Lưu <small>(Save)</small></button>
+                <button onclick="xzGenerateCode()">Lấy mã kích hoạt <small>(Get Code)</small></button>
+                <button onclick="xzRefresh()">Làm mới token <small>(Refresh)</small></button>
+                <button onclick="xzUnpair()">Hủy ghép <small>(Unpair)</small></button>
+            </div>
+
+            <div id="xzCodeBox" style="display:none; margin-top:10px;">
+                <strong>Mã kích hoạt <small>(Activation Code)</small>:</strong>
+                <span id="xzCode" style="font-size:1.5em; font-weight:bold; letter-spacing:4px; color:#a855f7;"></span>
+                <p style="margin:4px 0; font-size:0.9em; color:#888;">Nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#a855f7;">xiaozhi.me</a> <em>(Enter this code at xiaozhi.me)</em></p>
+            </div>
         </div>
     </div>
 
+    <div id="alexa" class="container mod-section tab-content">
+        <h2>🔊 Amazon Alexa</h2>
+        <div class="help-box">
+            <strong>Cách hoạt động <small>(How it works)</small></strong>
+            <ol>
+                <li><b>Giọng nói:</b> Sau khi liên kết, nói <b>"Alexa"</b> hoặc <b>"Hey Vector"</b> đều được — hai wake word song song. <em>(Voice: both "Alexa" and "Hey Vector" work.)</em></li>
+                <li><b>Nút lưng:</b> Chọn một — bấm nút = gọi Hey Vector <em>hoặc</em> Alexa (không phải cả hai). <em>(Back button: pick one assistant.)</em></li>
+                <li>Sau đăng nhập Alexa thành công, FW thường tự đặt nút = Alexa — bạn có thể đổi lại bên dưới. <em>(FW may auto-set button to Alexa after login.)</em></li>
+            </ol>
+            <p class="help-warn">Nếu Xiaozhi đang bật, "Hey Vector" có thể ưu tiên Xiaozhi thay vì lệnh Vector gốc. <em>(Xiaozhi may capture Hey Vector.)</em></p>
+        </div>
+        <div id="alexaStatus"></div>
+        <div class="button-container" style="gap:8px;">
+            <button type="button" onclick="alexaOptIn(true)">Liên kết Alexa <small>(Link / Sign in)</small></button>
+            <button type="button" onclick="alexaOptIn(false)">Hủy liên kết <small>(Sign out)</small></button>
+            <button type="button" onclick="alexaRefresh()">Làm mới trạng thái <small>(Refresh)</small></button>
+        </div>
+        <hr class="smallhr">
+        <h3 style="color:#a855f7; margin:8px 0;">Nút lưng bấm gọi ai? <small class="sub">(Back button wakes)</small></h3>
+        <div class="bot-opt-list">
+            <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
+            <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
+        </div>
+    </div>
+
+    <div id="control" class="container mod-section tab-content">
+        <h2>🎮 Điều khiển (beta) <small class="sub">(Control)</small></h2>
+        <div class="help-box">
+            <strong>Cách dùng <small>(How to use)</small></strong>
+            <ol>
+                <li>Bấm <b>Chiếm quyền (Assume)</b> trước — lúc đó mới lái / tay / đầu / gương được. <em>(Assume first, then you can control.)</em></li>
+                <li>Dùng pad / camera khi đang chiếm quyền. <em>(Use the pad / camera while assumed.)</em></li>
+                <li>Xong thì bấm <b>Nhả quyền (Release)</b> — robot mới về trạng thái tự nhiên / Xiaozhi. <em>(Release to return to freeplay.)</em></li>
+            </ol>
+            <p class="help-warn">Nếu thoát mà không nhả quyền, robot có thể kẹt không tự chơi lại. <em>(Leaving without Release may block freeplay until Release or restart.)</em></p>
+        </div>
+        <div id="controlStatus"></div>
+        <hr class="smallhr">
+
+        <div class="button-container" style="justify-content:center; gap:8px;">
+            <button type="button" id="ctrlAssumeBtn" onclick="ctrlAssume()">1. Chiếm quyền <small>(Assume)</small></button>
+            <button type="button" id="ctrlReleaseBtn" onclick="ctrlRelease()">3. Nhả quyền <small>(Release)</small></button>
+        </div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#a855f7;">📷 Luồng camera <small class="sub">(Camera stream)</small></h3>
+        <div class="button-container" style="justify-content:center; gap:8px;">
+            <button type="button" id="ctrlCamOnBtn" onclick="ctrlCamStart()">Bật camera <small>(ON)</small></button>
+            <button type="button" onclick="ctrlCamStop()">Tắt camera <small>(OFF)</small></button>
+        </div>
+        <div id="ctrlCamBox" class="ctrl-cam" style="display:none;"></div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#a855f7;">🪞 Gương trên mặt <small class="sub">(Mirror)</small></h3>
+        <div class="button-container" style="justify-content:center; gap:8px;">
+            <button type="button" id="ctrlMirrorOn" disabled onclick="ctrlMirror(true)">Bật gương <small>(ON)</small></button>
+            <button type="button" id="ctrlMirrorOff" disabled onclick="ctrlMirror(false)">Tắt gương <small>(OFF)</small></button>
+        </div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#a855f7;">🕹️ Bàn điều khiển <small class="sub">(Control pad)</small></h3>
+        <div class="ctrl-grid" id="ctrlGrid">
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlLiftHold(2,event)" onpointerup="ctrlLiftStop(event)"
+                onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Nâng tay<br><small>Lift ↑</small></button>
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHold(140,140,event)" onpointerup="ctrlStop(event)"
+                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Tiến<br><small>Forward ↑</small></button>
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHeadHold(2,event)" onpointerup="ctrlHeadStop(event)"
+                onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Ngẩng<br><small>Head ↑</small></button>
+
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHold(-160,160,event)" onpointerup="ctrlStop(event)"
+                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Trái ↺<br><small>Left</small></button>
+            <button type="button" class="ctrl-btn ctrl-stop" disabled
+                onclick="ctrlStopAll(event)">Dừng<br><small>Stop ■</small></button>
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHold(160,-160,event)" onpointerup="ctrlStop(event)"
+                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Phải ↻<br><small>Right</small></button>
+
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlLiftHold(-2,event)" onpointerup="ctrlLiftStop(event)"
+                onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Hạ tay<br><small>Lift ↓</small></button>
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHold(-140,-140,event)" onpointerup="ctrlStop(event)"
+                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Lùi<br><small>Back ↓</small></button>
+            <button type="button" class="ctrl-btn" disabled
+                onpointerdown="ctrlHeadHold(-2,event)" onpointerup="ctrlHeadStop(event)"
+                onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Cúi<br><small>Head ↓</small></button>
+        </div>
+        <p style="font-size:0.8em; color:#888; margin-top:8px;">Giữ để chạy — giữa = dừng hết. <em>(Hold to move — center stops all.)</em></p>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#a855f7;">🗣 Robot nói <small class="sub">(Say Text)</small></h3>
+        <div class="help-box">
+            <ol>
+                <li>Cần <b>Chiếm quyền</b> trước. <em>(Assume control first.)</em></li>
+                <li>Nhập câu → Gửi — Vector nói bằng giọng máy. <em>(Type → Submit — Vector voice.)</em></li>
+            </ol>
+        </div>
+        <div class="button-container" style="gap:6px; flex-wrap:wrap;">
+            <input type="text" id="ctrlSayText" placeholder="Put text here (Nhập nội dung)" disabled style="flex:1; min-width:180px;">
+            <button type="button" id="ctrlSayBtn" disabled onclick="ctrlSayText()">Gửi <small>(Submit)</small></button>
+        </div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#a855f7;">🔊 Phát âm thanh <small class="sub">(Play Audio)</small></h3>
+        <div class="help-box">
+            <ol>
+                <li>Chọn file <b>.wav</b> — trình duyệt resample 8 kHz mono rồi gửi. <em>(Pick .wav — client resamples to 8 kHz mono.)</em></li>
+                <li>Nghe thử nếu muốn, rồi <b>Gửi file</b>. <em>(Optional preview, then Send.)</em></li>
+            </ol>
+        </div>
+        <div class="button-container" style="gap:6px; flex-wrap:wrap;">
+            <input type="file" id="ctrlAudioFile" accept=".wav,audio/wav">
+            <button type="button" id="ctrlAudioSendBtn" style="display:none;" onclick="ctrlSendAudio()">Gửi file <small>(Send Audio)</small></button>
+        </div>
+        <audio id="ctrlAudioPreview" controls style="width:100%; max-width:420px; margin-top:8px;"></audio>
+    </div>
+
+    <div id="about" class="container mod-section tab-content">
+        <h2>Giới thiệu <small class="sub">(About)</small></h2>
+        <div class="about-card">
+            <div class="about-logo" aria-hidden="true">🤖</div>
+            <p class="about-title">Phần mềm quản lý / tùy biến Vector</p>
+            <p class="about-sub"><em>(Vector management &amp; customization software)</em></p>
+            <hr class="smallhr">
+            <p class="about-dev">
+                Phát triển bởi<br>
+                <strong>Võ Duy Linh</strong>
+            </p>
+            <p class="about-support">
+                Cần hỗ trợ / lấy URL cập nhật chuẩn:<br>
+                <em>(Support / official OTA URL:)</em>
+            </p>
+            <a class="about-phone" href="tel:0394273773">0394273773</a>
+            <p class="about-note">
+                Chỉ dùng OTA / hướng dẫn từ người phát triển — tránh nguồn lạ dễ làm hỏng robot.
+                <em>(Only use official OTA / guidance — unknown sources may brick the robot.)</em>
+            </p>
+        </div>
+    </div>
 
     <div id="showDuringVicRestart" class="container" style="display: none;">
-        <h1>Vector is restarting, please wait...</h1>
+        <h1>Robot đang khởi động lại, vui lòng chờ... <small class="sub">(Restarting, please wait...)</small></h1>
     </div>
     <div id="restartNeeded" class="container" style="display: none;">
-        <h2>A vic restart is required for changes to take affect.</h2>
-        <input type="button" value="Restart" id="restartButton" onclick="RestartVic()">
+        <h2>Cần khởi động lại để áp dụng thay đổi. <small class="sub">(Restart required.)</small></h2>
+        <input type="button" value="Khởi động lại (Restart)" id="restartButton" onclick="RestartVic()">
     </div>
     <script src="js/main.js"></script>
     <script src="js/freq.js"></script>
@@ -184,6 +653,11 @@
     <script src="js/sensitivity-pv.js"></script>
     <script src="js/jdoc-settings.js"></script>
     <script src="js/faces.js"></script>
+    <script src="js/photos.js"></script>
+    <script src="js/xiaozhi.js"></script>
+    <script src="js/alexa.js"></script>
+    <script src="js/control.js"></script>
+    <script src="js/stim-stats.js"></script>
 </body>
 
 </html>

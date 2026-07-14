@@ -5,33 +5,29 @@ function setWakeStatus(status) {
 
 async function genWakeWord() {
     const kw = document.getElementById('keyword').value;
-    setWakeStatus('Generating wake word...');
-    //['genWakeWord', 'keyword', 'revertDefaultWakeWord', 'keywordLabel'].forEach(hide);
+    setWakeStatus('Đang tạo từ đánh thức... (Generating...)');
     try {
         const res = await fetch(`/api/mods/WakeWordPV/request-model?keyword=${kw}`);
         if (!res.ok) {
             const e = await res.json();
             setWakeStatus(`${e.status}: ${e.message}`);
         } else {
-            setWakeStatus('Wake word generated and installed. Restarting...');
+            setWakeStatus('Đã tạo và cài — đang khởi động lại... (Installed. Restarting...)');
             await RestartVic();
-            setWakeStatus('Your new wake word is now implemented.');
+            setWakeStatus('Từ đánh thức mới đã sẵn sàng. (New wake word ready.)');
         }
     } catch (e) {
-        setWakeStatus(`network error: ${e.message}`);
+        setWakeStatus(`Lỗi mạng (network error): ${e.message}`);
     } finally {
-        //['keyword', 'genWakeWord', 'revertDefaultWakeWord', 'keywordLabel'].forEach(show);
     }
 }
 
 async function revertDefaultWakeWord() {
-    setWakeStatus('Deleting wake word...');
-    // ['genWakeWord', 'keyword', 'revertDefaultWakeWord', 'keywordLabel'].forEach(hide);
+    setWakeStatus('Đang xóa từ tùy chỉnh... (Deleting...)');
     await fetch('/api/mods/WakeWordPV/delete-model');
-    setWakeStatus('Custom model deleted. Restarting...');
+    setWakeStatus('Đã xóa — đang khởi động lại... (Deleted. Restarting...)');
     await RestartVic();
-    setWakeStatus('Custom model deleted.');
-    //['keyword', 'genWakeWord', 'keywordLabel', 'revertDefaultWakeWord'].forEach(show);
+    setWakeStatus('Đã về mặc định. (Reverted to default.)');
 }
 
 async function RestartVic() {
