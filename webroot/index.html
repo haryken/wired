@@ -320,13 +320,30 @@
         </div>
 
         <div id="bot-wake" class="bot-section" style="display:none;">
-            <h3>🎤 Từ đánh thức tùy chỉnh <small class="sub">(Custom Wake Word)</small></h3>
+            <h3>🎤 Đánh thức / Wake word</h3>
+            <div class="help-box">
+                <strong>Chọn engine <small>(Wake engine)</small></strong>
+                <ul>
+                    <li><b>Picovoice</b> — từ tùy chỉnh + độ nhạy 0–1 (WireOS mặc định).</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock Anki; theo <b>locale bot</b> (en-US / en-AU / en-GB / …), không dùng slider Picovoice.</li>
+                </ul>
+                <p class="help-warn">Đổi engine sẽ khởi động lại anim. Cần model Sensory trên robot nếu chọn THF.</p>
+            </div>
+            <div id="wakeEngineStatus"></div>
+            <div class="button-container" style="margin-bottom:16px;">
+                <label><input type="radio" name="wakeEngine" value="picovoice" id="wakeEnginePv" onchange="onWakeEngineRadio()"> Picovoice (custom)</label>
+                <label style="margin-left:12px;"><input type="radio" name="wakeEngine" value="thf" id="wakeEngineThf" onchange="onWakeEngineRadio()"> Hey Vector (THF / stock)</label>
+                <button type="button" onclick="saveWakeEngine()">Lưu engine + restart <small>(Save)</small></button>
+            </div>
+
+            <div id="wakePicovoicePanel">
+            <h3>Từ đánh thức tùy chỉnh <small class="sub">(Custom — Picovoice only)</small></h3>
             <div class="help-box">
                 <strong>Cách dùng <small>(How to use)</small></strong>
                 <ol>
                     <li>Nhập từ muốn dùng — ít nhất <b>2 âm tiết</b>, <b>5+ chữ cái</b>. <em>(At least two syllables, 5+ letters.)</em></li>
                     <li>Bấm <b>Tạo từ đánh thức</b> — robot sẽ tải model rồi khởi động lại. <em>(Generate — installs model then restarts.)</em></li>
-                    <li>Muốn về “Hey Vector”: bấm <b>Về mặc định</b>. <em>(Revert restores the default wake word.)</em></li>
+                    <li>Muốn về “Hey Vector” mặc định Picovoice: bấm <b>Về mặc định</b>. <em>(Revert restores default .ppn.)</em></li>
                 </ol>
                 <p class="help-warn">Trong lúc khởi động lại, đợi trang báo xong rồi mới gọi. <em>(Wait until restart finishes before calling the robot.)</em></p>
             </div>
@@ -336,6 +353,14 @@
                 <input type="text" placeholder="Hey Vector" id="keyword">
                 <button id="genWakeWord" onclick="genWakeWord()">Tạo từ đánh thức <small>(Generate)</small></button>
                 <button id="revertDefaultWakeWord" onclick="revertDefaultWakeWord()">Về mặc định <small>(Revert)</small></button>
+            </div>
+            </div>
+
+            <div id="wakeThfPanel" style="display:none;">
+                <div class="help-box">
+                    <p>THF dùng model “Hey Vector” theo locale robot (Cài đặt → ngôn ngữ / locale). Đổi <b>en-US ↔ en-AU</b> ở bot settings rồi restart nếu cần.</p>
+                    <p><em>THF follows bot locale models — change locale in bot settings for AU/US/UK/…</em></p>
+                </div>
             </div>
         </div>
 
@@ -349,7 +374,7 @@
                     <li><b>Thấp hơn</b> = khó đánh thức hơn (ít nhầm). <em>(Lower = harder wake, fewer false triggers.)</em></li>
                     <li>Bấm <b>Đặt</b> — robot khởi động lại để áp dụng. <em>(Set — robot restarts to apply.)</em></li>
                 </ol>
-                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. <em>(Valid range: 0.001 – 0.999.)</em></p>
+                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. Chỉ áp dụng khi engine = <b>Picovoice</b>. <em>(Picovoice only.)</em></p>
             </div>
             <div class="button-container">
                 <input type="range" id="sensitivitySlider" min="0.001" max="0.999" step="0.001" value="0.500"
@@ -649,6 +674,7 @@
     </div>
     <script src="js/main.js"></script>
     <script src="js/freq.js"></script>
+    <script src="js/wake-engine.js"></script>
     <script src="js/wakeword-pv.js"></script>
     <script src="js/auto-update.js"></script>
     <script src="js/sensitivity-pv.js"></script>
