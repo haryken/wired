@@ -8,6 +8,9 @@ async function setSensitivity() {
     inp.value = v;
 }
 async function sendSensitivity() {
+    if (typeof isWakeThf === 'function' && isWakeThf()) {
+        return alert('Độ nhạy chỉ dùng với Picovoice. (Sensitivity is Picovoice-only.)');
+    }
     const raw = document.getElementById('sensitivityInput').value;
     const v = parseFloat(raw);
     if (!validateSensitivity(v)) return alert('Giá trị phải từ 0.001 đến 0.999. (Value must be between 0.001 and 0.999)');

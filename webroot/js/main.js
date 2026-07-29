@@ -28,7 +28,7 @@ if (navSelect) {
 // Legacy hashes → bot settings child sections
 const legacyBotHash = {
     '#mainmods': 'bot-perf',
-    '#cww': 'bot-wake',
+    '#cww': 'bot-cww',
     '#sensitivity': 'bot-sens',
 };
 

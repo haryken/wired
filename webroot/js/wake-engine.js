@@ -1,32 +1,154 @@
+let wakeEngineLoading = false;
+let wakeLocaleLoading = false;
+let currentWakeEngine = 'thf';
+
+function isWakeThf() {
+    return currentWakeEngine === 'thf';
+}
+
 async function loadWakeEngine() {
+    wakeEngineLoading = true;
     try {
         const res = await fetch('/api/mods/WakeEngine/get');
-        const engine = (await res.text()).trim() || 'picovoice';
+        const engine = (await res.text()).trim() || 'thf';
+        currentWakeEngine = (engine === 'picovoice') ? 'picovoice' : 'thf';
         const pv = document.getElementById('wakeEnginePv');
         const thf = document.getElementById('wakeEngineThf');
         if (pv && thf) {
-            pv.checked = engine !== 'thf';
-            thf.checked = engine === 'thf';
+            pv.checked = currentWakeEngine === 'picovoice';
+            thf.checked = currentWakeEngine === 'thf';
         }
-        onWakeEngineRadio();
+        applyWakeEngineUi();
     } catch (e) {
         setWakeEngineStatus('Không đọc được engine: ' + e.message);
+    } finally {
+        wakeEngineLoading = false;
+    }
+}
+
+function setWakeLocaleStatus(msg) {
+    const el = document.getElementById('wakeLocaleStatus');
+    if (el) el.innerHTML = `<p>${msg}</p>`;
+}
+
+async function loadWakeLocale() {
+    wakeLocaleLoading = true;
+    try {
+        const res = await fetch('/api/mods/JdocSettings/getLocale');
+        if (!res.ok) {
+            setWakeLocaleStatus('Không đọc được locale');
+            return;
+        }
+        const locale = (await res.text()).trim() || 'en-AU';
+        let matched = false;
+        document.querySelectorAll('input[name="wakeLocale"]').forEach((el) => {
+            el.checked = el.value === locale;
+            if (el.checked) matched = true;
+        });
+        if (!matched) {
+            setWakeLocaleStatus('Model giọng hiện tại: ' + locale + ' (không có trong list)');
+        } else {
+            setWakeLocaleStatus('Model giọng hiện tại: ' + locale);
+        }
+    } catch (e) {
+        setWakeLocaleStatus('Không đọc được locale: ' + e.message);
+    } finally {
+        wakeLocaleLoading = false;
+    }
+}
+
+async function onWakeLocaleChange(locale) {
+    if (wakeLocaleLoading) return;
+    if (!isWakeThf()) {
+        setWakeLocaleStatus('Locale chỉ dùng khi engine = THF');
+        await loadWakeLocale();
+        return;
+    }
+    setWakeLocaleStatus('Đang lưu ' + locale + '...');
+    try {
+        const res = await fetch('/api/mods/JdocSettings/setLocale?locale=' + encodeURIComponent(locale));
+        if (!res.ok) {
+            let msg = 'Lỗi lưu locale';
+            try {
+                const e = await res.json();
+                if (e.message) msg = e.message;
+            } catch (_) {}
+            setWakeLocaleStatus(msg);
+            await loadWakeLocale();
+            return;
+        }
+        setWakeLocaleStatus('Đã lưu: ' + locale);
+    } catch (e) {
+        setWakeLocaleStatus('Lỗi: ' + e.message);
+        await loadWakeLocale();
+    }
+}
+
+function setNavDisabled(btn, disabled, title) {
+    if (!btn) return;
+    btn.classList.toggle('disabled', !!disabled);
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    btn.title = title || '';
+    if (disabled) {
+        btn.dataset.wakeLocked = '1';
+    } else {
+        delete btn.dataset.wakeLocked;
+    }
+}
+
+function setControlsDisabled(rootId, disabled) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    root.querySelectorAll('input, button, select, textarea').forEach((el) => {
+        el.disabled = !!disabled;
+    });
+    root.style.opacity = disabled ? '0.45' : '';
+    root.style.pointerEvents = disabled ? 'none' : '';
+}
+
+function applyWakeEngineUi() {
+    const useThf = isWakeThf();
+    const thfHint = document.getElementById('wakeThfHint');
+    if (thfHint) thfHint.style.display = useThf ? '' : 'none';
+
+    const cwwNav = document.getElementById('navCww');
+    const sensNav = document.getElementById('navSens');
+    const localeNav = document.getElementById('navLocale');
+    setNavDisabled(cwwNav, useThf, useThf ? 'Chỉ Picovoice' : '');
+    setNavDisabled(sensNav, useThf, useThf ? 'Chỉ Picovoice' : '');
+    setNavDisabled(localeNav, !useThf, !useThf ? 'Chỉ THF' : '');
+
+    const cwwLock = document.getElementById('cwwEngineLock');
+    const sensLock = document.getElementById('sensEngineLock');
+    const localeLock = document.getElementById('localeEngineLock');
+    if (cwwLock) cwwLock.style.display = useThf ? '' : 'none';
+    if (sensLock) sensLock.style.display = useThf ? '' : 'none';
+    if (localeLock) localeLock.style.display = useThf ? 'none' : '';
+
+    setControlsDisabled('cwwControls', useThf);
+    setControlsDisabled('sensControls', useThf);
+    setControlsDisabled('localeControls', !useThf);
+
+    // Close locked sections if currently open
+    const closeIfOpen = (secId, navBtn) => {
+        const sec = document.getElementById(secId);
+        if (sec && sec.style.display !== 'none') {
+            sec.style.display = 'none';
+            if (navBtn) navBtn.classList.remove('active');
+        }
+    };
+    if (useThf) {
+        closeIfOpen('bot-cww', cwwNav);
+        closeIfOpen('bot-sens', sensNav);
+    } else {
+        closeIfOpen('bot-locale', localeNav);
     }
 }
 
 function onWakeEngineRadio() {
     const thf = document.getElementById('wakeEngineThf');
-    const useThf = thf && thf.checked;
-    const pvPanel = document.getElementById('wakePicovoicePanel');
-    const thfPanel = document.getElementById('wakeThfPanel');
-    if (pvPanel) pvPanel.style.display = useThf ? 'none' : '';
-    if (thfPanel) thfPanel.style.display = useThf ? '' : 'none';
-    // Sensitivity (bot-sens) is Picovoice-only — dim nav hint via status if THF
-    const sensNav = document.querySelector('[onclick*="bot-sens"]');
-    if (sensNav) {
-        sensNav.style.opacity = useThf ? '0.45' : '';
-        sensNav.title = useThf ? 'Chỉ Picovoice (Picovoice only)' : '';
-    }
+    currentWakeEngine = (thf && thf.checked) ? 'thf' : 'picovoice';
+    applyWakeEngineUi();
 }
 
 function setWakeEngineStatus(msg) {
@@ -36,12 +158,15 @@ function setWakeEngineStatus(msg) {
 
 async function saveWakeEngine() {
     const thf = document.getElementById('wakeEngineThf');
-    const engine = (thf && thf.checked) ? 'thf' : 'picovoice';
+    currentWakeEngine = (thf && thf.checked) ? 'thf' : 'picovoice';
+    applyWakeEngineUi();
+    const engine = isWakeThf() ? 'thf' : 'picovoice';
     setWakeEngineStatus('Đang lưu ' + engine + '...');
     try {
         const res = await fetch('/api/mods/WakeEngine/set?engine=' + encodeURIComponent(engine));
         if (!res.ok) {
             setWakeEngineStatus('Lỗi lưu engine');
+            await loadWakeEngine();
             return;
         }
         setWakeEngineStatus('Đã lưu — đang restart anim...');
@@ -50,9 +175,11 @@ async function saveWakeEngine() {
         await loadWakeEngine();
     } catch (e) {
         setWakeEngineStatus('Lỗi: ' + e.message);
+        await loadWakeEngine();
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     loadWakeEngine();
+    loadWakeLocale();
 });

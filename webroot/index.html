@@ -74,13 +74,21 @@
                 <span class="bot-ico" aria-hidden="true">⚡</span>
                 Hiệu năng<br><small>(Performance)</small>
             </button>
-            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-wake')">
-                <span class="bot-ico" aria-hidden="true">🎤</span>
-                Từ đánh thức<br><small>(Wake Word)</small>
+            <button type="button" class="bot-nav-item" id="navWakeEngine" onclick="showBotSection('bot-wake')">
+                <span class="bot-ico" aria-hidden="true">🎛</span>
+                Engine đánh thức<br><small>(Wake Engine)</small>
             </button>
-            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-sens')">
+            <button type="button" class="bot-nav-item" id="navCww" onclick="showBotSection('bot-cww')">
+                <span class="bot-ico" aria-hidden="true">🎤</span>
+                Từ đánh thức<br><small>(Custom Word)</small>
+            </button>
+            <button type="button" class="bot-nav-item" id="navSens" onclick="showBotSection('bot-sens')">
                 <span class="bot-ico" aria-hidden="true">📶</span>
                 Độ nhạy<br><small>(Sensitivity)</small>
+            </button>
+            <button type="button" class="bot-nav-item" id="navLocale" onclick="showBotSection('bot-locale')">
+                <span class="bot-ico" aria-hidden="true">🗣</span>
+                Giọng THF<br><small>(Accent / wake)</small>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
                 <span class="bot-ico" aria-hidden="true">😊</span>
@@ -320,24 +328,35 @@
         </div>
 
         <div id="bot-wake" class="bot-section" style="display:none;">
-            <h3>🎤 Đánh thức / Wake word</h3>
+            <h3>🎛 Engine đánh thức <small class="sub">(Wake Engine)</small></h3>
             <div class="help-box">
                 <strong>Chọn engine <small>(Wake engine)</small></strong>
                 <ul>
-                    <li><b>Picovoice</b> — từ tùy chỉnh + độ nhạy 0–1 (WireOS mặc định).</li>
-                    <li><b>Hey Vector (THF)</b> — Sensory stock Anki; theo <b>locale bot</b> (en-US / en-AU / en-GB / …), không dùng slider Picovoice.</li>
+                    <li><b>Picovoice</b> — mở khóa <b>Từ đánh thức</b> + <b>Độ nhạy</b>.</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Giọng THF</b> (model giọng / độ nhạy wake).</li>
                 </ul>
-                <p class="help-warn">Đổi engine sẽ khởi động lại anim. Cần model Sensory trên robot nếu chọn THF.</p>
+                <p class="help-warn">Chọn radio rồi bấm <b>Lưu engine + restart</b> để áp dụng.</p>
             </div>
             <div id="wakeEngineStatus"></div>
-            <div class="button-container" style="margin-bottom:16px;">
+            <div class="bot-opt-list" style="margin-bottom:12px;">
                 <label><input type="radio" name="wakeEngine" value="picovoice" id="wakeEnginePv" onchange="onWakeEngineRadio()"> Picovoice (custom)</label>
-                <label style="margin-left:12px;"><input type="radio" name="wakeEngine" value="thf" id="wakeEngineThf" onchange="onWakeEngineRadio()"> Hey Vector (THF / stock)</label>
+                <label><input type="radio" name="wakeEngine" value="thf" id="wakeEngineThf" onchange="onWakeEngineRadio()"> Hey Vector (THF / stock)</label>
+            </div>
+            <div class="button-container" style="margin-bottom:16px;">
                 <button type="button" onclick="saveWakeEngine()">Lưu engine + restart <small>(Save)</small></button>
             </div>
+            <div id="wakeThfHint" class="help-box" style="display:none;">
+                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Giọng THF</b> (không phải đổi ngôn ngữ robot).</p>
+                <p><em>Use Giọng THF for accent/wake sensitivity — not UI language.</em></p>
+            </div>
+        </div>
 
-            <div id="wakePicovoicePanel">
-            <h3>Từ đánh thức tùy chỉnh <small class="sub">(Custom — Picovoice only)</small></h3>
+        <div id="bot-cww" class="bot-section" style="display:none;">
+            <h3>🎤 Từ đánh thức tùy chỉnh <small class="sub">(Custom — Picovoice)</small></h3>
+            <div id="cwwEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
+            </div>
+            <div id="cwwControls">
             <div class="help-box">
                 <strong>Cách dùng <small>(How to use)</small></strong>
                 <ol>
@@ -355,17 +374,14 @@
                 <button id="revertDefaultWakeWord" onclick="revertDefaultWakeWord()">Về mặc định <small>(Revert)</small></button>
             </div>
             </div>
-
-            <div id="wakeThfPanel" style="display:none;">
-                <div class="help-box">
-                    <p>THF dùng model “Hey Vector” theo locale robot (Cài đặt → ngôn ngữ / locale). Đổi <b>en-US ↔ en-AU</b> ở bot settings rồi restart nếu cần.</p>
-                    <p><em>THF follows bot locale models — change locale in bot settings for AU/US/UK/…</em></p>
-                </div>
-            </div>
         </div>
 
         <div id="bot-sens" class="bot-section" style="display:none;">
             <h3>📶 Độ nhạy từ đánh thức <small class="sub">(Wakeword Sensitivity)</small></h3>
+            <div id="sensEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
+            </div>
+            <div id="sensControls">
             <div class="help-box">
                 <strong>Cách dùng <small>(How to use)</small></strong>
                 <ol>
@@ -374,7 +390,7 @@
                     <li><b>Thấp hơn</b> = khó đánh thức hơn (ít nhầm). <em>(Lower = harder wake, fewer false triggers.)</em></li>
                     <li>Bấm <b>Đặt</b> — robot khởi động lại để áp dụng. <em>(Set — robot restarts to apply.)</em></li>
                 </ol>
-                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. Chỉ áp dụng khi engine = <b>Picovoice</b>. <em>(Picovoice only.)</em></p>
+                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. Chỉ Picovoice. <em>(Picovoice only.)</em></p>
             </div>
             <div class="button-container">
                 <input type="range" id="sensitivitySlider" min="0.001" max="0.999" step="0.001" value="0.500"
@@ -382,6 +398,29 @@
                 <input type="number" id="sensitivityInput" min="0.001" max="0.999" step="0.001" value="0.500"
                     oninput="document.getElementById('sensitivitySlider').value = this.value">
                 <button id="setSensitivityBtn" onclick="sendSensitivity()">Đặt <small>(Set)</small></button>
+            </div>
+            </div>
+        </div>
+
+        <div id="bot-locale" class="bot-section" style="display:none;">
+            <h3>🗣 Giọng THF <small class="sub">(Accent / wake sensitivity — not language)</small></h3>
+            <div id="localeEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Hey Vector (THF)</b>. Đang Picovoice — mục này bị khóa.</p>
+            </div>
+            <div id="localeControls">
+            <div class="help-box">
+                <p><b>Không phải đổi ngôn ngữ.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
+                <p>★ <b>en-AU</b> thường <b>nhạy nhất với người Việt</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
+                <p><em>Accent profile for wake detection — not robot language. ★ en-AU recommended for Vietnamese speakers.</em></p>
+            </div>
+            <div id="wakeLocaleStatus"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ en-AU <small>(Úc — khuyến nghị cho người Việt / most sensitive)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> en-US <small>(Mỹ — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> en-GB <small>(Anh — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> fr-FR <small>(Pháp — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> de-DE <small>(Đức — cần phát âm chuẩn hơn)</small></label>
+            </div>
             </div>
         </div>
 

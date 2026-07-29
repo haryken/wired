@@ -36,10 +36,11 @@ func (modu *WakeEngine) Description() string {
 func normalizeWakeEngine(s string) string {
 	s = strings.TrimSpace(strings.ToLower(s))
 	switch s {
-	case WakeEngineTHF, "sensory", "hey_vector_thf", "heyvector", "stock":
-		return WakeEngineTHF
-	default:
+	case WakeEnginePicovoice, "pv", "porcupine", "custom":
 		return WakeEnginePicovoice
+	default:
+		// Empty / missing / thf / sensory → WireOS OTA default THF
+		return WakeEngineTHF
 	}
 }
 
@@ -47,7 +48,7 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 	if vars.IsEndpoint(r, "get") {
 		f, err := vars.ReadFile(WakeEngineLocation)
 		if err != nil || strings.TrimSpace(f) == "" {
-			f = WakeEnginePicovoice
+			f = WakeEngineTHF
 		}
 		w.Write([]byte(normalizeWakeEngine(f)))
 		return
@@ -66,5 +67,10 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (modu *WakeEngine) Load() error {
+	// Seed OTA default on first boot so file exists for anim + UI.
+	if _, err := os.Stat(WakeEngineLocation); os.IsNotExist(err) {
+		_ = os.MkdirAll(filepath.Dir(WakeEngineLocation), 0777)
+		vars.SaveFile(WakeEngineTHF+"\n", WakeEngineLocation)
+	}
 	return nil
 }

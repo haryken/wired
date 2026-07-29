@@ -4,6 +4,10 @@ function setWakeStatus(status) {
 }
 
 async function genWakeWord() {
+    if (typeof isWakeThf === 'function' && isWakeThf()) {
+        setWakeStatus('Từ tùy chỉnh chỉ dùng với Picovoice. (Picovoice only.)');
+        return;
+    }
     const kw = document.getElementById('keyword').value;
     setWakeStatus('Đang tạo từ đánh thức... (Generating...)');
     try {
@@ -23,6 +27,10 @@ async function genWakeWord() {
 }
 
 async function revertDefaultWakeWord() {
+    if (typeof isWakeThf === 'function' && isWakeThf()) {
+        setWakeStatus('Từ tùy chỉnh chỉ dùng với Picovoice. (Picovoice only.)');
+        return;
+    }
     setWakeStatus('Đang xóa từ tùy chỉnh... (Deleting...)');
     await fetch('/api/mods/WakeWordPV/delete-model');
     setWakeStatus('Đã xóa — đang khởi động lại... (Deleted. Restarting...)');

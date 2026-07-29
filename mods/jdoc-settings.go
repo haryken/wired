@@ -149,6 +149,20 @@ func (m *JdocSettings) HTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write([]byte(ret))
 		return
+	case "getLocale":
+		locale, err := getLocale()
+		if err != nil {
+			vars.HTTPError(w, r, err.Error())
+			return
+		}
+		w.Write([]byte(locale))
+		return
+	case "setLocale":
+		locale := r.FormValue("locale")
+		if err := setLocale(locale); err != nil {
+			vars.HTTPError(w, r, err.Error())
+			return
+		}
 	default:
 		vars.HTTPError(w, r, "404 not found")
 	}
@@ -171,6 +185,37 @@ func setTimezone(timezone string) error {
 
 func setFahrenheit(isF bool) error {
 	return setSettingSDKintbool("temp_is_fahrenheit", fmt.Sprint(isF))
+}
+
+// Locales that have Sensory THF "Hey Vector" models in micTriggerConfig.json.
+var allowedLocales = map[string]bool{
+	"en-US": true,
+	"en-GB": true,
+	"en-AU": true,
+	"fr-FR": true,
+	"de-DE": true,
+}
+
+func setLocale(locale string) error {
+	locale = strings.TrimSpace(locale)
+	if locale == "" {
+		return errors.New("empty locale")
+	}
+	if !allowedLocales[locale] {
+		return fmt.Errorf("unsupported locale %q (use en-US, en-GB, en-AU, fr-FR, de-DE)", locale)
+	}
+	return setSettingSDKstring("locale", locale)
+}
+
+func getLocale() (string, error) {
+	doc, err := pullRobotSettings()
+	if err != nil {
+		return "", err
+	}
+	if doc.Locale == "" {
+		return "en-AU", nil
+	}
+	return doc.Locale, nil
 }
 
 type eyeColorSettingResponse struct {

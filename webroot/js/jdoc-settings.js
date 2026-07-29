@@ -257,6 +257,22 @@ async function applyCustomEyeColor() {
 }
 
 function showBotSection(id) {
+    // Gate engine-specific tiles
+    if ((id === 'bot-sens' || id === 'bot-cww') && typeof isWakeThf === 'function' && isWakeThf()) {
+        if (typeof setJdocStatus === 'function') {
+            setJdocStatus(id === 'bot-cww'
+                ? 'Từ đánh thức tùy chỉnh chỉ dùng khi engine = Picovoice.'
+                : 'Độ nhạy chỉ dùng khi engine = Picovoice.');
+        }
+        return;
+    }
+    if (id === 'bot-locale' && typeof isWakeThf === 'function' && !isWakeThf()) {
+        if (typeof setJdocStatus === 'function') {
+            setJdocStatus('Giọng THF chỉ dùng khi engine = Hey Vector (THF).');
+        }
+        return;
+    }
+
     document.querySelectorAll('.bot-section').forEach((el) => {
         el.style.display = 'none';
     });
@@ -274,6 +290,7 @@ function showBotSection(id) {
     if (id === 'bot-volume') getMasterVolume();
     if (id === 'bot-eyes') getEyePreset();
     if (id === 'bot-sens' && typeof setSensitivity === 'function') setSensitivity();
+    if (id === 'bot-locale' && typeof loadWakeLocale === 'function') loadWakeLocale();
     if (id === 'bot-stim' && typeof stimStart === 'function') stimStart();
     else if (typeof stimStop === 'function') stimStop();
     if (id === 'bot-stats' && typeof statsRefresh === 'function') statsRefresh();
