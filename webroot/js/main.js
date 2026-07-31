@@ -48,6 +48,18 @@ if (legacyBotHash[location.hash]) {
 function hide(id) { document.getElementById(id).style.display = 'none'; }
 function show(id) { document.getElementById(id).style.display = 'block'; }
 
+function showVoiceMode(mode) {
+    const xz = document.getElementById('voice-mode-xz');
+    const vosk = document.getElementById('voice-mode-vosk');
+    if (!xz || !vosk) return;
+    const isXz = mode !== 'vosk';
+    xz.style.display = isXz ? 'block' : 'none';
+    vosk.style.display = isXz ? 'none' : 'block';
+    document.querySelectorAll('.voice-mode-btn').forEach((b) => {
+        b.classList.toggle('active', b.dataset.voiceMode === (isXz ? 'xz' : 'vosk'));
+    });
+}
+
 async function GetCurrent(mod) {
     let res = await fetch(`/api/mods/${mod}/get`);
     return res.text();

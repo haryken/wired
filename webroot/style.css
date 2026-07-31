@@ -164,6 +164,109 @@ header h1 {
     color: #e8b86d;
 }
 
+.mode-switch-box .mode-compare {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.mode-card {
+    flex: 1 1 240px;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.mode-card h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+
+.mode-card ul {
+    margin: 0;
+    padding-left: 1.15em;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.mode-card li {
+    margin: 4px 0;
+}
+
+.mode-on {
+    border-color: #5b8a72;
+}
+
+.mode-off {
+    border-color: #7a6a4a;
+}
+
+.mode-tip {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #aaa;
+}
+
+.voice-mode-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 12px;
+}
+
+.voice-mode-btn {
+    flex: 1 1 160px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    background: #2a2a2a;
+    color: #f0f0f0;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.voice-mode-btn.active {
+    background: #a855f7;
+    color: #1e1e1e;
+    border-color: #a855f7;
+}
+
+.voice-group {
+    text-align: left;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 0 0 12px;
+}
+
+.voice-group h3 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    color: #c4a0ff;
+}
+
+.voice-group-desc {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #bbb;
+}
+
+.voice-phrases {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.voice-phrases li {
+    margin: 5px 0;
+}
+
 @media (max-width: 699px) {
     header h1 {
         font-size: 1.25rem;

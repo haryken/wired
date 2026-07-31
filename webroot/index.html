@@ -22,6 +22,7 @@
                 <option value="#botsettings">Cài đặt bot (Bot Settings)</option>
                 <option value="#aud">Cập nhật OS (OS Update)</option>
                 <option value="#xiaozhi">Xiaozhi</option>
+                <option value="#voice">Lệnh thoại (Voice)</option>
                 <option value="#alexa">Alexa</option>
                 <option value="#control">Điều khiển (Control)</option>
                 <option value="#about">Giới thiệu (About)</option>
@@ -31,6 +32,7 @@
             <button type="button" class="active" data-target="#botsettings">Cài đặt bot</button>
             <button type="button" data-target="#aud">Cập nhật OS</button>
             <button type="button" data-target="#xiaozhi">Xiaozhi</button>
+            <button type="button" data-target="#voice">Lệnh thoại</button>
             <button type="button" data-target="#alexa">Alexa</button>
             <button type="button" data-target="#control">Điều khiển</button>
             <button type="button" data-target="#about">Giới thiệu</button>
@@ -504,6 +506,36 @@
             </ol>
             <p class="help-warn">Hủy ghép sẽ xóa token — cần lấy mã lại. <em>(Unpair clears the token; you’ll need a new code.)</em></p>
         </div>
+
+        <div class="help-box mode-switch-box">
+            <strong>Chuyển đổi Xiaozhi ↔ Vosk <small>(What Enable does)</small></strong>
+            <p style="margin:8px 0 6px;">Checkbox <b>Bật Xiaozhi</b> chọn <em>cách robot nghe lệnh</em> — không phải tắt hết AI. <em>(Enable picks how the robot hears commands.)</em></p>
+            <div class="mode-compare">
+                <div class="mode-card mode-on">
+                    <h4>✅ Bật (ON)</h4>
+                    <ul>
+                        <li>Nói chuyện tự nhiên (VN/EN) với cloud Xiaozhi.</li>
+                        <li>LLM gọi MCP → robot làm (cube, blackjack, nhảy…).</li>
+                        <li>Không cần nhớ câu tiếng Anh cố định.</li>
+                    </ul>
+                    <p class="mode-tip">Chi tiết lệnh: tab <b>Lệnh thoại</b> → mục Xiaozhi.</p>
+                </div>
+                <div class="mode-card mode-off">
+                    <h4>⏹ Tắt (OFF)</h4>
+                    <ul>
+                        <li>Dùng <b>Vosk</b> trên robot (nhận dạng offline).</li>
+                        <li>Câu lệnh gần như tiếng Anh trong bảng Vosk.</li>
+                        <li>Tiết kiệm / khi không muốn cloud Xiaozhi.</li>
+                    </ul>
+                    <p class="mode-tip">Sau khi bỏ tick → <b>Lưu</b>. Xem tab <b>Lệnh thoại</b> → mục Vosk.</p>
+                </div>
+            </div>
+            <ol>
+                <li>Đổi chế độ: tick/bỏ tick <b>Bật Xiaozhi</b> → bấm <b>Lưu</b>. <em>(Toggle Enable → Save.)</em></li>
+                <li>Đợi vài giây (vic-cloud áp dụng). Nói <b>Hey Vector</b> để thử. <em>(Wait, then wake.)</em></li>
+                <li>Blackjack khi Xiaozhi ON: vào game robot tự chuyển tạm sang Vosk cho yes/no; hết ván về Xiaozhi. <em>(In-game STT switches automatically.)</em></li>
+            </ol>
+        </div>
         <hr class="smallhr">
         <div id="xiaozhiStatus"></div>
 
@@ -556,6 +588,129 @@
                 <strong>Mã kích hoạt <small>(Activation Code)</small>:</strong>
                 <span id="xzCode" style="font-size:1.5em; font-weight:bold; letter-spacing:4px; color:#a855f7;"></span>
                 <p style="margin:4px 0; font-size:0.9em; color:#888;">Nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#a855f7;">xiaozhi.me</a> <em>(Enter this code at xiaozhi.me)</em></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="voice" class="container mod-section tab-content">
+        <h2>🎙 Lệnh thoại <small class="sub">(Voice commands)</small></h2>
+        <div class="help-box">
+            <strong>Hai cách dùng <small>(Two modes)</small></strong>
+            <ol>
+                <li><b>Xiaozhi bật</b> — nói tự nhiên; AI hiểu rồi điều khiển robot (MCP). Cấu hình ở tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">Xiaozhi</a>.</li>
+                <li><b>Xiaozhi tắt (Vosk)</b> — nói cụm gần đúng bảng dưới (thường tiếng Anh). Tắt tick <b>Bật Xiaozhi</b> → <b>Lưu</b>.</li>
+            </ol>
+            <p class="help-warn">Wake: nói <b>Hey Vector</b> (hoặc từ tùy chỉnh) rồi ra lệnh. Cube games cần khối + robot xuống dock.</p>
+        </div>
+
+        <div class="voice-mode-nav" role="tablist" aria-label="Voice guide mode">
+            <button type="button" class="voice-mode-btn active" data-voice-mode="xz" onclick="showVoiceMode('xz')">1 · Xiaozhi (nói chuyện)</button>
+            <button type="button" class="voice-mode-btn" data-voice-mode="vosk" onclick="showVoiceMode('vosk')">2 · Vosk (tắt Xiaozhi)</button>
+        </div>
+
+        <div id="voice-mode-xz" class="voice-mode-panel">
+            <div class="help-box">
+                <strong>Cách 1 — Xiaozhi ON</strong>
+                <ol>
+                    <li>Tab Xiaozhi: bật → Lưu → đã kích hoạt xiaozhi.me.</li>
+                    <li>Hey Vector → nói ý muốn bằng tiếng Việt hoặc Anh (ví dụ “lăn khối lập phương”, “chơi blackjack”).</li>
+                    <li>Robot trả lời bằng TTS Xiaozhi rồi làm hành động (có thể im mic đến khi bạn wake lại sau self-control).</li>
+                </ol>
+            </div>
+
+            <div class="voice-group">
+                <h3>🧊 Cube / khối lập phương</h3>
+                <p class="voice-group-desc">Cần cube trong tầm nhìn. Ví dụ nói:</p>
+                <ul class="voice-phrases">
+                    <li>Lăn khối / roll the cube</li>
+                    <li>Bốc đầu / bóc đầu / pop a wheelie</li>
+                    <li>Nhặt khối / pick up the cube</li>
+                    <li>Tìm khối / find the cube · mang khối / fetch cube</li>
+                    <li>Keep away / giữ cube (đưa cube đi lại để robot pounce)</li>
+                    <li>Làm trick / do a trick</li>
+                </ul>
+            </div>
+
+            <div class="voice-group">
+                <h3>🃏 Chơi bài — Blackjack</h3>
+                <p class="voice-group-desc">Nói “chơi blackjack” / “play blackjack”. Trong ván, robot hỏi bằng giọng máy (Acapela) và nghe <b>yes / no</b> (Vosk tạm thời):</p>
+                <ul class="voice-phrases">
+                    <li>Bắt đầu: “chơi blackjack”, “play blackjack”, “đánh bài”</li>
+                    <li>Khi hỏi <b>muốn thêm bài?</b> (hit): nói <b>yes</b> = rút thêm · <b>no</b> = dừng (stand)</li>
+                    <li>Hết ván, hỏi <b>chơi round mới?</b>: <b>yes</b> = ván mới · <b>no</b> = thoát</li>
+                    <li>Cũng nhận: hit / stand / another card (tiếng Anh)</li>
+                </ul>
+                <p class="help-warn" style="margin-top:8px;">Trong blackjack không chat Xiaozhi; trả lời ngắn yes/no khi mic mở. Hết game tự về Xiaozhi nếu đang bật.</p>
+            </div>
+
+            <div class="voice-group">
+                <h3>🕹️ Di chuyển &amp; tương tác</h3>
+                <ul class="voice-phrases">
+                    <li>Lại đây / come here · nhìn tôi / look at me</li>
+                    <li>Tiến · lùi · trái · phải · quay lại</li>
+                    <li>Cụng tay / fistbump · nhảy / dance</li>
+                    <li>Đi dạo / explore · về sạc / go home · đi ngủ / sleep</li>
+                </ul>
+            </div>
+
+            <div class="voice-group">
+                <h3>📷 Ảnh · âm lượng · mắt · chào</h3>
+                <ul class="voice-phrases">
+                    <li>Chụp ảnh / take a photo · nhìn xem … (vision explain)</li>
+                    <li>To hơn / nhỏ hơn · đặt volume …% · im đi</li>
+                    <li>Đổi màu mắt (teal, xanh, tím, cầu vồng…)</li>
+                    <li>Xin chào · tạm biệt · giỏi quá · bad robot · I love you</li>
+                    <li>Mấy giờ · bao nhiêu tuổi · tôi tên gì</li>
+                    <li>Pháo hoa / fireworks · happy holidays</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="voice-mode-vosk" class="voice-mode-panel" style="display:none;">
+            <div class="help-box">
+                <strong>Cách 2 — Tắt Xiaozhi → Vosk</strong>
+                <ol>
+                    <li>Vào tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">Xiaozhi</a> → bỏ tick <b>Bật Xiaozhi</b> → <b>Lưu</b>.</li>
+                    <li>Hey Vector → nói cụm tiếng Anh gần đúng (Vosk). Ím lượng RAM: model Vosk được load khi Xiaozhi tắt.</li>
+                    <li>Muốn chat AI lại: bật Xiaozhi → Lưu (xem hộp chuyển đổi trên tab Xiaozhi).</li>
+                </ol>
+            </div>
+
+            <div class="voice-group">
+                <h3>🧊 Cube</h3>
+                <ul class="voice-phrases">
+                    <li>roll the cube · pop a wheelie · pick up the cube</li>
+                    <li>find the cube · fetch the cube · keep away · do a trick</li>
+                </ul>
+            </div>
+
+            <div class="voice-group">
+                <h3>🃏 Blackjack</h3>
+                <ul class="voice-phrases">
+                    <li>Start: <b>play blackjack</b></li>
+                    <li>Hit / another card? → <b>yes</b> hoặc <b>hit</b></li>
+                    <li>Stand? → <b>no</b> hoặc <b>stand</b></li>
+                    <li>Play again? → <b>yes</b> / <b>no</b></li>
+                </ul>
+            </div>
+
+            <div class="voice-group">
+                <h3>🕹️ Move · play · system</h3>
+                <ul class="voice-phrases">
+                    <li>come here · look at me · go forward · go back · turn left / right · turn around</li>
+                    <li>fist bump · dance · explore · go to your charger · go to sleep</li>
+                </ul>
+            </div>
+
+            <div class="voice-group">
+                <h3>📷 Photo · volume · eyes · chat ngắn</h3>
+                <ul class="voice-phrases">
+                    <li>take a photo · volume up / down · be quiet · shut up</li>
+                    <li>change eye color · eyes blue / teal / purple / rainbow…</li>
+                    <li>hello · goodbye · good morning / night · good robot · bad robot · I love you</li>
+                    <li>what time is it · how old are you · what is my name</li>
+                    <li>happy new year · happy holidays</li>
+                </ul>
             </div>
         </div>
     </div>
