@@ -25,6 +25,11 @@ function xzShowConfigForMode(mode) {
     if (voskRadio) voskRadio.checked = (mode === 'vosk');
 }
 
+function xzSelectedConvMode() {
+    const single = document.getElementById('xzConvSingle');
+    return (single && single.checked) ? 'single' : 'continuous';
+}
+
 function xzApplyCfg(cfg) {
     if (!cfg) return;
     const ota = document.getElementById('xzOTABaseURL');
@@ -32,18 +37,19 @@ function xzApplyCfg(cfg) {
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
     const auto = document.getElementById('xzAutoApplyOTA');
-    const ttsSel = document.getElementById('xzTTSMode');
-    const convSel = document.getElementById('xzConvMode');
     const idle = document.getElementById('xzIdleTimeout');
+    const convCont = document.getElementById('xzConvContinuous');
+    const convSingle = document.getElementById('xzConvSingle');
 
     if (ota) ota.value = cfg.ota_base_url || '';
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
     if (auto) auto.checked = !!cfg.auto_apply_ota_websocket;
-    if (ttsSel) ttsSel.value = cfg.tts_mode || 'xiaozhi';
-    if (convSel) convSel.value = cfg.conversation_mode || 'continuous';
     if (idle) idle.value = cfg.idle_timeout_sec || 20;
+    const conv = (cfg.conversation_mode === 'single') ? 'single' : 'continuous';
+    if (convCont) convCont.checked = (conv === 'continuous');
+    if (convSingle) convSingle.checked = (conv === 'single');
 
     const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
     xzAppliedMode = mode;
@@ -71,8 +77,9 @@ async function xzSave() {
         // Keep current mode; mode changes go through set_enabled.
         enabled: (xzAppliedMode === 'vosk') ? 'false' : 'true',
         auto_apply_ota_websocket: document.getElementById('xzAutoApplyOTA').checked ? 'true' : 'false',
-        tts_mode: document.getElementById('xzTTSMode').value,
-        conversation_mode: document.getElementById('xzConvMode').value,
+        // Xiaozhi listen mode always uses Xiaozhi TTS (acapela here is invalid).
+        tts_mode: 'xiaozhi',
+        conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: document.getElementById('xzIdleTimeout').value,
     });
     try {
