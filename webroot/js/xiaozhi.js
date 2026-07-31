@@ -161,22 +161,6 @@ async function xzGenerateCode() {
     }
 }
 
-async function xzRefresh() {
-    xzSetStatus('Đang làm mới OTA / token... (Refreshing...)', false);
-    try {
-        const resp = await fetch('/api/mods/Xiaozhi/refresh', { method: 'POST' });
-        const j = await resp.json();
-        if (j.status === 'success') {
-            xzSetStatus('Đã làm mới OTA / token. (Refreshed.)', false);
-            await xzLoad();
-        } else {
-            xzSetStatus('Lỗi làm mới: ' + (j.message || 'unknown') + ' (Refresh error)', true);
-        }
-    } catch (e) {
-        xzSetStatus('Lỗi làm mới: ' + e.message + ' (Refresh error)', true);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
     xzLoad();
     document.querySelectorAll('.tabs button[data-target="#xiaozhi"]').forEach(function (btn) {
