@@ -495,99 +495,91 @@
 
     <div id="xiaozhi" class="container mod-section tab-content">
         <h2>💜 Xiaozhi AI</h2>
-        <div class="help-box">
-            <strong>Cách dùng <small>(How to use)</small></strong>
-            <ol>
-                <li>Điền OTA / WebSocket (hoặc để mặc định). <em>(Fill OTA / WebSocket, or keep defaults.)</em></li>
-                <li>Bật <b>Xiaozhi</b> → <b>Lưu</b>. <em>(Enable → Save.)</em></li>
-                <li><b>Lấy mã kích hoạt</b> → nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. <em>(Get Code → enter at xiaozhi.me.)</em></li>
-                <li>Hội thoại <b>liên tục</b> = nói tiếp sau câu trả lời; <b>một lượt</b> = tắt mic sau một câu. <em>(Continuous vs single turn.)</em></li>
-                <li>Timeout im lặng = giây chờ trước khi đóng mic. <em>(Idle timeout closes the mic after silence.)</em></li>
-            </ol>
-            <p class="help-warn">Hủy ghép sẽ xóa token — cần lấy mã lại. <em>(Unpair clears the token; you’ll need a new code.)</em></p>
-        </div>
-
         <div class="help-box mode-switch-box">
-            <strong>Chuyển đổi Xiaozhi ↔ Vosk <small>(What Enable does)</small></strong>
-            <p style="margin:8px 0 6px;">Checkbox <b>Bật Xiaozhi</b> chọn <em>cách robot nghe lệnh</em> — không phải tắt hết AI. <em>(Enable picks how the robot hears commands.)</em></p>
+            <strong>Chế độ nghe lệnh <small>(Listen mode)</small></strong>
+            <p style="margin:8px 0 6px;">Chọn bên dưới — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot khởi động lại cloud vài giây. <em>(Applies immediately; brief cloud restart.)</em></p>
             <div class="mode-compare">
                 <div class="mode-card mode-on">
-                    <h4>✅ Bật (ON)</h4>
+                    <h4>💜 Xiaozhi</h4>
                     <ul>
-                        <li>Nói chuyện tự nhiên (VN/EN) với cloud Xiaozhi.</li>
-                        <li>LLM gọi MCP → robot làm (cube, blackjack, nhảy…).</li>
-                        <li>Không cần nhớ câu tiếng Anh cố định.</li>
+                        <li>Nói chuyện tự nhiên (VN/EN) với cloud.</li>
+                        <li>LLM / MCP điều khiển robot (cube, blackjack…).</li>
+                        <li>Hiện khối cấu hình Xiaozhi bên dưới.</li>
                     </ul>
-                    <p class="mode-tip">Chi tiết lệnh: tab <b>Lệnh thoại</b> → mục Xiaozhi.</p>
                 </div>
                 <div class="mode-card mode-off">
-                    <h4>⏹ Tắt (OFF)</h4>
+                    <h4>🎙 Vosk</h4>
                     <ul>
-                        <li>Dùng <b>Vosk</b> trên robot (nhận dạng offline).</li>
-                        <li>Câu lệnh gần như tiếng Anh trong bảng Vosk.</li>
-                        <li>Tiết kiệm / khi không muốn cloud Xiaozhi.</li>
+                        <li>STT offline trên robot (thường tiếng Anh).</li>
+                        <li>Xiaozhi cloud tắt; ẩn cấu hình Xiaozhi.</li>
+                        <li>Xem cụm lệnh ở tab <b>Lệnh thoại</b>.</li>
                     </ul>
-                    <p class="mode-tip">Sau khi bỏ tick → <b>Lưu</b>. Xem tab <b>Lệnh thoại</b> → mục Vosk.</p>
                 </div>
             </div>
-            <ol>
-                <li>Đổi chế độ: tick/bỏ tick <b>Bật Xiaozhi</b> → bấm <b>Lưu</b>. <em>(Toggle Enable → Save.)</em></li>
-                <li>Đợi vài giây (vic-cloud áp dụng). Nói <b>Hey Vector</b> để thử. <em>(Wait, then wake.)</em></li>
-                <li>Blackjack khi Xiaozhi ON: vào game robot tự chuyển tạm sang Vosk cho yes/no; hết ván về Xiaozhi. <em>(In-game STT switches automatically.)</em></li>
-            </ol>
+            <p class="help-warn" style="margin-top:8px;">Hủy ghép thiết bị làm trên <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a> — không có nút hủy trên robot. <em>(Unbind on the website.)</em></p>
         </div>
-        <hr class="smallhr">
+
         <div id="xiaozhiStatus"></div>
 
-        <div class="button-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-            <label>Máy chủ OTA <small>(Server / OTA base URL)</small>:</label>
-            <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
+        <div class="bot-opt-list xz-mode-radios" style="margin:8px 0 14px;">
+            <label><input type="radio" name="xzListenMode" value="xiaozhi" id="xzModeXiaozhi" onchange="xzOnModeRadio()"> Xiaozhi (cloud chat)</label>
+            <label><input type="radio" name="xzListenMode" value="vosk" id="xzModeVosk" onchange="xzOnModeRadio()"> Vosk (lệnh offline)</label>
+        </div>
 
-            <label>Đầu cuối WebSocket <small>(Endpoint)</small>:</label>
-            <input type="text" id="xzEndpoint" placeholder="wss://api.tenclass.net/xiaozhi/v1/" style="width:100%;max-width:420px">
-
-            <label>ID thiết bị (MAC — để trống sẽ tự điền) <small>(Device ID, auto if blank)</small>:</label>
-            <input type="text" id="xzDeviceID" placeholder="auto" style="width:100%;max-width:420px">
-
-            <label>ID client (UUID — để trống sẽ tự điền) <small>(Client ID, auto if blank)</small>:</label>
-            <input type="text" id="xzClientID" placeholder="auto" style="width:100%;max-width:420px">
-
-            <label>Token:</label>
-            <input type="text" id="xzToken" placeholder="(từ mã kích hoạt / from generate code)" style="width:100%;max-width:420px">
-
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; align-items:center;">
-                <input type="checkbox" id="xzEnabled">
-                <label class="buttonlabel" for="xzEnabled">Bật Xiaozhi <small>(Enable)</small></label>
-                <input type="checkbox" id="xzAutoApplyOTA">
-                <label class="buttonlabel" for="xzAutoApplyOTA">Tự áp OTA websocket <small>(Auto-apply)</small></label>
+        <div id="xzConfigBlock" class="xz-config-block" style="display:none;">
+            <h3 style="margin:4px 0 10px; color:#c4a0ff;">Cấu hình Xiaozhi <small class="sub">(Config — Save only here)</small></h3>
+            <div class="help-box">
+                <ol>
+                    <li>Điền OTA / WebSocket (hoặc mặc định) → <b>Lưu</b>. <em>(Edit URLs → Save.)</em></li>
+                    <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. Token WSS tự lấy từ OTA (không nhập tay). <em>(Get Code; token is automatic.)</em></li>
+                    <li>Hội thoại <b>liên tục</b> / <b>một lượt</b>; timeout im lặng. <em>(Continuous vs single; idle timeout.)</em></li>
+                </ol>
             </div>
 
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
-                <label>Chế độ TTS <small>(TTS Mode)</small>:</label>
-                <select id="xzTTSMode">
-                    <option value="xiaozhi">xiaozhi</option>
-                    <option value="acapela">acapela</option>
-                </select>
-                <label>Hội thoại <small>(Conversation)</small>:</label>
-                <select id="xzConvMode">
-                    <option value="continuous">liên tục (continuous)</option>
-                    <option value="single">một lượt (single)</option>
-                </select>
-                <label>Timeout im lặng (giây) <small>(Idle s)</small>:</label>
-                <input type="number" id="xzIdleTimeout" min="5" max="120" value="20" style="width:70px">
-            </div>
+            <div class="button-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                <label>Máy chủ OTA <small>(Server / OTA base URL)</small>:</label>
+                <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button onclick="xzSave()">Lưu <small>(Save)</small></button>
-                <button onclick="xzGenerateCode()">Lấy mã kích hoạt <small>(Get Code)</small></button>
-                <button onclick="xzRefresh()">Làm mới token <small>(Refresh)</small></button>
-                <button onclick="xzUnpair()">Hủy ghép <small>(Unpair)</small></button>
-            </div>
+                <label>Đầu cuối WebSocket <small>(Endpoint)</small>:</label>
+                <input type="text" id="xzEndpoint" placeholder="wss://api.tenclass.net/xiaozhi/v1/" style="width:100%;max-width:420px">
 
-            <div id="xzCodeBox" style="display:none; margin-top:10px;">
-                <strong>Mã kích hoạt <small>(Activation Code)</small>:</strong>
-                <span id="xzCode" style="font-size:1.5em; font-weight:bold; letter-spacing:4px; color:#a855f7;"></span>
-                <p style="margin:4px 0; font-size:0.9em; color:#888;">Nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#a855f7;">xiaozhi.me</a> <em>(Enter this code at xiaozhi.me)</em></p>
+                <label>ID thiết bị (MAC — để trống sẽ tự điền) <small>(Device ID, auto if blank)</small>:</label>
+                <input type="text" id="xzDeviceID" placeholder="auto" style="width:100%;max-width:420px">
+
+                <label>ID client (UUID — để trống sẽ tự điền) <small>(Client ID, auto if blank)</small>:</label>
+                <input type="text" id="xzClientID" placeholder="auto" style="width:100%;max-width:420px">
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; align-items:center;">
+                    <input type="checkbox" id="xzAutoApplyOTA">
+                    <label class="buttonlabel" for="xzAutoApplyOTA">Tự áp OTA websocket <small>(Auto-apply)</small></label>
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+                    <label>Chế độ TTS <small>(TTS Mode)</small>:</label>
+                    <select id="xzTTSMode">
+                        <option value="xiaozhi">xiaozhi</option>
+                        <option value="acapela">acapela</option>
+                    </select>
+                    <label>Hội thoại <small>(Conversation)</small>:</label>
+                    <select id="xzConvMode">
+                        <option value="continuous">liên tục (continuous)</option>
+                        <option value="single">một lượt (single)</option>
+                    </select>
+                    <label>Timeout im lặng (giây) <small>(Idle s)</small>:</label>
+                    <input type="number" id="xzIdleTimeout" min="5" max="120" value="20" style="width:70px">
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                    <button type="button" onclick="xzSave()">Lưu cấu hình <small>(Save config)</small></button>
+                    <button type="button" onclick="xzGenerateCode()">Lấy mã kích hoạt <small>(Get Code)</small></button>
+                    <button type="button" onclick="xzRefresh()">Làm mới OTA / token <small>(Refresh)</small></button>
+                </div>
+
+                <div id="xzCodeBox" style="display:none; margin-top:10px;">
+                    <strong>Mã kích hoạt <small>(Activation Code)</small>:</strong>
+                    <span id="xzCode" style="font-size:1.5em; font-weight:bold; letter-spacing:4px; color:#a855f7;"></span>
+                    <p style="margin:4px 0; font-size:0.9em; color:#888;">Nhập mã tại <a href="https://xiaozhi.me" target="_blank" style="color:#a855f7;">xiaozhi.me</a> <em>(Enter this code at xiaozhi.me)</em></p>
+                </div>
             </div>
         </div>
     </div>
@@ -598,7 +590,7 @@
             <strong>Hai cách dùng <small>(Two modes)</small></strong>
             <ol>
                 <li><b>Xiaozhi bật</b> — nói tự nhiên; AI hiểu rồi điều khiển robot (MCP). Cấu hình ở tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">Xiaozhi</a>.</li>
-                <li><b>Xiaozhi tắt (Vosk)</b> — nói cụm gần đúng bảng dưới (thường tiếng Anh). Tắt tick <b>Bật Xiaozhi</b> → <b>Lưu</b>.</li>
+                <li><b>Vosk</b> — tab Xiaozhi chọn radio <b>Vosk</b> (đổi ngay). Nói cụm gần đúng bảng dưới (thường tiếng Anh).</li>
             </ol>
             <p class="help-warn">Wake: nói <b>Hey Vector</b> (hoặc từ tùy chỉnh) rồi ra lệnh. Cube games cần khối + robot xuống dock.</p>
         </div>
@@ -670,9 +662,9 @@
             <div class="help-box">
                 <strong>Cách 2 — Tắt Xiaozhi → Vosk</strong>
                 <ol>
-                    <li>Vào tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">Xiaozhi</a> → bỏ tick <b>Bật Xiaozhi</b> → <b>Lưu</b>.</li>
-                    <li>Hey Vector → nói cụm tiếng Anh gần đúng (Vosk). Ím lượng RAM: model Vosk được load khi Xiaozhi tắt.</li>
-                    <li>Muốn chat AI lại: bật Xiaozhi → Lưu (xem hộp chuyển đổi trên tab Xiaozhi).</li>
+                    <li>Vào tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">Xiaozhi</a> → chọn radio <b>Vosk</b> (áp dụng ngay).</li>
+                    <li>Hey Vector → nói cụm tiếng Anh gần đúng (Vosk).</li>
+                    <li>Muốn chat AI lại: chọn radio <b>Xiaozhi</b> trên cùng tab.</li>
                 </ol>
             </div>
 

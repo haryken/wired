@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -310,7 +311,38 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		saveXiaozhiCfg(cfg)
 		vars.HTTPSuccess(w, r)
 
+	// set_enabled: Xiaozhi ↔ Vosk mode switch. Applies immediately and restarts
+	// vic-cloud so Vosk is loaded/unloaded correctly (boot-time InitVosk path).
+	case vars.IsEndpoint(r, "set_enabled"):
+		cfg, _ := loadXiaozhiCfg()
+		v := strings.TrimSpace(r.FormValue("enabled"))
+		if v == "" {
+			vars.HTTPError(w, r, "enabled required")
+			return
+		}
+		want := v == "true" || v == "1" || v == "on"
+		changed := cfg.Enabled != want
+		cfg.Enabled = want
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		restarted := false
+		if changed {
+			// Best-effort; UI still shows the saved mode even if restart is slow.
+			_ = exec.Command("/bin/systemctl", "restart", "vic-cloud").Start()
+			restarted = true
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":    "success",
+			"config":    cfg,
+			"restarted": restarted,
+		})
+		return
+
 	case vars.IsEndpoint(r, "unpair"):
+		// Deprecated: unbind on xiaozhi.me. Kept for old clients; clears local token only.
 		cfg, err := loadXiaozhiCfg()
 		if err != nil {
 			vars.HTTPError(w, r, "config load: "+err.Error())

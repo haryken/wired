@@ -1,5 +1,8 @@
 // Xiaozhi UI helpers
 
+let xzModeBusy = false;
+let xzAppliedMode = null; // 'xiaozhi' | 'vosk' — last mode known from disk / set_enabled
+
 function xzSetStatus(msg, isError) {
     const el = document.getElementById('xiaozhiStatus');
     if (!el) return;
@@ -8,14 +11,26 @@ function xzSetStatus(msg, isError) {
     el.style.display = msg ? 'block' : 'none';
 }
 
+function xzSelectedMode() {
+    const vosk = document.getElementById('xzModeVosk');
+    return (vosk && vosk.checked) ? 'vosk' : 'xiaozhi';
+}
+
+function xzShowConfigForMode(mode) {
+    const block = document.getElementById('xzConfigBlock');
+    if (block) block.style.display = (mode === 'xiaozhi') ? 'block' : 'none';
+    const xzRadio = document.getElementById('xzModeXiaozhi');
+    const voskRadio = document.getElementById('xzModeVosk');
+    if (xzRadio) xzRadio.checked = (mode === 'xiaozhi');
+    if (voskRadio) voskRadio.checked = (mode === 'vosk');
+}
+
 function xzApplyCfg(cfg) {
     if (!cfg) return;
     const ota = document.getElementById('xzOTABaseURL');
     const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
-    const tok = document.getElementById('xzToken');
-    const en = document.getElementById('xzEnabled');
     const auto = document.getElementById('xzAutoApplyOTA');
     const ttsSel = document.getElementById('xzTTSMode');
     const convSel = document.getElementById('xzConvMode');
@@ -25,12 +40,14 @@ function xzApplyCfg(cfg) {
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
-    if (tok) tok.value = cfg.token || '';
-    if (en) en.checked = !!cfg.enabled;
     if (auto) auto.checked = !!cfg.auto_apply_ota_websocket;
     if (ttsSel) ttsSel.value = cfg.tts_mode || 'xiaozhi';
     if (convSel) convSel.value = cfg.conversation_mode || 'continuous';
     if (idle) idle.value = cfg.idle_timeout_sec || 20;
+
+    const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
+    xzAppliedMode = mode;
+    xzShowConfigForMode(mode);
 }
 
 async function xzLoad() {
@@ -44,14 +61,15 @@ async function xzLoad() {
     }
 }
 
+/** Save Xiaozhi config fields only (not listen mode). */
 async function xzSave() {
     const params = new URLSearchParams({
         ota_base_url: document.getElementById('xzOTABaseURL').value.trim(),
         endpoint: document.getElementById('xzEndpoint').value.trim(),
         device_id: document.getElementById('xzDeviceID').value.trim(),
         client_id: document.getElementById('xzClientID').value.trim(),
-        token: document.getElementById('xzToken').value.trim(),
-        enabled: document.getElementById('xzEnabled').checked ? 'true' : 'false',
+        // Keep current mode; mode changes go through set_enabled.
+        enabled: (xzAppliedMode === 'vosk') ? 'false' : 'true',
         auto_apply_ota_websocket: document.getElementById('xzAutoApplyOTA').checked ? 'true' : 'false',
         tts_mode: document.getElementById('xzTTSMode').value,
         conversation_mode: document.getElementById('xzConvMode').value,
@@ -63,13 +81,54 @@ async function xzSave() {
         if (j.status === 'success') {
             if (j.config) xzApplyCfg(j.config);
             else await xzLoad();
-            xzSetStatus('Đã lưu. (Saved.)', false);
+            xzSetStatus('Đã lưu cấu hình Xiaozhi. (Config saved.)', false);
         } else {
             xzSetStatus('Lỗi lưu: ' + (j.message || 'unknown') + ' (Save error)', true);
         }
     } catch (e) {
         xzSetStatus('Lỗi lưu: ' + e.message + ' (Save error)', true);
     }
+}
+
+async function xzSetListenMode(mode) {
+    if (xzModeBusy) return;
+    const wantXz = (mode === 'xiaozhi');
+    if (xzAppliedMode === mode) {
+        xzShowConfigForMode(mode);
+        return;
+    }
+    xzModeBusy = true;
+    xzShowConfigForMode(mode);
+    xzSetStatus(wantXz
+        ? 'Đang bật Xiaozhi (tắt Vosk)… đang restart cloud…'
+        : 'Đang bật Vosk (tắt Xiaozhi)… đang restart cloud…', false);
+    try {
+        const params = new URLSearchParams({ enabled: wantXz ? 'true' : 'false' });
+        const resp = await fetch('/api/mods/Xiaozhi/set_enabled?' + params.toString(), { method: 'POST' });
+        const j = await resp.json();
+        if (j.status !== 'success') {
+            xzSetStatus('Lỗi đổi chế độ: ' + (j.message || 'unknown'), true);
+            await xzLoad();
+            return;
+        }
+        if (j.config) xzApplyCfg(j.config);
+        else {
+            xzAppliedMode = mode;
+            xzShowConfigForMode(mode);
+        }
+        xzSetStatus(wantXz
+            ? 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector. (Xiaozhi on.)'
+            : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector. (Vosk on.)', false);
+    } catch (e) {
+        xzSetStatus('Lỗi đổi chế độ: ' + e.message, true);
+        await xzLoad();
+    } finally {
+        xzModeBusy = false;
+    }
+}
+
+function xzOnModeRadio() {
+    xzSetListenMode(xzSelectedMode());
 }
 
 async function xzGenerateCode() {
@@ -103,12 +162,12 @@ async function xzGenerateCode() {
 }
 
 async function xzRefresh() {
-    xzSetStatus('Đang làm mới token... (Refreshing...)', false);
+    xzSetStatus('Đang làm mới OTA / token... (Refreshing...)', false);
     try {
         const resp = await fetch('/api/mods/Xiaozhi/refresh', { method: 'POST' });
         const j = await resp.json();
         if (j.status === 'success') {
-            xzSetStatus('Đã làm mới token. (Token refreshed.)', false);
+            xzSetStatus('Đã làm mới OTA / token. (Refreshed.)', false);
             await xzLoad();
         } else {
             xzSetStatus('Lỗi làm mới: ' + (j.message || 'unknown') + ' (Refresh error)', true);
@@ -118,26 +177,15 @@ async function xzRefresh() {
     }
 }
 
-async function xzUnpair() {
-    if (!confirm('Xóa token và hủy ghép Xiaozhi? (Clear token and unpair?)')) return;
-    try {
-        const resp = await fetch('/api/mods/Xiaozhi/unpair', { method: 'POST' });
-        const j = await resp.json();
-        if (j.status === 'success') {
-            xzSetStatus('Đã hủy ghép. (Unpaired.)', false);
-            await xzLoad();
-        } else {
-            xzSetStatus('Lỗi hủy ghép: ' + (j.message || 'unknown') + ' (Unpair error)', true);
-        }
-    } catch (e) {
-        xzSetStatus('Lỗi hủy ghép: ' + e.message + ' (Unpair error)', true);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
-    // Always load so F5 / tab switch shows disk values.
     xzLoad();
     document.querySelectorAll('.tabs button[data-target="#xiaozhi"]').forEach(function (btn) {
         btn.addEventListener('click', function () { xzLoad(); });
     });
+    const sel = document.getElementById('navSelect');
+    if (sel) {
+        sel.addEventListener('change', function () {
+            if (sel.value === '#xiaozhi') xzLoad();
+        });
+    }
 });
