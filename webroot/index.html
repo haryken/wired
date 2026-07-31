@@ -532,7 +532,7 @@
                 <ol>
                     <li>Máy chủ OTA lần đầu mặc định <code>https://api.tenclass.net/</code>; đã lưu rồi thì giữ nguyên.</li>
                     <li>WebSocket (ô xám bên dưới) + token <b>tự lấy từ OTA</b> — chỉ xem, không sửa.</li>
-                    <li>ID để trống: Device = MAC robot; Client = UUID ngẫu nhiên (khi Lấy mã / bật Xiaozhi).</li>
+                    <li>ID để trống: Device = <b>MAC ngẫu nhiên</b>; Client = UUID ngẫu nhiên (khi Lưu / Lấy mã / bật Xiaozhi).</li>
                     <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>.</li>
                     <li>Chọn hội thoại → <b>Lưu cấu hình</b>. TTS luôn Xiaozhi.</li>
                 </ol>
@@ -545,8 +545,8 @@
                 <label>Đầu cuối WebSocket <small>(Endpoint — tự động từ OTA)</small>:</label>
                 <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly placeholder="(tự lấy sau Get Code / bật Xiaozhi)" style="width:100%;max-width:420px">
 
-                <label>ID thiết bị (MAC — để trống = MAC robot) <small>(Device ID)</small>:</label>
-                <input type="text" id="xzDeviceID" placeholder="auto = MAC" style="width:100%;max-width:420px">
+                <label>ID thiết bị (để trống = MAC ngẫu nhiên) <small>(Device ID)</small>:</label>
+                <input type="text" id="xzDeviceID" placeholder="auto = random MAC" style="width:100%;max-width:420px">
 
                 <label>ID client (để trống = UUID ngẫu nhiên) <small>(Client ID)</small>:</label>
                 <input type="text" id="xzClientID" placeholder="auto = UUID" style="width:100%;max-width:420px">

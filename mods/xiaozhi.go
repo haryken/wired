@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -116,19 +115,13 @@ func normalizeOTABaseURL(u string) string {
 	return u
 }
 
-// firstNonLoopbackMAC returns the first non-loopback hardware MAC address.
-func firstNonLoopbackMAC() string {
-	ifaces, _ := net.Interfaces()
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		if len(iface.HardwareAddr) == 0 {
-			continue
-		}
-		return iface.HardwareAddr.String()
-	}
-	return ""
+// genRandomMAC returns a random locally-administered unicast MAC (aa:bb:cc:dd:ee:ff).
+// Used when Device ID is left blank — not the robot NIC MAC (user may have typed that before).
+func genRandomMAC() string {
+	var b [6]byte
+	rand.Read(b[:])
+	b[0] = (b[0] | 0x02) & 0xfe // locally administered, unicast
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", b[0], b[1], b[2], b[3], b[4], b[5])
 }
 
 // genUUIDv4 generates a random UUID v4 without external dependencies.
@@ -261,11 +254,16 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if v := r.FormValue("conversation_mode"); v != "" {
 			cfg.ConversationMode = strings.TrimSpace(v)
 		}
-		if v := r.FormValue("device_id"); v != "" {
-			cfg.DeviceID = strings.TrimSpace(v)
+		// Blank device/client IDs → generate (random MAC / UUID). Non-blank keeps user value.
+		if v := strings.TrimSpace(r.FormValue("device_id")); v == "" {
+			cfg.DeviceID = genRandomMAC()
+		} else {
+			cfg.DeviceID = v
 		}
-		if v := r.FormValue("client_id"); v != "" {
-			cfg.ClientID = strings.TrimSpace(v)
+		if v := strings.TrimSpace(r.FormValue("client_id")); v == "" {
+			cfg.ClientID = genUUIDv4()
+		} else {
+			cfg.ClientID = v
 		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
@@ -282,7 +280,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
 		if cfg.DeviceID == "" {
-			cfg.DeviceID = firstNonLoopbackMAC()
+			cfg.DeviceID = genRandomMAC()
 		}
 		if cfg.ClientID == "" {
 			cfg.ClientID = genUUIDv4()
@@ -341,7 +339,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		cfg.AutoApplyOTAWebsocket = true
 		if want {
 			if cfg.DeviceID == "" {
-				cfg.DeviceID = firstNonLoopbackMAC()
+				cfg.DeviceID = genRandomMAC()
 			}
 			if cfg.ClientID == "" {
 				cfg.ClientID = genUUIDv4()
