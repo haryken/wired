@@ -89,7 +89,5 @@ async function alexaSetButtonWake(mode) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('alexa')) {
-        alexaRefresh();
-    }
+    // Refresh when opened via bot-alexa tile (showBotSection); no auto-poll on every page load.
 });

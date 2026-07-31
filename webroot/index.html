@@ -23,7 +23,6 @@
                 <option value="#aud">Cập nhật OS (OS Update)</option>
                 <option value="#xiaozhi">Xiaozhi</option>
                 <option value="#voice">Lệnh thoại (Voice)</option>
-                <option value="#alexa">Alexa</option>
                 <option value="#control">Điều khiển (Control)</option>
                 <option value="#about">Giới thiệu (About)</option>
             </select>
@@ -33,7 +32,6 @@
             <button type="button" data-target="#aud">Cập nhật OS</button>
             <button type="button" data-target="#xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice">Lệnh thoại</button>
-            <button type="button" data-target="#alexa">Alexa</button>
             <button type="button" data-target="#control">Điều khiển</button>
             <button type="button" data-target="#about">Giới thiệu</button>
         </div>
@@ -99,6 +97,10 @@
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stats')">
                 <span class="bot-ico" aria-hidden="true">📊</span>
                 Thống kê<br><small>(Statistics)</small>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-alexa')">
+                <span class="bot-ico" aria-hidden="true">🔊</span>
+                Alexa<br><small>(Amazon)</small>
             </button>
         </div>
         <hr class="smallhr">
@@ -456,6 +458,31 @@
             <div id="statsStatus" class="faces-status" style="display:none;"></div>
             <div id="statsSection" class="stats-list"></div>
         </div>
+
+        <div id="bot-alexa" class="bot-section" style="display:none;">
+            <h3>🔊 Amazon Alexa</h3>
+            <div class="help-box">
+                <strong>Cách hoạt động <small>(How it works)</small></strong>
+                <ol>
+                    <li><b>Giọng nói:</b> Sau khi liên kết, nói <b>"Alexa"</b> hoặc <b>"Hey Vector"</b> đều được — hai wake word song song. <em>(Voice: both "Alexa" and "Hey Vector" work.)</em></li>
+                    <li><b>Nút lưng:</b> Chọn một — bấm nút = gọi Hey Vector <em>hoặc</em> Alexa (không phải cả hai). <em>(Back button: pick one assistant.)</em></li>
+                    <li>Sau đăng nhập Alexa thành công, FW thường tự đặt nút = Alexa — bạn có thể đổi lại bên dưới. <em>(FW may auto-set button to Alexa after login.)</em></li>
+                </ol>
+                <p class="help-warn">Nếu Xiaozhi đang bật, "Hey Vector" có thể ưu tiên Xiaozhi thay vì lệnh Vector gốc. <em>(Xiaozhi may capture Hey Vector.)</em></p>
+            </div>
+            <div id="alexaStatus"></div>
+            <div class="button-container" style="gap:8px;">
+                <button type="button" onclick="alexaOptIn(true)">Liên kết Alexa <small>(Link / Sign in)</small></button>
+                <button type="button" onclick="alexaOptIn(false)">Hủy liên kết <small>(Sign out)</small></button>
+                <button type="button" onclick="alexaRefresh()">Làm mới trạng thái <small>(Refresh)</small></button>
+            </div>
+            <hr class="smallhr">
+            <h4 style="color:#a855f7; margin:8px 0;">Nút lưng bấm gọi ai? <small class="sub">(Back button wakes)</small></h4>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
+                <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
+            </div>
+        </div>
     </div>
 
     <div id="aud" class="container mod-section tab-content">
@@ -703,31 +730,6 @@
                     <li>happy new year · happy holidays</li>
                 </ul>
             </div>
-        </div>
-    </div>
-
-    <div id="alexa" class="container mod-section tab-content">
-        <h2>🔊 Amazon Alexa</h2>
-        <div class="help-box">
-            <strong>Cách hoạt động <small>(How it works)</small></strong>
-            <ol>
-                <li><b>Giọng nói:</b> Sau khi liên kết, nói <b>"Alexa"</b> hoặc <b>"Hey Vector"</b> đều được — hai wake word song song. <em>(Voice: both "Alexa" and "Hey Vector" work.)</em></li>
-                <li><b>Nút lưng:</b> Chọn một — bấm nút = gọi Hey Vector <em>hoặc</em> Alexa (không phải cả hai). <em>(Back button: pick one assistant.)</em></li>
-                <li>Sau đăng nhập Alexa thành công, FW thường tự đặt nút = Alexa — bạn có thể đổi lại bên dưới. <em>(FW may auto-set button to Alexa after login.)</em></li>
-            </ol>
-            <p class="help-warn">Nếu Xiaozhi đang bật, "Hey Vector" có thể ưu tiên Xiaozhi thay vì lệnh Vector gốc. <em>(Xiaozhi may capture Hey Vector.)</em></p>
-        </div>
-        <div id="alexaStatus"></div>
-        <div class="button-container" style="gap:8px;">
-            <button type="button" onclick="alexaOptIn(true)">Liên kết Alexa <small>(Link / Sign in)</small></button>
-            <button type="button" onclick="alexaOptIn(false)">Hủy liên kết <small>(Sign out)</small></button>
-            <button type="button" onclick="alexaRefresh()">Làm mới trạng thái <small>(Refresh)</small></button>
-        </div>
-        <hr class="smallhr">
-        <h3 style="color:#a855f7; margin:8px 0;">Nút lưng bấm gọi ai? <small class="sub">(Back button wakes)</small></h3>
-        <div class="bot-opt-list">
-            <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
-            <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
         </div>
     </div>
 

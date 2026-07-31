@@ -10,9 +10,6 @@ function activateSection(target) {
     try {
         history.replaceState(null, '', target);
     } catch (_) {}
-    if (target === '#alexa' && typeof alexaRefresh === 'function') {
-        alexaRefresh();
-    }
 }
 
 const tabs = document.querySelectorAll('.tabs button');
@@ -30,6 +27,7 @@ const legacyBotHash = {
     '#mainmods': 'bot-perf',
     '#cww': 'bot-cww',
     '#sensitivity': 'bot-sens',
+    '#alexa': 'bot-alexa',
 };
 
 // Deep-link / restore hash
