@@ -1,5 +1,7 @@
 // Xiaozhi UI helpers
 
+const XZ_DEFAULT_OTA = 'https://api.tenclass.net/';
+
 let xzModeBusy = false;
 let xzAppliedMode = null; // 'xiaozhi' | 'vosk' — last mode known from disk / set_enabled
 
@@ -33,19 +35,16 @@ function xzSelectedConvMode() {
 function xzApplyCfg(cfg) {
     if (!cfg) return;
     const ota = document.getElementById('xzOTABaseURL');
-    const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
-    const auto = document.getElementById('xzAutoApplyOTA');
     const idle = document.getElementById('xzIdleTimeout');
     const convCont = document.getElementById('xzConvContinuous');
     const convSingle = document.getElementById('xzConvSingle');
 
-    if (ota) ota.value = cfg.ota_base_url || '';
-    if (ep) ep.value = cfg.endpoint || '';
+    // First-time / empty → show default OTA; existing saved value is kept.
+    if (ota) ota.value = (cfg.ota_base_url && cfg.ota_base_url.trim()) ? cfg.ota_base_url : XZ_DEFAULT_OTA;
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
-    if (auto) auto.checked = !!cfg.auto_apply_ota_websocket;
     if (idle) idle.value = cfg.idle_timeout_sec || 20;
     const conv = (cfg.conversation_mode === 'single') ? 'single' : 'continuous';
     if (convCont) convCont.checked = (conv === 'continuous');
@@ -67,17 +66,17 @@ async function xzLoad() {
     }
 }
 
-/** Save Xiaozhi config fields only (not listen mode). */
+/** Save Xiaozhi config fields only (not listen mode). Endpoint/token always from OTA. */
 async function xzSave() {
+    let otaVal = document.getElementById('xzOTABaseURL').value.trim();
+    if (!otaVal) otaVal = XZ_DEFAULT_OTA;
     const params = new URLSearchParams({
-        ota_base_url: document.getElementById('xzOTABaseURL').value.trim(),
-        endpoint: document.getElementById('xzEndpoint').value.trim(),
+        ota_base_url: otaVal,
         device_id: document.getElementById('xzDeviceID').value.trim(),
         client_id: document.getElementById('xzClientID').value.trim(),
-        // Keep current mode; mode changes go through set_enabled.
         enabled: (xzAppliedMode === 'vosk') ? 'false' : 'true',
-        auto_apply_ota_websocket: document.getElementById('xzAutoApplyOTA').checked ? 'true' : 'false',
-        // Xiaozhi listen mode always uses Xiaozhi TTS (acapela here is invalid).
+        // Always auto-apply WSS from OTA (no UI toggle).
+        auto_apply_ota_websocket: 'true',
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: document.getElementById('xzIdleTimeout').value,
@@ -142,6 +141,8 @@ async function xzGenerateCode() {
     xzSetStatus('Đang gọi máy chủ... (Contacting server...)', false);
     document.getElementById('xzCodeBox').style.display = 'none';
     try {
+        // Persist OTA URL first so generate_code uses the field value.
+        await xzSave();
         const resp = await fetch('/api/mods/Xiaozhi/generate_code', { method: 'POST' });
         if (!resp.ok) {
             const t = await resp.text();
@@ -158,9 +159,9 @@ async function xzGenerateCode() {
         if (j.code) {
             document.getElementById('xzCode').textContent = j.code;
             document.getElementById('xzCodeBox').style.display = 'block';
-            xzSetStatus('Đã nhận mã — nhập tại xiaozhi.me. (Enter code at xiaozhi.me.)', false);
+            xzSetStatus('Đã nhận mã — nhập tại xiaozhi.me. (WSS tự cập nhật từ OTA.)', false);
         } else {
-            xzSetStatus('Không có mã (có thể đã ghép). (No code; maybe already paired.)', false);
+            xzSetStatus('Không có mã (có thể đã ghép). WSS đã làm mới từ OTA nếu có.', false);
         }
         await xzLoad();
     } catch (e) {

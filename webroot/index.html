@@ -530,9 +530,10 @@
             <h3 style="margin:4px 0 10px; color:#c4a0ff;">Cấu hình Xiaozhi <small class="sub">(Config — Save only here)</small></h3>
             <div class="help-box">
                 <ol>
-                    <li>Điền OTA / WebSocket (hoặc mặc định) → <b>Lưu</b>. <em>(Edit URLs → Save.)</em></li>
-                    <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. Token WSS tự lấy từ OTA. <em>(Get Code; token is automatic.)</em></li>
-                    <li>Chọn hội thoại <b>Liên tục</b> hoặc <b>Một lượt</b> (xem bên dưới) → Lưu. Giọng nói luôn dùng TTS Xiaozhi. <em>(Speech always uses Xiaozhi TTS.)</em></li>
+                    <li>Máy chủ OTA lần đầu mặc định <code>https://api.tenclass.net/</code>; đã lưu rồi thì giữ nguyên. <em>(First-time default; keep existing data.)</em></li>
+                    <li>WebSocket endpoint + token <b>tự lấy từ OTA</b> (không chỉnh tay). <em>(WSS URL/token always from OTA.)</em></li>
+                    <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>.</li>
+                    <li>Chọn hội thoại → <b>Lưu cấu hình</b>. TTS luôn Xiaozhi.</li>
                 </ol>
             </div>
 
@@ -540,19 +541,11 @@
                 <label>Máy chủ OTA <small>(Server / OTA base URL)</small>:</label>
                 <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
 
-                <label>Đầu cuối WebSocket <small>(Endpoint)</small>:</label>
-                <input type="text" id="xzEndpoint" placeholder="wss://api.tenclass.net/xiaozhi/v1/" style="width:100%;max-width:420px">
-
                 <label>ID thiết bị (MAC — để trống sẽ tự điền) <small>(Device ID, auto if blank)</small>:</label>
                 <input type="text" id="xzDeviceID" placeholder="auto" style="width:100%;max-width:420px">
 
                 <label>ID client (UUID — để trống sẽ tự điền) <small>(Client ID, auto if blank)</small>:</label>
                 <input type="text" id="xzClientID" placeholder="auto" style="width:100%;max-width:420px">
-
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; align-items:center;">
-                    <input type="checkbox" id="xzAutoApplyOTA">
-                    <label class="buttonlabel" for="xzAutoApplyOTA">Tự áp OTA websocket <small>(Auto-apply)</small></label>
-                </div>
 
                 <div class="xz-conv-block" style="width:100%; max-width:520px; margin-top:10px;">
                     <strong>Cách hội thoại <small>(Conversation)</small></strong>

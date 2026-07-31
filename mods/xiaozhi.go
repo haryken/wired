@@ -48,6 +48,28 @@ func defaultXiaozhiCfg() XiaozhiCfg {
 	}
 }
 
+// ensureXiaozhiDefaults fills first-install blanks without wiping existing data.
+func ensureXiaozhiDefaults(cfg *XiaozhiCfg) {
+	if strings.TrimSpace(cfg.OTABaseURL) == "" {
+		cfg.OTABaseURL = "https://api.tenclass.net/"
+	} else {
+		cfg.OTABaseURL = normalizeOTABaseURL(cfg.OTABaseURL)
+	}
+	cfg.AutoApplyOTAWebsocket = true
+	if cfg.TTSMode != "xiaozhi" {
+		cfg.TTSMode = "xiaozhi"
+	}
+	if cfg.ConversationMode == "" {
+		cfg.ConversationMode = "continuous"
+	}
+	if cfg.IdleTimeoutSec <= 0 {
+		cfg.IdleTimeoutSec = 20
+	}
+	if cfg.ProtocolVersion == 0 {
+		cfg.ProtocolVersion = 1
+	}
+}
+
 func loadXiaozhiCfg() (XiaozhiCfg, error) {
 	cfg := defaultXiaozhiCfg()
 	data, err := os.ReadFile(xiaozhiConfigPath)
@@ -214,34 +236,28 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			cfg = defaultXiaozhiCfg()
 		}
+		ensureXiaozhiDefaults(&cfg)
 		b, _ := json.Marshal(cfg)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
 
 	case vars.IsEndpoint(r, "save"):
 		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
 		if v := r.FormValue("ota_base_url"); v != "" {
 			cfg.OTABaseURL = normalizeOTABaseURL(v)
 		}
-		if v := r.FormValue("endpoint"); v != "" {
-			cfg.Endpoint = strings.TrimSpace(v)
-		}
-		// Always apply enabled / auto_apply from form (including explicit false).
+		// Endpoint/token are never set from the form — only from OTA responses.
 		if v := r.FormValue("enabled"); v != "" {
 			cfg.Enabled = v == "true" || v == "1" || v == "on"
 		}
-		if v := r.FormValue("auto_apply_ota_websocket"); v != "" {
-			cfg.AutoApplyOTAWebsocket = v == "true" || v == "1" || v == "on"
-		}
+		cfg.AutoApplyOTAWebsocket = true
 		if v := r.FormValue("idle_timeout_sec"); v != "" {
 			if n, err := strconv.Atoi(v); err == nil && n > 0 {
 				cfg.IdleTimeoutSec = n
 			}
 		}
-		if v := r.FormValue("tts_mode"); v != "" {
-			// Xiaozhi path only supports Xiaozhi TTS; coerce anything else.
-			cfg.TTSMode = "xiaozhi"
-		}
+		cfg.TTSMode = "xiaozhi"
 		if v := r.FormValue("conversation_mode"); v != "" {
 			cfg.ConversationMode = strings.TrimSpace(v)
 		}
@@ -251,14 +267,10 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if v := r.FormValue("client_id"); v != "" {
 			cfg.ClientID = strings.TrimSpace(v)
 		}
-		if v := r.FormValue("token"); v != "" {
-			cfg.Token = strings.TrimSpace(v)
-		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
-		// Return saved config so UI can refresh without a second round-trip ambiguity.
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "success",
@@ -268,7 +280,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 
 	case vars.IsEndpoint(r, "generate_code"):
 		cfg, _ := loadXiaozhiCfg()
-		cfg.OTABaseURL = normalizeOTABaseURL(cfg.OTABaseURL)
+		ensureXiaozhiDefaults(&cfg)
 		if cfg.DeviceID == "" {
 			cfg.DeviceID = firstNonLoopbackMAC()
 		}
@@ -286,15 +298,15 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 				code = c
 			}
 		}
-		if cfg.AutoApplyOTAWebsocket {
-			applyWebsocketFromOTAResult(&cfg, result)
-		}
+		// Always auto-apply websocket url + token from OTA.
+		applyWebsocketFromOTAResult(&cfg, result)
 		saveXiaozhiCfg(cfg)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"code":      code,
 			"device_id": cfg.DeviceID,
 			"client_id": cfg.ClientID,
+			"endpoint":  cfg.Endpoint,
 		})
 
 	case vars.IsEndpoint(r, "refresh"):
@@ -303,6 +315,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "config load: "+err.Error())
 			return
 		}
+		ensureXiaozhiDefaults(&cfg)
 		result, err := doOTAPost(cfg)
 		if err != nil {
 			vars.HTTPError(w, r, err.Error())
@@ -316,6 +329,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	// vic-cloud so Vosk is loaded/unloaded correctly (boot-time InitVosk path).
 	case vars.IsEndpoint(r, "set_enabled"):
 		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
 		v := strings.TrimSpace(r.FormValue("enabled"))
 		if v == "" {
 			vars.HTTPError(w, r, "enabled required")
@@ -324,13 +338,25 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		want := v == "true" || v == "1" || v == "on"
 		changed := cfg.Enabled != want
 		cfg.Enabled = want
+		cfg.AutoApplyOTAWebsocket = true
+		if want {
+			if cfg.DeviceID == "" {
+				cfg.DeviceID = firstNonLoopbackMAC()
+			}
+			if cfg.ClientID == "" {
+				cfg.ClientID = genUUIDv4()
+			}
+			// Best-effort: pull WSS endpoint/token on first enable / mode switch on.
+			if result, err := doOTAPost(cfg); err == nil {
+				applyWebsocketFromOTAResult(&cfg, result)
+			}
+		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
 		restarted := false
 		if changed {
-			// Best-effort; UI still shows the saved mode even if restart is slow.
 			_ = exec.Command("/bin/systemctl", "restart", "vic-cloud").Start()
 			restarted = true
 		}
