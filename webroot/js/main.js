@@ -1,5 +1,7 @@
 function activateSection(target) {
     if (!target) return;
+    const prev = document.querySelector('.tab-content.active');
+    const prevId = prev ? '#' + prev.id : '';
     const tabs = document.querySelectorAll('.tabs button');
     tabs.forEach((b) => b.classList.toggle('active', b.dataset.target === target));
     document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
@@ -10,6 +12,12 @@ function activateSection(target) {
     try {
         history.replaceState(null, '', target);
     } catch (_) {}
+    if (prevId === '#logs' && target !== '#logs' && typeof logsOnHide === 'function') {
+        logsOnHide();
+    }
+    if (target === '#logs' && typeof logsOnShow === 'function') {
+        logsOnShow();
+    }
 }
 
 const tabs = document.querySelectorAll('.tabs button');

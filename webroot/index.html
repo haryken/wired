@@ -24,6 +24,7 @@
                 <option value="#xiaozhi">Xiaozhi</option>
                 <option value="#voice">Lệnh thoại (Voice)</option>
                 <option value="#control">Điều khiển (Control)</option>
+                <option value="#logs">Nhật ký (Logs)</option>
                 <option value="#about">Giới thiệu (About)</option>
             </select>
         </label>
@@ -33,6 +34,7 @@
             <button type="button" data-target="#xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice">Lệnh thoại</button>
             <button type="button" data-target="#control">Điều khiển</button>
+            <button type="button" data-target="#logs">Nhật ký</button>
             <button type="button" data-target="#about">Giới thiệu</button>
         </div>
     </nav>
@@ -829,6 +831,26 @@
         <audio id="ctrlAudioPreview" controls style="width:100%; max-width:420px; margin-top:8px;"></audio>
     </div>
 
+    <div id="logs" class="container mod-section tab-content">
+        <h2>Nhật ký <small class="sub">(Logs)</small></h2>
+        <div class="help-box">
+            <strong>Journal live <small>(journalctl -u … -f)</small></strong>
+            <p>Chọn service → theo dõi log realtime. Chỉ các unit trong danh sách (an toàn). <em>(Allowlisted units only.)</em></p>
+            <p class="help-warn">Log có thể chứa URL/token — chỉ dùng trên LAN tin cậy. <em>(May contain secrets — LAN only.)</em></p>
+        </div>
+        <div id="logsUnitTabs" class="logs-unit-tabs" role="tablist" aria-label="Service units"></div>
+        <div class="logs-toolbar">
+            <span id="logsMeta" class="logs-meta"></span>
+            <div class="logs-actions">
+                <button type="button" id="logsPauseBtn" onclick="logsTogglePause()">Tạm dừng <small>(Pause)</small></button>
+                <button type="button" onclick="logsClear()">Xóa màn hình <small>(Clear)</small></button>
+                <button type="button" onclick="logsCopy()">Sao chép <small>(Copy)</small></button>
+            </div>
+        </div>
+        <pre id="logsBox" class="logs-box" aria-live="polite">Chọn service để xem log…</pre>
+        <div id="logsStatus" class="logs-status"></div>
+    </div>
+
     <div id="about" class="container mod-section tab-content">
         <h2>Giới thiệu <small class="sub">(About)</small></h2>
         <div class="about-card">
@@ -872,6 +894,7 @@
     <script src="js/alexa.js"></script>
     <script src="js/control.js"></script>
     <script src="js/stim-stats.js"></script>
+    <script src="js/journal-logs.js"></script>
 </body>
 
 </html>
