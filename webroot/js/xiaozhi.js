@@ -47,7 +47,6 @@ function xzApplyCfg(cfg) {
     const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
-    const idle = document.getElementById('xzIdleTimeout');
     const convCont = document.getElementById('xzConvContinuous');
     const convSingle = document.getElementById('xzConvSingle');
 
@@ -55,7 +54,6 @@ function xzApplyCfg(cfg) {
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
-    if (idle) idle.value = cfg.idle_timeout_sec || 20;
     const conv = (cfg.conversation_mode === 'single') ? 'single' : 'continuous';
     if (convCont) convCont.checked = (conv === 'continuous');
     if (convSingle) convSingle.checked = (conv === 'single');
@@ -88,7 +86,7 @@ async function xzSaveConfig() {
         auto_apply_ota_websocket: 'true',
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
-        idle_timeout_sec: document.getElementById('xzIdleTimeout').value,
+        idle_timeout_sec: '20',
     });
     const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
     const j = await resp.json();
