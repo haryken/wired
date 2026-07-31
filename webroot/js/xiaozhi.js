@@ -3,14 +3,23 @@
 const XZ_DEFAULT_OTA = 'https://api.tenclass.net/';
 
 let xzModeBusy = false;
-let xzAppliedMode = null; // 'xiaozhi' | 'vosk' — last mode known from disk / set_enabled
+let xzSaveBusy = false;
+let xzAppliedMode = null; // 'xiaozhi' | 'vosk'
 
-function xzSetStatus(msg, isError) {
-    const el = document.getElementById('xiaozhiStatus');
+function xzSetElStatus(elId, msg, isError) {
+    const el = document.getElementById(elId);
     if (!el) return;
-    el.textContent = msg;
+    el.textContent = msg || '';
     el.style.color = isError ? '#f87171' : '#4ade80';
     el.style.display = msg ? 'block' : 'none';
+}
+
+function xzSetModeStatus(msg, isError) {
+    xzSetElStatus('xiaozhiStatus', msg, isError);
+}
+
+function xzSetConfigStatus(msg, isError) {
+    xzSetElStatus('xzConfigStatus', msg, isError);
 }
 
 function xzSelectedMode() {
@@ -42,7 +51,6 @@ function xzApplyCfg(cfg) {
     const convCont = document.getElementById('xzConvContinuous');
     const convSingle = document.getElementById('xzConvSingle');
 
-    // First-time / empty → show default OTA; existing saved value is kept.
     if (ota) ota.value = (cfg.ota_base_url && cfg.ota_base_url.trim()) ? cfg.ota_base_url : XZ_DEFAULT_OTA;
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
@@ -60,16 +68,16 @@ function xzApplyCfg(cfg) {
 async function xzLoad() {
     try {
         const resp = await fetch('/api/mods/Xiaozhi/get');
-        if (!resp.ok) { xzSetStatus('Không tải được cấu hình (Failed to load config)', true); return; }
+        if (!resp.ok) { xzSetModeStatus('Không tải được cấu hình (Failed to load config)', true); return; }
         const cfg = await resp.json();
         xzApplyCfg(cfg);
     } catch (e) {
-        xzSetStatus('Lỗi tải: ' + e.message + ' (Error loading)', true);
+        xzSetModeStatus('Lỗi tải: ' + e.message + ' (Error loading)', true);
     }
 }
 
-/** Save Xiaozhi config fields only (not listen mode). Endpoint/token always from OTA. */
-async function xzSave() {
+/** Persist config fields. Returns {ok, config?, message?}. Does not set UI status. */
+async function xzSaveConfig() {
     let otaVal = document.getElementById('xzOTABaseURL').value.trim();
     if (!otaVal) otaVal = XZ_DEFAULT_OTA;
     const params = new URLSearchParams({
@@ -77,24 +85,78 @@ async function xzSave() {
         device_id: document.getElementById('xzDeviceID').value.trim(),
         client_id: document.getElementById('xzClientID').value.trim(),
         enabled: (xzAppliedMode === 'vosk') ? 'false' : 'true',
-        // Always auto-apply WSS from OTA (no UI toggle).
         auto_apply_ota_websocket: 'true',
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: document.getElementById('xzIdleTimeout').value,
     });
+    const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
+    const j = await resp.json();
+    if (j.status === 'success') {
+        if (j.config) xzApplyCfg(j.config);
+        return { ok: true, config: j.config };
+    }
+    return { ok: false, message: j.message || 'unknown' };
+}
+
+/** One button: save config, then OTA activation check. */
+async function xzSaveAndActivate() {
+    if (xzSaveBusy) return;
+    xzSaveBusy = true;
+    const btn = document.getElementById('xzSaveActivateBtn');
+    if (btn) btn.disabled = true;
+    const codeBox = document.getElementById('xzCodeBox');
+    if (codeBox) codeBox.style.display = 'none';
+    xzSetConfigStatus('Đang lưu cấu hình…', false);
+
     try {
-        const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
+        const saved = await xzSaveConfig();
+        if (!saved.ok) {
+            xzSetConfigStatus('Lỗi lưu: ' + (saved.message || 'unknown'), true);
+            return;
+        }
+
+        xzSetConfigStatus('Đã lưu. Đang kiểm tra kích hoạt trên máy chủ…', false);
+        const resp = await fetch('/api/mods/Xiaozhi/generate_code', { method: 'POST' });
+        if (!resp.ok) {
+            xzSetConfigStatus('Đã lưu, nhưng lỗi lấy mã: ' + (await resp.text()), true);
+            return;
+        }
         const j = await resp.json();
-        if (j.status === 'success') {
-            if (j.config) xzApplyCfg(j.config);
-            else await xzLoad();
-            xzSetStatus('Đã lưu cấu hình Xiaozhi. (Config saved.)', false);
+        if (j.status === 'error') {
+            xzSetConfigStatus('Đã lưu, nhưng lỗi: ' + (j.message || 'unknown'), true);
+            return;
+        }
+        if (j.device_id) document.getElementById('xzDeviceID').value = j.device_id;
+        if (j.client_id) document.getElementById('xzClientID').value = j.client_id;
+
+        await xzLoad();
+
+        const did = document.getElementById('xzDeviceID').value || j.device_id || '';
+        if (j.code) {
+            document.getElementById('xzCode').textContent = j.code;
+            if (codeBox) codeBox.style.display = 'block';
+            xzSetConfigStatus(
+                'Đã lưu. Chưa kích hoạt — nhập mã bên dưới tại xiaozhi.me để liên kết robot với tài khoản Xiaozhi.',
+                false
+            );
         } else {
-            xzSetStatus('Lỗi lưu: ' + (j.message || 'unknown') + ' (Save error)', true);
+            xzSetConfigStatus(
+                'Đã lưu. ID này đã kích hoạt / liên kết với tài khoản trên hệ thống Xiaozhi rồi. Đánh thức robot (Hey Vector) và dùng bình thường.',
+                false
+            );
+            if (did) {
+                xzSetConfigStatus(
+                    'Đã lưu. Device ID ' + did + ' đã liên kết với tài khoản Xiaozhi. Đánh thức robot (Hey Vector) và dùng bình thường.',
+                    false
+                );
+            }
         }
     } catch (e) {
-        xzSetStatus('Lỗi lưu: ' + e.message + ' (Save error)', true);
+        xzSetConfigStatus('Lỗi: ' + e.message, true);
+    } finally {
+        xzSaveBusy = false;
+        if (btn) btn.disabled = false;
     }
 }
 
@@ -107,7 +169,7 @@ async function xzSetListenMode(mode) {
     }
     xzModeBusy = true;
     xzShowConfigForMode(mode);
-    xzSetStatus(wantXz
+    xzSetModeStatus(wantXz
         ? 'Đang bật Xiaozhi (tắt Vosk)… đang restart cloud…'
         : 'Đang bật Vosk (tắt Xiaozhi)… đang restart cloud…', false);
     try {
@@ -115,7 +177,7 @@ async function xzSetListenMode(mode) {
         const resp = await fetch('/api/mods/Xiaozhi/set_enabled?' + params.toString(), { method: 'POST' });
         const j = await resp.json();
         if (j.status !== 'success') {
-            xzSetStatus('Lỗi đổi chế độ: ' + (j.message || 'unknown'), true);
+            xzSetModeStatus('Lỗi đổi chế độ: ' + (j.message || 'unknown'), true);
             await xzLoad();
             return;
         }
@@ -124,11 +186,11 @@ async function xzSetListenMode(mode) {
             xzAppliedMode = mode;
             xzShowConfigForMode(mode);
         }
-        xzSetStatus(wantXz
-            ? 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector. (Xiaozhi on.)'
-            : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector. (Vosk on.)', false);
+        xzSetModeStatus(wantXz
+            ? 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.'
+            : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.', false);
     } catch (e) {
-        xzSetStatus('Lỗi đổi chế độ: ' + e.message, true);
+        xzSetModeStatus('Lỗi đổi chế độ: ' + e.message, true);
         await xzLoad();
     } finally {
         xzModeBusy = false;
@@ -137,38 +199,6 @@ async function xzSetListenMode(mode) {
 
 function xzOnModeRadio() {
     xzSetListenMode(xzSelectedMode());
-}
-
-async function xzGenerateCode() {
-    xzSetStatus('Đang gọi máy chủ... (Contacting server...)', false);
-    document.getElementById('xzCodeBox').style.display = 'none';
-    try {
-        // Persist OTA URL first so generate_code uses the field value.
-        await xzSave();
-        const resp = await fetch('/api/mods/Xiaozhi/generate_code', { method: 'POST' });
-        if (!resp.ok) {
-            const t = await resp.text();
-            xzSetStatus('Lỗi: ' + t + ' (Error)', true);
-            return;
-        }
-        const j = await resp.json();
-        if (j.status === 'error') {
-            xzSetStatus('Lỗi: ' + (j.message || 'unknown') + ' (Error)', true);
-            return;
-        }
-        if (j.device_id) document.getElementById('xzDeviceID').value = j.device_id;
-        if (j.client_id) document.getElementById('xzClientID').value = j.client_id;
-        if (j.code) {
-            document.getElementById('xzCode').textContent = j.code;
-            document.getElementById('xzCodeBox').style.display = 'block';
-            xzSetStatus('Đã nhận mã — nhập tại xiaozhi.me. (WSS tự cập nhật từ OTA.)', false);
-        } else {
-            xzSetStatus('Không có mã (có thể đã ghép). WSS đã làm mới từ OTA nếu có.', false);
-        }
-        await xzLoad();
-    } catch (e) {
-        xzSetStatus('Lỗi: ' + e.message + ' (Error)', true);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {

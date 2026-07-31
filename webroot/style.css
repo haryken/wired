@@ -307,6 +307,18 @@ input.xz-readonly:disabled {
     cursor: not-allowed;
 }
 
+.xz-status {
+    text-align: left;
+    margin: 8px 0 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
 @media (max-width: 699px) {
     header h1 {
         font-size: 1.25rem;
