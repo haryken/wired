@@ -35,6 +35,7 @@ function xzSelectedConvMode() {
 function xzApplyCfg(cfg) {
     if (!cfg) return;
     const ota = document.getElementById('xzOTABaseURL');
+    const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
     const idle = document.getElementById('xzIdleTimeout');
@@ -43,6 +44,7 @@ function xzApplyCfg(cfg) {
 
     // First-time / empty → show default OTA; existing saved value is kept.
     if (ota) ota.value = (cfg.ota_base_url && cfg.ota_base_url.trim()) ? cfg.ota_base_url : XZ_DEFAULT_OTA;
+    if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
     if (idle) idle.value = cfg.idle_timeout_sec || 20;

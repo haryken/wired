@@ -530,8 +530,9 @@
             <h3 style="margin:4px 0 10px; color:#c4a0ff;">Cấu hình Xiaozhi <small class="sub">(Config — Save only here)</small></h3>
             <div class="help-box">
                 <ol>
-                    <li>Máy chủ OTA lần đầu mặc định <code>https://api.tenclass.net/</code>; đã lưu rồi thì giữ nguyên. <em>(First-time default; keep existing data.)</em></li>
-                    <li>WebSocket endpoint + token <b>tự lấy từ OTA</b> (không chỉnh tay). <em>(WSS URL/token always from OTA.)</em></li>
+                    <li>Máy chủ OTA lần đầu mặc định <code>https://api.tenclass.net/</code>; đã lưu rồi thì giữ nguyên.</li>
+                    <li>WebSocket (ô xám bên dưới) + token <b>tự lấy từ OTA</b> — chỉ xem, không sửa.</li>
+                    <li>ID để trống: Device = MAC robot; Client = UUID ngẫu nhiên (khi Lấy mã / bật Xiaozhi).</li>
                     <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>.</li>
                     <li>Chọn hội thoại → <b>Lưu cấu hình</b>. TTS luôn Xiaozhi.</li>
                 </ol>
@@ -541,11 +542,14 @@
                 <label>Máy chủ OTA <small>(Server / OTA base URL)</small>:</label>
                 <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
 
-                <label>ID thiết bị (MAC — để trống sẽ tự điền) <small>(Device ID, auto if blank)</small>:</label>
-                <input type="text" id="xzDeviceID" placeholder="auto" style="width:100%;max-width:420px">
+                <label>Đầu cuối WebSocket <small>(Endpoint — tự động từ OTA)</small>:</label>
+                <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly placeholder="(tự lấy sau Get Code / bật Xiaozhi)" style="width:100%;max-width:420px">
 
-                <label>ID client (UUID — để trống sẽ tự điền) <small>(Client ID, auto if blank)</small>:</label>
-                <input type="text" id="xzClientID" placeholder="auto" style="width:100%;max-width:420px">
+                <label>ID thiết bị (MAC — để trống = MAC robot) <small>(Device ID)</small>:</label>
+                <input type="text" id="xzDeviceID" placeholder="auto = MAC" style="width:100%;max-width:420px">
+
+                <label>ID client (để trống = UUID ngẫu nhiên) <small>(Client ID)</small>:</label>
+                <input type="text" id="xzClientID" placeholder="auto = UUID" style="width:100%;max-width:420px">
 
                 <div class="xz-conv-block" style="width:100%; max-width:520px; margin-top:10px;">
                     <strong>Cách hội thoại <small>(Conversation)</small></strong>

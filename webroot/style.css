@@ -298,6 +298,15 @@ header h1 {
     line-height: 1.4;
 }
 
+input.xz-readonly,
+input.xz-readonly:disabled {
+    opacity: 0.85;
+    color: #ccc;
+    background: #1a1a1a;
+    border-color: #444;
+    cursor: not-allowed;
+}
+
 @media (max-width: 699px) {
     header h1 {
         font-size: 1.25rem;
