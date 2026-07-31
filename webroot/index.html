@@ -531,8 +531,8 @@
             <div class="help-box">
                 <ol>
                     <li>Điền OTA / WebSocket (hoặc mặc định) → <b>Lưu</b>. <em>(Edit URLs → Save.)</em></li>
-                    <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. Token WSS tự lấy từ OTA (không nhập tay). <em>(Get Code; token is automatic.)</em></li>
-                    <li>Hội thoại <b>liên tục</b> / <b>một lượt</b>; timeout im lặng. <em>(Continuous vs single; idle timeout.)</em></li>
+                    <li><b>Lấy mã kích hoạt</b> → nhập tại <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a>. Token WSS tự lấy từ OTA. <em>(Get Code; token is automatic.)</em></li>
+                    <li>Chọn hội thoại <b>Liên tục</b> hoặc <b>Một lượt</b> (xem bên dưới) → Lưu. Giọng nói luôn dùng TTS Xiaozhi. <em>(Speech always uses Xiaozhi TTS.)</em></li>
                 </ol>
             </div>
 
@@ -554,19 +554,26 @@
                     <label class="buttonlabel" for="xzAutoApplyOTA">Tự áp OTA websocket <small>(Auto-apply)</small></label>
                 </div>
 
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
-                    <label>Chế độ TTS <small>(TTS Mode)</small>:</label>
-                    <select id="xzTTSMode">
-                        <option value="xiaozhi">xiaozhi</option>
-                        <option value="acapela">acapela</option>
-                    </select>
-                    <label>Hội thoại <small>(Conversation)</small>:</label>
-                    <select id="xzConvMode">
-                        <option value="continuous">liên tục (continuous)</option>
-                        <option value="single">một lượt (single)</option>
-                    </select>
-                    <label>Timeout im lặng (giây) <small>(Idle s)</small>:</label>
-                    <input type="number" id="xzIdleTimeout" min="5" max="120" value="20" style="width:70px">
+                <div class="xz-conv-block" style="width:100%; max-width:520px; margin-top:10px;">
+                    <strong>Cách hội thoại <small>(Conversation)</small></strong>
+                    <div class="bot-opt-list xz-conv-radios" style="margin:8px 0;">
+                        <label class="xz-conv-option">
+                            <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked>
+                            <span>
+                                <b>Liên tục</b> <small>(Continuous)</small><br>
+                                <span class="xz-conv-desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu. <em>(Mic reopens after each reply.)</em></span>
+                            </span>
+                        </label>
+                        <label class="xz-conv-option">
+                            <input type="radio" name="xzConvMode" value="single" id="xzConvSingle">
+                            <span>
+                                <b>Một lượt</b> <small>(Single turn)</small><br>
+                                <span class="xz-conv-desc">Một câu hỏi → một câu trả lời rồi tắt mic. Muốn nói tiếp phải Hey Vector lại. Tiết kiệm / ít bị nghe nhầm. <em>(One Q&amp;A then mic off.)</em></span>
+                            </span>
+                        </label>
+                    </div>
+                    <label for="xzIdleTimeout" style="display:block; margin-top:6px;">Timeout im lặng (giây) <small>(Idle — đóng mic nếu không nói)</small>:</label>
+                    <input type="number" id="xzIdleTimeout" min="5" max="120" value="20" style="width:70px; margin-top:4px;">
                 </div>
 
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">

@@ -239,7 +239,8 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if v := r.FormValue("tts_mode"); v != "" {
-			cfg.TTSMode = strings.TrimSpace(v)
+			// Xiaozhi path only supports Xiaozhi TTS; coerce anything else.
+			cfg.TTSMode = "xiaozhi"
 		}
 		if v := r.FormValue("conversation_mode"); v != "" {
 			cfg.ConversationMode = strings.TrimSpace(v)
