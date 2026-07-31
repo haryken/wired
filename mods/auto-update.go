@@ -113,8 +113,12 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 	// Drop stale status from a prior inhibited auto-update so the UI does not
 	// flash "auto-update inhibited" while the URL OTA is starting.
 	_ = os.RemoveAll(updateEngineStateDir)
-	_ = os.MkdirAll(filepath.Dir(updateEngineEnvPath), 0777)
 
+	// Drop robot stack first. Stopping anki-robot/vic-switchboard clears
+	// /run/vic-switchboard, so the URL env must be written AFTER this stop.
+	_ = exec.Command("/bin/systemctl", "stop", "anki-robot.target").Run()
+
+	_ = os.MkdirAll(filepath.Dir(updateEngineEnvPath), 0777)
 	env := strings.Join([]string{
 		"UPDATE_ENGINE_ENABLED=True",
 		"UPDATE_ENGINE_ALLOW_DOWNGRADE=True",
@@ -127,13 +131,13 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 		vars.HTTPError(w, r, "cannot write update-engine.env: "+err.Error())
 		return
 	}
+	// Also seed oneshot.env — systemd reads it before vic-switchboard env.
+	_ = os.WriteFile("/run/update-engine-oneshot.env", []byte(env), 0644)
 
-	// Drop robot stack so eyes go dark / free bandwidth during flash.
-	_ = exec.Command("/bin/systemctl", "stop", "anki-robot.target").Run()
-
-	// Restart update-engine with our URL override.
+	// Restart update-engine with our URL override (--no-block so the HTTP
+	// handler does not sit on the long start-pre / download).
 	_ = exec.Command("/bin/systemctl", "reset-failed", "update-engine.service").Run()
-	if out, err := exec.Command("/bin/systemctl", "restart", "update-engine.service").CombinedOutput(); err != nil {
+	if out, err := exec.Command("/bin/systemctl", "restart", "--no-block", "update-engine.service").CombinedOutput(); err != nil {
 		msg := strings.TrimSpace(string(out))
 		if msg == "" {
 			msg = err.Error()
