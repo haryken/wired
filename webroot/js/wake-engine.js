@@ -106,6 +106,12 @@ function setControlsDisabled(rootId, disabled) {
     root.style.pointerEvents = disabled ? 'none' : '';
 }
 
+function selectedWakeEngineRadio() {
+    const thf = document.getElementById('wakeEngineThf');
+    return (thf && thf.checked) ? 'thf' : 'picovoice';
+}
+
+/** Nav locks / section gates follow the *saved* engine only (currentWakeEngine). */
 function applyWakeEngineUi() {
     const useThf = isWakeThf();
     const thfHint = document.getElementById('wakeThfHint');
@@ -145,22 +151,23 @@ function applyWakeEngineUi() {
     }
 }
 
+/** Radio preview only — do not lock/unlock tiles until Save. */
 function onWakeEngineRadio() {
-    const thf = document.getElementById('wakeEngineThf');
-    currentWakeEngine = (thf && thf.checked) ? 'thf' : 'picovoice';
-    applyWakeEngineUi();
+    const pending = selectedWakeEngineRadio();
+    if (pending !== currentWakeEngine) {
+        setWakeEngineStatus('Đã chọn <b>' + pending + '</b> — bấm <b>Lưu engine + restart</b> để áp dụng. Tile phía trên vẫn theo engine hiện tại.');
+    } else {
+        setWakeEngineStatus('Engine hiện tại: <b>' + currentWakeEngine + '</b> (đã áp dụng).');
+    }
 }
 
 function setWakeEngineStatus(msg) {
     const el = document.getElementById('wakeEngineStatus');
-    if (el) el.innerHTML = `<p>${msg}</p>`;
+    if (el) el.innerHTML = msg ? `<p>${msg}</p>` : '';
 }
 
 async function saveWakeEngine() {
-    const thf = document.getElementById('wakeEngineThf');
-    currentWakeEngine = (thf && thf.checked) ? 'thf' : 'picovoice';
-    applyWakeEngineUi();
-    const engine = isWakeThf() ? 'thf' : 'picovoice';
+    const engine = selectedWakeEngineRadio();
     setWakeEngineStatus('Đang lưu ' + engine + '...');
     try {
         const res = await fetch('/api/mods/WakeEngine/set?engine=' + encodeURIComponent(engine));
@@ -169,6 +176,8 @@ async function saveWakeEngine() {
             await loadWakeEngine();
             return;
         }
+        currentWakeEngine = engine;
+        applyWakeEngineUi();
         setWakeEngineStatus('Đã lưu — đang restart anim...');
         await RestartVic();
         setWakeEngineStatus('Xong. Engine: ' + engine);
