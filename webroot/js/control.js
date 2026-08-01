@@ -10,14 +10,19 @@ function ctrlSetDriveEnabled(on) {
     document.querySelectorAll('#control .ctrl-btn').forEach((b) => {
         b.disabled = !on;
     });
-    const mOn = document.getElementById('ctrlMirrorOn');
-    const mOff = document.getElementById('ctrlMirrorOff');
-    if (mOn) mOn.disabled = !on;
-    if (mOff) mOff.disabled = !on;
+    const mirror = document.getElementById('ctrlMirrorSwitch');
+    if (mirror) {
+        mirror.disabled = !on;
+        if (!on) mirror.checked = false;
+    }
     const sayIn = document.getElementById('ctrlSayText');
     const sayBtn = document.getElementById('ctrlSayBtn');
     if (sayIn) sayIn.disabled = !on;
     if (sayBtn) sayBtn.disabled = !on;
+    const assume = document.getElementById('ctrlAssumeBtn');
+    const release = document.getElementById('ctrlReleaseBtn');
+    if (assume) assume.classList.toggle('is-active', !!on);
+    if (release) release.classList.toggle('is-active', !on);
 }
 
 async function ctrlAssume() {
@@ -144,6 +149,8 @@ function ctrlHeadStop(ev) {
 async function ctrlMirror(on) {
     if (!ctrlAssumed) {
         setControlStatus('Cần chiếm quyền trước. (Assume control first.)');
+        const sw = document.getElementById('ctrlMirrorSwitch');
+        if (sw) sw.checked = false;
         return;
     }
     try {
@@ -151,33 +158,58 @@ async function ctrlMirror(on) {
         const j = await res.json().catch(() => ({}));
         if (!res.ok) {
             setControlStatus(`${j.status || 'error'}: ${j.message || res.status}`);
+            const sw = document.getElementById('ctrlMirrorSwitch');
+            if (sw) sw.checked = !on;
             return;
         }
+        const sw = document.getElementById('ctrlMirrorSwitch');
+        if (sw) sw.checked = !!on;
         setControlStatus(on ? 'Gương bật (Mirror ON)' : 'Gương tắt (Mirror OFF)');
     } catch (e) {
         setControlStatus(`Lỗi mạng (network error): ${e.message}`);
+        const sw = document.getElementById('ctrlMirrorSwitch');
+        if (sw) sw.checked = !on;
     }
+}
+
+function ctrlMirrorToggle(on) {
+    ctrlMirror(!!on);
+}
+
+function ctrlCamPlaceholderHTML() {
+    return '<div class="ctrl-cam-placeholder">Camera tắt — bật switch bên dưới hoặc Chiếm quyền.<br><em>Camera off — flip the switch below or Assume.</em></div>';
+}
+
+function ctrlSetCamSwitch(on) {
+    const sw = document.getElementById('ctrlCamSwitch');
+    if (sw) sw.checked = !!on;
+}
+
+function ctrlCamToggle(on) {
+    if (on) ctrlCamStart();
+    else ctrlCamStop();
 }
 
 function ctrlCamStart() {
     const box = document.getElementById('ctrlCamBox');
     if (!box) return;
-    box.style.display = 'block';
     box.innerHTML = '';
     const img = document.createElement('img');
     img.alt = 'camera';
     img.src = '/api/mods/Control/cam-stream?' + Date.now();
     box.appendChild(img);
+    ctrlSetCamSwitch(true);
     setControlStatus('Camera bật (Camera ON)');
 }
 
 function ctrlCamStop() {
     const box = document.getElementById('ctrlCamBox');
     if (box) {
-        box.innerHTML = '';
-        box.style.display = 'none';
+        box.innerHTML = ctrlCamPlaceholderHTML();
     }
+    ctrlSetCamSwitch(false);
     fetch('/api/mods/Control/stop_cam', { method: 'POST' }).catch(() => {});
+    setControlStatus('Camera tắt (Camera OFF)');
 }
 
 window.addEventListener('beforeunload', () => {

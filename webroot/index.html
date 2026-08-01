@@ -769,59 +769,63 @@
         <div id="controlStatus"></div>
         <hr class="smallhr">
 
-        <div class="button-container" style="justify-content:center; gap:8px;">
-            <button type="button" id="ctrlAssumeBtn" onclick="ctrlAssume()">1. Chiếm quyền <small>(Assume)</small></button>
-            <button type="button" id="ctrlReleaseBtn" onclick="ctrlRelease()">3. Nhả quyền <small>(Release)</small></button>
+        <div class="ctrl-session" role="group" aria-label="Session">
+            <button type="button" id="ctrlAssumeBtn" class="ctrl-seg" onclick="ctrlAssume()">Chiếm quyền <small>Assume</small></button>
+            <button type="button" id="ctrlReleaseBtn" class="ctrl-seg is-active" onclick="ctrlRelease()">Nhả quyền <small>Release</small></button>
         </div>
-        <hr class="smallhr">
 
-        <h3 style="margin:8px 0; color:#a855f7;">📷 Luồng camera <small class="sub">(Camera stream)</small></h3>
-        <div class="button-container" style="justify-content:center; gap:8px;">
-            <button type="button" id="ctrlCamOnBtn" onclick="ctrlCamStart()">Bật camera <small>(ON)</small></button>
-            <button type="button" onclick="ctrlCamStop()">Tắt camera <small>(OFF)</small></button>
+        <div class="ctrl-stage">
+            <div class="ctrl-stage-cam">
+                <div id="ctrlCamBox" class="ctrl-cam" aria-label="Camera stream">
+                    <div class="ctrl-cam-placeholder">Camera tắt — bật switch bên dưới hoặc Chiếm quyền.<br><em>Camera off — flip the switch below or Assume.</em></div>
+                </div>
+                <div class="ctrl-switches">
+                    <label class="ctrl-switch" for="ctrlCamSwitch">
+                        <span class="ctrl-switch-text">Camera</span>
+                        <input type="checkbox" id="ctrlCamSwitch" onchange="ctrlCamToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlMirrorSwitch">
+                        <span class="ctrl-switch-text">Gương <small>Mirror</small></span>
+                        <input type="checkbox" id="ctrlMirrorSwitch" disabled onchange="ctrlMirrorToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                </div>
+            </div>
+            <div class="ctrl-stage-pad">
+                <div class="ctrl-grid" id="ctrlGrid">
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlLiftHold(2,event)" onpointerup="ctrlLiftStop(event)"
+                        onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Nâng tay<br><small>Lift ↑</small></button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(140,140,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Tiến<br><small>Forward ↑</small></button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHeadHold(2,event)" onpointerup="ctrlHeadStop(event)"
+                        onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Ngẩng<br><small>Head ↑</small></button>
+
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(-160,160,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Trái ↺<br><small>Left</small></button>
+                    <button type="button" class="ctrl-btn ctrl-stop" disabled
+                        onclick="ctrlStopAll(event)">Dừng<br><small>Stop ■</small></button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(160,-160,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Phải ↻<br><small>Right</small></button>
+
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlLiftHold(-2,event)" onpointerup="ctrlLiftStop(event)"
+                        onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Hạ tay<br><small>Lift ↓</small></button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(-140,-140,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Lùi<br><small>Back ↓</small></button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHeadHold(-2,event)" onpointerup="ctrlHeadStop(event)"
+                        onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Cúi<br><small>Head ↓</small></button>
+                </div>
+                <p class="ctrl-pad-hint">Giữ để chạy — giữa = dừng hết. <em>(Hold to move — center stops all.)</em></p>
+            </div>
         </div>
-        <div id="ctrlCamBox" class="ctrl-cam" style="display:none;"></div>
-        <hr class="smallhr">
-
-        <h3 style="margin:8px 0; color:#a855f7;">🪞 Gương trên mặt <small class="sub">(Mirror)</small></h3>
-        <div class="button-container" style="justify-content:center; gap:8px;">
-            <button type="button" id="ctrlMirrorOn" disabled onclick="ctrlMirror(true)">Bật gương <small>(ON)</small></button>
-            <button type="button" id="ctrlMirrorOff" disabled onclick="ctrlMirror(false)">Tắt gương <small>(OFF)</small></button>
-        </div>
-        <hr class="smallhr">
-
-        <h3 style="margin:8px 0; color:#a855f7;">🕹️ Bàn điều khiển <small class="sub">(Control pad)</small></h3>
-        <div class="ctrl-grid" id="ctrlGrid">
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlLiftHold(2,event)" onpointerup="ctrlLiftStop(event)"
-                onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Nâng tay<br><small>Lift ↑</small></button>
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHold(140,140,event)" onpointerup="ctrlStop(event)"
-                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Tiến<br><small>Forward ↑</small></button>
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHeadHold(2,event)" onpointerup="ctrlHeadStop(event)"
-                onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Ngẩng<br><small>Head ↑</small></button>
-
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHold(-160,160,event)" onpointerup="ctrlStop(event)"
-                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Trái ↺<br><small>Left</small></button>
-            <button type="button" class="ctrl-btn ctrl-stop" disabled
-                onclick="ctrlStopAll(event)">Dừng<br><small>Stop ■</small></button>
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHold(160,-160,event)" onpointerup="ctrlStop(event)"
-                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Phải ↻<br><small>Right</small></button>
-
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlLiftHold(-2,event)" onpointerup="ctrlLiftStop(event)"
-                onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)">Hạ tay<br><small>Lift ↓</small></button>
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHold(-140,-140,event)" onpointerup="ctrlStop(event)"
-                onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)">Lùi<br><small>Back ↓</small></button>
-            <button type="button" class="ctrl-btn" disabled
-                onpointerdown="ctrlHeadHold(-2,event)" onpointerup="ctrlHeadStop(event)"
-                onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)">Cúi<br><small>Head ↓</small></button>
-        </div>
-        <p style="font-size:0.8em; color:#888; margin-top:8px;">Giữ để chạy — giữa = dừng hết. <em>(Hold to move — center stops all.)</em></p>
         <hr class="smallhr">
 
         <h3 style="margin:8px 0; color:#a855f7;">🗣 Robot nói <small class="sub">(Say Text)</small></h3>

@@ -31,7 +31,7 @@ func main() {
 }
 
 func startweb() {
-	fmt.Println("starting web at port 8080")
+	fmt.Println("starting web at ports 80 and 8080")
 	fs := http.FileServer(http.Dir("/etc/wired/webroot"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// no mno non o caching
@@ -41,5 +41,14 @@ func startweb() {
 
 		fs.ServeHTTP(w, r)
 	})
-	http.ListenAndServe(":8080", nil)
+	// Same DefaultServeMux on both ports. Prefer :8080 as the blocking
+	// listener so a bind failure on privileged :80 still leaves the UI up.
+	go func() {
+		if err := http.ListenAndServe(":80", nil); err != nil {
+			fmt.Println("wired listen :80 failed:", err)
+		}
+	}()
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		fmt.Println("wired listen :8080 failed:", err)
+	}
 }

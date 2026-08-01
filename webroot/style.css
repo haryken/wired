@@ -583,7 +583,159 @@ input[type="text"] {
     line-height: 1.6;
 }
 
-/* control beta — square 3x3 pad */
+/* control beta — session pills + switches under camera */
+
+.ctrl-session {
+    display: flex;
+    width: 100%;
+    max-width: 420px;
+    margin: 4px auto 14px;
+    padding: 4px;
+    border-radius: 999px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    gap: 4px;
+    box-sizing: border-box;
+}
+
+.ctrl-session .ctrl-seg {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 12px;
+    background: transparent;
+    color: #aaa;
+    font-size: 13px;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.ctrl-session .ctrl-seg small {
+    display: block;
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+.ctrl-session .ctrl-seg.is-active {
+    background: #a855f7;
+    color: #111;
+    font-weight: 600;
+}
+
+.ctrl-session .ctrl-seg:not(.is-active):hover {
+    background: #2a2a2a;
+    color: #eee;
+}
+
+.ctrl-switches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.ctrl-switch {
+    flex: 1 1 140px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ctrl-switch-text {
+    font-size: 14px;
+    color: #e8e8e8;
+    line-height: 1.2;
+}
+
+.ctrl-switch-text small {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.ctrl-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.ctrl-switch-track {
+    position: relative;
+    width: 46px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #3a3a3a;
+    transition: background 0.18s ease;
+}
+
+.ctrl-switch-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f3f3f3;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: transform 0.18s ease;
+}
+
+.ctrl-switch input:checked + .ctrl-switch-track {
+    background: #22c55e;
+}
+
+.ctrl-switch input:checked + .ctrl-switch-track .ctrl-switch-thumb {
+    transform: translateX(18px);
+}
+
+.ctrl-switch:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ctrl-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    margin: 0 0 8px;
+}
+
+.ctrl-stage-cam {
+    width: 100%;
+    max-width: 480px;
+}
+
+.ctrl-stage-pad {
+    width: 100%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.ctrl-pad-hint {
+    font-size: 0.8em;
+    color: #888;
+    margin: 6px 0 0;
+    text-align: center;
+}
 
 .ctrl-grid {
     display: grid;
@@ -592,7 +744,7 @@ input[type="text"] {
     gap: 8px;
     width: min(92vw, 300px);
     aspect-ratio: 1 / 1;
-    margin: 10px auto;
+    margin: 0 auto;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
@@ -692,13 +844,31 @@ input[type="text"] {
 }
 
 .ctrl-cam {
-    margin-top: 12px;
+    margin: 0;
+    min-height: 180px;
+    border-radius: 12px;
+    background: #111;
+    border: 1px solid #333;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .ctrl-cam img {
+    display: block;
+    width: 100%;
     max-width: 100%;
-    border-radius: 8px;
+    height: auto;
     background: #111;
+}
+
+.ctrl-cam-placeholder {
+    padding: 24px 16px;
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+    line-height: 1.4;
 }
 
 /* bot settings (WirePod-style) */
