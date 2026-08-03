@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vector">
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a2e"/>
+      <stop offset="55%" stop-color="#121214"/>
+      <stop offset="100%" stop-color="#0a0a0c"/>
+    </linearGradient>
+    <linearGradient id="eye" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7dff9a"/>
+      <stop offset="45%" stop-color="#39fc78"/>
+      <stop offset="100%" stop-color="#12d45a"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- head / screen -->
+  <rect x="6" y="10" width="52" height="44" rx="10" ry="10" fill="url(#face)" stroke="#3a3a40" stroke-width="1.5"/>
+  <!-- bezel inset -->
+  <rect x="11" y="16" width="42" height="32" rx="5" ry="5" fill="#050506" opacity="0.92"/>
+  <!-- eyes -->
+  <g filter="url(#glow)">
+    <rect x="16" y="22" width="12.5" height="16" rx="3.2" fill="url(#eye)"/>
+    <rect x="35.5" y="22" width="12.5" height="16" rx="3.2" fill="url(#eye)"/>
+  </g>
+</svg>

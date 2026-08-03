@@ -1,5 +1,6 @@
 function activateSection(target) {
     if (!target) return;
+    if (target === '#chess') target = '#games'; // legacy
     const prev = document.querySelector('.tab-content.active');
     const prevId = prev ? '#' + prev.id : '';
     const tabs = document.querySelectorAll('.tabs button');
@@ -45,6 +46,9 @@ if (legacyBotHash[location.hash]) {
     setTimeout(() => {
         if (typeof showBotSection === 'function') showBotSection(sec);
     }, 0);
+} else if (location.hash === '#chess') {
+    // Legacy bookmark → games lobby
+    activateSection('#games');
 } else if (location.hash && document.querySelector(location.hash)) {
     activateSection(location.hash);
 } else {

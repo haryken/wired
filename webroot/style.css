@@ -123,8 +123,14 @@ header,
 }
 
 .brand-logo {
-    font-size: 1.8rem;
-    line-height: 1;
+    width: 44px;
+    height: 44px;
+    display: block;
+    flex-shrink: 0;
+    border-radius: 12px;
+    object-fit: contain;
+    background: #0a0a0c;
+    box-shadow: 0 0 0 1px #333, 0 0 12px rgba(57, 252, 120, 0.18);
 }
 
 header h1 {
@@ -1137,9 +1143,14 @@ h3 small.sub {
 }
 
 .about-logo {
-    font-size: 3rem;
-    line-height: 1;
-    margin: 8px 0 12px;
+    width: 96px;
+    height: 96px;
+    display: block;
+    margin: 8px auto 12px;
+    border-radius: 22px;
+    object-fit: contain;
+    background: #0a0a0c;
+    box-shadow: 0 0 0 1px #333, 0 0 20px rgba(57, 252, 120, 0.25);
 }
 
 .about-title {
@@ -1238,6 +1249,71 @@ h3 small.sub {
     vertical-align: middle;
     margin-left: 8px;
     background: #00c8c8;
+}
+
+/* Language dropdown in header */
+header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 16px;
+}
+
+header .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ui-lang-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 10px;
+    background: #252525;
+    border: 1px solid #444;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ui-lang-wrap:hover {
+    background: #2e2e2e;
+    border-color: #666;
+}
+
+.ui-lang-label {
+    font-size: 12px;
+    color: #bbb;
+    white-space: nowrap;
+}
+
+#uiLangSelect {
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #eee;
+    background: #1a1a1a;
+    border: 1px solid #555;
+    border-radius: 8px;
+    min-width: 120px;
+    cursor: pointer;
+}
+
+#uiLangSelect:focus {
+    outline: none;
+    border-color: #a855f7;
+}
+
+html.i18n-pure small.sub {
+    display: none !important;
+}
+
+.bot-nav-item span[data-i18n] {
+    display: block;
+    line-height: 1.25;
 }
 
 

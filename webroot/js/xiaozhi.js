@@ -58,6 +58,9 @@ function xzApplyCfg(cfg) {
     if (convCont) convCont.checked = (conv === 'continuous');
     if (convSingle) convSingle.checked = (conv === 'single');
 
+    const gvi = document.getElementById('xzGameGoogleVi');
+    if (gvi) gvi.checked = !!cfg.game_google_tts_vi;
+
     const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
     xzAppliedMode = mode;
     xzShowConfigForMode(mode);
@@ -87,6 +90,7 @@ async function xzSaveConfig() {
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: '20',
+        game_google_tts_vi: (document.getElementById('xzGameGoogleVi') && document.getElementById('xzGameGoogleVi').checked) ? 'true' : 'false',
     });
     const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
     const j = await resp.json();
@@ -197,6 +201,28 @@ async function xzSetListenMode(mode) {
 
 function xzOnModeRadio() {
     xzSetListenMode(xzSelectedMode());
+}
+
+async function xzSaveGameGoogleVi() {
+    const el = document.getElementById('xzGameGoogleVi');
+    if (!el) return;
+    const on = !!el.checked;
+    try {
+        const params = new URLSearchParams({ enabled: on ? 'true' : 'false' });
+        const resp = await fetch('/api/mods/Xiaozhi/set_game_google_tts_vi?' + params.toString(), { method: 'POST' });
+        const j = await resp.json();
+        if (j.status !== 'success') {
+            xzSetElStatus('xzGameTtsStatus', 'Lỗi lưu: ' + (j.message || 'unknown'), true);
+            await xzLoad();
+            return;
+        }
+        if (j.config) xzApplyCfg(j.config);
+        xzSetElStatus('xzGameTtsStatus', on
+            ? 'Đã bật Google VI — chọn trong tab Game → chế độ bình luận.'
+            : 'Đã tắt Google VI.', false);
+    } catch (e) {
+        xzSetElStatus('xzGameTtsStatus', 'Lỗi: ' + e.message, true);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {

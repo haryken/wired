@@ -22,6 +22,14 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewPhotos(),
 	mods.NewStimStats(),
 	mods.NewJournalLogs(),
+	mods.NewChess(),
+	mods.NewXiangqi(),
+	mods.NewCaro(),
+	mods.NewConnect4(),
+	mods.NewReversi(),
+	mods.NewCheckers(),
+	mods.NewGo9(),
+	mods.NewWebLocale(),
 }
 
 func main() {

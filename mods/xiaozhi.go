@@ -32,6 +32,9 @@ type XiaozhiCfg struct {
 	ConversationMode      string `json:"conversation_mode"`
 	IdleTimeoutSec        int    `json:"idle_timeout_sec"`
 	TTSMode               string `json:"tts_mode"`
+	// GameGoogleTTSVI enables "SayText Google (VI)" game comment mode for both
+	// Vosk and Xiaozhi listen modes (set on Xiaozhi tab).
+	GameGoogleTTSVI bool `json:"game_google_tts_vi"`
 }
 
 func defaultXiaozhiCfg() XiaozhiCfg {
@@ -254,6 +257,9 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if v := r.FormValue("conversation_mode"); v != "" {
 			cfg.ConversationMode = strings.TrimSpace(v)
 		}
+		if v := r.FormValue("game_google_tts_vi"); v != "" {
+			cfg.GameGoogleTTSVI = v == "true" || v == "1" || v == "on"
+		}
 		// Blank device/client IDs → generate (random MAC / UUID). Non-blank keeps user value.
 		if v := strings.TrimSpace(r.FormValue("device_id")); v == "" {
 			cfg.DeviceID = genRandomMAC()
@@ -363,6 +369,29 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			"status":    "success",
 			"config":    cfg,
 			"restarted": restarted,
+		})
+		return
+
+	case vars.IsEndpoint(r, "set_game_google_tts_vi"):
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		v := strings.TrimSpace(r.FormValue("enabled"))
+		if v == "" {
+			v = strings.TrimSpace(r.FormValue("game_google_tts_vi"))
+		}
+		if v == "" {
+			vars.HTTPError(w, r, "enabled required")
+			return
+		}
+		cfg.GameGoogleTTSVI = v == "true" || v == "1" || v == "on"
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
 		})
 		return
 
