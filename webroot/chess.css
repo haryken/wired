@@ -37,8 +37,12 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
-    max-width: 720px;
+    max-width: 960px;
     margin: 12px auto;
+}
+
+.games-pick-card.games-pick-extra {
+    border-color: rgba(129, 140, 248, 0.45);
 }
 
 .games-pick-card {

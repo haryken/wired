@@ -189,6 +189,42 @@
         return n;
     }
 
+    /** Inject minigame tiles into the lobby grid (index.html only lists board games). */
+    function renderExtraPickCards() {
+        const grid = document.querySelector('#gamesStepPick .games-pick-grid');
+        if (!grid) return;
+        EXTRA_IDS.forEach((id) => {
+            if (grid.querySelector('.games-pick-card[data-game="' + id + '"]')) return;
+            const meta = EXTRA_META[id];
+            if (!meta) return;
+            const btn = el('button', 'games-pick-card games-pick-extra');
+            btn.type = 'button';
+            btn.setAttribute('data-game', id);
+            btn.appendChild(el('span', 'games-pick-ico', meta.ico || '🎮'));
+            btn.appendChild(el('span', 'games-pick-name', meta.short || id));
+            const sub = el('small', '', meta.hint || '');
+            btn.appendChild(sub);
+            btn.addEventListener('click', () => {
+                if (typeof gamesPickGame === 'function') gamesPickGame(id);
+            });
+            grid.appendChild(btn);
+        });
+    }
+
+    function bootExtraPickCards() {
+        renderExtraPickCards();
+        // i18n may refresh labels after locale load — rebuild names once.
+        if (typeof applyI18n === 'function' || typeof setLocale === 'function') {
+            setTimeout(renderExtraPickCards, 0);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootExtraPickCards);
+    } else {
+        bootExtraPickCards();
+    }
+
     function sendUCI(uci) {
         if (typeof chessSubmitMove === 'function') {
             chessSubmitMove(uci);
@@ -1772,5 +1808,6 @@
     global.EXTRA_META = EXTRA_META;
     global.gamesIsExtraGame = isExtraGame;
     global.gamesRenderExtra = gamesRenderExtra;
+    global.gamesRenderExtraPickCards = renderExtraPickCards;
     global.GAMES_EXTRA_IDS = EXTRA_IDS;
 })(window);
