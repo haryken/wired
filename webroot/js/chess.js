@@ -148,7 +148,13 @@ function normalizeCommentMode(mode) {
 }
 
 function normalizeGameId(id) {
-    if (id && GAMES_META[id]) return id;
+    if (!id || typeof id !== 'string') return null;
+    id = String(id).trim();
+    if (!id) return null;
+    if (GAMES_META[id]) return id;
+    // games_extra.js registers more games after chess.js initializes —
+    // keep plausible ids so a refresh can restore an in-progress Uno/etc.
+    if (/^[a-z][a-z0-9_]*$/i.test(id)) return id;
     return null;
 }
 
@@ -497,8 +503,8 @@ function chessIsXiangqi() {
 
 function chessIsPlaceMode() {
     const id = gamesActiveId();
-    return id === 'caro' || id === 'connect4' || id === 'reversi' || id === 'go9' ||
-        !!(chessState && chessState.placeMode);
+    return id === 'caro' || id === 'connect4' || id === 'reversi' || id === 'go9' || id === 'tictactoe' ||
+        !!(chessState && chessState.placeMode && id !== 'mines' && id !== 'memory' && id !== 'battleship' && id !== 'sudoku');
 }
 
 function chessIsMoveMode() {
@@ -510,7 +516,7 @@ function chessIsMoveMode() {
 function gamesIsOver(st) {
     if (!st) return true;
     const s = st.status;
-    return s === 'checkmate' || s === 'stalemate' || s === 'win' || s === 'won' || s === 'draw';
+    return s === 'checkmate' || s === 'stalemate' || s === 'win' || s === 'won' || s === 'draw' || s === 'lose';
 }
 
 function chessRender(st) {
@@ -560,6 +566,21 @@ function chessRender(st) {
         for (let i = 7; i >= 0; i--) ranks.push(i);
         chessRenderGrid(board, st, { files: 8, ranks, disc: true, checker: true, showHints: false, showLast: false });
         chessRenderCoords({ files: 8, ranks, matchBoard: true });
+    } else if (typeof gamesIsExtraGame === 'function' && gamesIsExtraGame(id)) {
+        gamesRenderExtra(board, st, id);
+        const stage = document.getElementById('chessStage');
+        if (id === 'tictactoe') {
+            if (stage) stage.classList.remove('extra-stage');
+        } else {
+            const ranksEl = document.getElementById('chessRanks');
+            const filesEl = document.getElementById('chessFiles');
+            if (ranksEl) ranksEl.innerHTML = '';
+            if (filesEl) filesEl.innerHTML = '';
+            if (stage) {
+                stage.classList.remove('grid-stage', 'caro-stage', 'xiangqi-stage');
+                stage.classList.add('extra-stage');
+            }
+        }
     } else {
         chessRenderChess(board, st);
         chessRenderCoords({ files: 8, ranks: [8, 7, 6, 5, 4, 3, 2, 1] });
@@ -671,6 +692,7 @@ function chessRenderCoords(opts) {
     const ranks = opts.ranks || [8, 7, 6, 5, 4, 3, 2, 1];
     const xq = !!chessIsXiangqi();
     if (stage) {
+        stage.classList.remove('extra-stage');
         stage.classList.toggle('xiangqi-stage', xq);
         stage.classList.toggle('grid-stage', !!opts.matchBoard && !xq);
         stage.classList.toggle('caro-stage', gamesActiveId() === 'caro');
@@ -834,13 +856,28 @@ function chessSleep(ms) {
 /** Poll board while bot thinks (human move already shown + spoken). */
 async function chessWaitForBot() {
     chessSetMeta(gT('games.bot_think', 'Bot đang suy nghĩ…'));
-    for (let i = 0; i < 30; i++) {
+    // Seed from already-rendered state so the first poll doesn't wipe the fly animation.
+    const seed = chessState || {};
+    let lastSig = [
+        seed.top, seed.color, seed.botCount, (seed.hand || []).join(','),
+        seed.lastMove, seed.pendingColor ? 1 : 0, seed.message || '',
+        seed.drawAnimN || 0, seed.drawAnimTo || '',
+        (seed.playerHand || []).join(','), (seed.dealerHand || []).join(','),
+        seed.playerValue || '', seed.dealerValue || '',
+    ].join('|');
+    for (let i = 0; i < 100; i++) {
         await chessSleep(300);
         try {
             const st = await gamesFetch('state');
             chessSelected = null;
-            chessRender(st);
             if (!st.botThinking) {
+                chessRender(st);
+                if (typeof unoAnimateForcedDraw === 'function' && st.drawAnimN) {
+                    await unoAnimateForcedDraw(st);
+                }
+                if (typeof bjAnimateDraw === 'function' && st.drawAnimTo && st.game === 'blackjack') {
+                    await bjAnimateDraw(st);
+                }
                 if (st.message) {
                     chessSetMeta(st.message);
                 } else {
@@ -848,9 +885,30 @@ async function chessWaitForBot() {
                 }
                 if (!gamesIsOver(st)) {
                     await chessRefreshLegal();
-                    chessRender(st);
+                    const mode = (st && st.uiMode) || gamesActiveId();
+                    if (mode !== 'uno' && mode !== 'cards') {
+                        chessRender(st);
+                    }
                 }
                 return;
+            }
+            // While bot thinks: only redraw if board content actually changed (no blink).
+            const sig = [
+                st.top, st.color, st.botCount, (st.hand || []).join(','),
+                st.lastMove, st.pendingColor ? 1 : 0, st.message || '',
+                st.drawAnimN || 0, st.drawAnimTo || '',
+                (st.playerHand || []).join(','), (st.dealerHand || []).join(','),
+                st.playerValue || '', st.dealerValue || '',
+            ].join('|');
+            if (sig !== lastSig) {
+                lastSig = sig;
+                chessRender(st);
+                if (typeof unoAnimateForcedDraw === 'function' && st.drawAnimN) {
+                    await unoAnimateForcedDraw(st);
+                }
+                if (typeof bjAnimateDraw === 'function' && st.drawAnimTo && st.game === 'blackjack') {
+                    await bjAnimateDraw(st);
+                }
             }
             chessSetMeta(st.message || gT('games.bot_think', 'Bot đang suy nghĩ…'));
         } catch (_) { /* keep waiting */ }
@@ -870,6 +928,15 @@ async function chessSubmitMove(uci) {
         });
         chessLegal = [];
         chessRender(st);
+        // +2 / +4: let the card sit on the table, animate draws, then continue.
+        if (typeof unoAnimateForcedDraw === 'function' && st.drawAnimN) {
+            chessSetMeta(st.message || '');
+            await unoAnimateForcedDraw(st);
+        }
+        if (typeof bjAnimateDraw === 'function' && st.drawAnimTo && st.game === 'blackjack') {
+            chessSetMeta(st.message || '');
+            await bjAnimateDraw(st);
+        }
         if (st.botThinking) {
             chessSetMeta(st.message || gT('games.bot_think', 'Bot đang suy nghĩ…'));
             await chessWaitForBot();
@@ -877,7 +944,10 @@ async function chessSubmitMove(uci) {
             if (st.message) chessSetMeta(st.message);
             if (!gamesIsOver(st)) {
                 await chessRefreshLegal();
-                chessRender(st);
+                const mode = (st && st.uiMode) || gamesActiveId();
+                if (mode !== 'uno' && mode !== 'cards') {
+                    chessRender(st);
+                }
             }
         }
     } catch (e) {
@@ -978,6 +1048,11 @@ async function chessNewGame() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Re-load after games_extra.js merged EXTRA_META into GAMES_META.
+    gamesSession = loadGamesSession();
+    gamesCommentMode = normalizeCommentMode(gamesSession.commentMode);
+    gamesDifficulty = normalizeDifficulty(gamesSession.difficulty);
+
     const newBtn = document.getElementById('chessNewBtn');
     if (newBtn) newBtn.onclick = () => chessNewGame();
     const exitBtn = document.getElementById('gamesExitBtn');
@@ -1036,6 +1111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         gamesUpdatePlayHelp();
         gamesRenderModeUI();
         gamesRenderDifficultyUI();
+        if (chessState && typeof chessRender === 'function') {
+            chessRender(chessState);
+        }
     });
 
     const obs = new MutationObserver(() => {
