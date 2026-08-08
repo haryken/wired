@@ -196,7 +196,10 @@ function ctrlCamStart() {
     box.innerHTML = '';
     const img = document.createElement('img');
     img.alt = 'camera';
-    img.src = '/api/mods/Control/cam-stream?' + Date.now();
+    img.decoding = 'sync';
+    img.loading = 'eager';
+    // Bust caches / prior MJPEG connections when restarting.
+    img.src = '/api/mods/Control/cam-stream?t=' + Date.now();
     box.appendChild(img);
     ctrlSetCamSwitch(true);
     setControlStatus('Camera bật (Camera ON)');

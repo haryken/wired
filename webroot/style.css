@@ -877,6 +877,71 @@ input[type="text"] {
     line-height: 1.4;
 }
 
+/* Vector Freetime — vision overlay watch tab */
+
+.ft-stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.ft-cam {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    min-height: 180px;
+    border-radius: 12px;
+    background: #111;
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+.ft-cam-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    vertical-align: top;
+}
+
+.ft-cam-placeholder {
+    padding: 48px 16px;
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+}
+
+.ft-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.ft-hud {
+    flex: 1 1 160px;
+    max-width: 280px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.ft-hud-row {
+    margin: 2px 0;
+}
+
+.ft-list {
+    margin-top: 8px;
+    color: #bbf7d0;
+    font-size: 12px;
+}
+
 /* bot settings (WirePod-style) */
 
 small.sub {

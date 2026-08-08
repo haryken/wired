@@ -19,6 +19,12 @@ function activateSection(target) {
     if (target === '#logs' && typeof logsOnShow === 'function') {
         logsOnShow();
     }
+    if (prevId === '#freetime' && target !== '#freetime' && typeof ftOnHide === 'function') {
+        ftOnHide();
+    }
+    if (target === '#freetime' && typeof ftOnShow === 'function') {
+        ftOnShow();
+    }
 }
 
 const tabs = document.querySelectorAll('.tabs button');

@@ -1,12 +1,8 @@
 package mods
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
-	_ "image/jpeg"
-	"image/jpeg"
 	"io"
 	"log"
 	"net/http"
@@ -294,9 +290,10 @@ func stopCamFlag() {
 }
 
 func serveCamStream(w http.ResponseWriter, r *http.Request) {
+	// Stop any previous stream quickly so a new one can attach.
 	if atomic.LoadInt32(&camStreaming) == 1 {
 		atomic.StoreInt32(&camStreaming, 0)
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(150 * time.Millisecond)
 	}
 	v, ctx, err := getRobot()
 	if err != nil {
@@ -309,20 +306,28 @@ func serveCamStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.Header().Set("Content-Type", "multipart/x-mixed-replace; boundary=--boundary")
-	w.Header().Set("Cache-Control", "no-cache")
-	flusher, _ := w.(http.Flusher)
+
+	w.Header().Set("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("X-Accel-Buffering", "no")
+	flusher, okFlush := w.(http.Flusher)
+	if !okFlush {
+		http.Error(w, "streaming unsupported", 500)
+		return
+	}
 	atomic.StoreInt32(&camStreaming, 1)
 	defer func() {
 		atomic.StoreInt32(&camStreaming, 0)
 		_, _ = v.Conn.EnableImageStreaming(ctx, &vectorpb.EnableImageStreamingRequest{Enable: false})
 	}()
 
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		default:
+	// Keep only the newest JPEG so a slow browser/network never builds backlog.
+	latest := make(chan []byte, 1)
+	recvDone := make(chan struct{})
+	go func() {
+		defer close(recvDone)
+		for {
 			if atomic.LoadInt32(&camStreaming) == 0 {
 				return
 			}
@@ -331,20 +336,45 @@ func serveCamStream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			data := resp.GetData()
-			img, _, err := image.Decode(bytes.NewReader(data))
-			if err != nil {
-				// already jpeg — write raw
-				fmt.Fprintf(w, "--boundary\r\nContent-Type: image/jpeg\r\n\r\n")
-				_, _ = w.Write(data)
-				fmt.Fprintf(w, "\r\n")
-			} else {
-				fmt.Fprintf(w, "--boundary\r\nContent-Type: image/jpeg\r\n\r\n")
-				_ = jpeg.Encode(io.MultiWriter(w), img, &jpeg.Options{Quality: 50})
-				fmt.Fprintf(w, "\r\n")
+			if len(data) == 0 {
+				continue
 			}
-			if flusher != nil {
-				flusher.Flush()
+			// Drop any unread older frame, then publish this one.
+			select {
+			case <-latest:
+			default:
 			}
+			select {
+			case latest <- data:
+			default:
+			}
+		}
+	}()
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-recvDone:
+			return
+		case data, ok := <-latest:
+			if !ok {
+				return
+			}
+			if atomic.LoadInt32(&camStreaming) == 0 {
+				return
+			}
+			// Forward robot JPEG as-is (no decode/re-encode) for lower latency.
+			if _, err := fmt.Fprintf(w, "--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n", len(data)); err != nil {
+				return
+			}
+			if _, err := w.Write(data); err != nil {
+				return
+			}
+			if _, err := fmt.Fprintf(w, "\r\n"); err != nil {
+				return
+			}
+			flusher.Flush()
 		}
 	}
 }

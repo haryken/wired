@@ -37,6 +37,7 @@
                 <option value="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</option>
                 <option value="#voice" data-i18n="nav.voice">Lệnh thoại</option>
                 <option value="#control" data-i18n="nav.control">Điều khiển</option>
+                <option value="#freetime" data-i18n="nav.freetime">Vector Freetime</option>
                 <option value="#games" data-i18n="nav.games">Game</option>
                 <option value="#logs" data-i18n="nav.logs">Nhật ký</option>
                 <option value="#about" data-i18n="nav.about">Giới thiệu</option>
@@ -48,6 +49,7 @@
             <button type="button" data-target="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice" data-i18n="nav.voice">Lệnh thoại</button>
             <button type="button" data-target="#control" data-i18n="nav.control">Điều khiển</button>
+            <button type="button" data-target="#freetime" data-i18n="nav.freetime">Vector Freetime</button>
             <button type="button" data-target="#games" id="navGamesBtn" data-i18n="nav.games">Game</button>
             <button type="button" data-target="#logs" data-i18n="nav.logs">Nhật ký</button>
             <button type="button" data-target="#about" data-i18n="nav.about">Giới thiệu</button>
@@ -908,6 +910,50 @@
         <audio id="ctrlAudioPreview" controls style="width:100%; max-width:420px; margin-top:8px;"></audio>
     </div>
 
+    <div id="freetime" class="container mod-section tab-content">
+        <h2 data-i18n="ft.h2">👁 Vector Freetime</h2>
+        <div class="help-box">
+            <strong data-i18n="common.howto">Cách dùng</strong>
+            <ol>
+                <li data-i18n="ft.help1">Xem camera + khung mặt / cube / cảm xúc / motion khi Vector đang tự chơi — không chiếm quyền.</li>
+                <li data-i18n="ft.help2">Vào tab này = bật xem; thoát tab = tắt stream và phát hiện.</li>
+                <li data-i18n="ft.help3">Giơ cạnh cube có marker vào camera (ánh sáng đủ). Muốn lái thì dùng tab Điều khiển.</li>
+            </ol>
+        </div>
+        <div id="ftStatus" class="faces-status" style="display:none;"></div>
+        <div class="ft-stage">
+            <div id="ftCamBox" class="ft-cam" aria-label="Freetime camera">
+                <div class="ft-cam-placeholder" id="ftCamPlaceholder"><span data-i18n="ft.cam_off">Đang mở camera…</span></div>
+                <img id="ftCamImg" class="ft-cam-img" alt="" hidden>
+                <canvas id="ftOverlay" class="ft-overlay" width="640" height="360" aria-hidden="true"></canvas>
+            </div>
+            <div class="ft-hud" aria-live="polite">
+                <div class="ft-hud-row"><span data-i18n="ft.stim">Stim</span>: <b id="ftStimVal">—</b></div>
+                <div class="ft-hud-row"><span data-i18n="ft.faces">Mặt</span>: <b id="ftFaceCount">0</b></div>
+                <div class="ft-hud-row"><span data-i18n="ft.objects">Đối tượng</span>: <b id="ftObjCount">0</b></div>
+                <div class="ft-hud-row"><span data-i18n="ft.motion">Motion</span>: <b id="ftMotionVal">—</b></div>
+                <div id="ftFaceList" class="ft-list"></div>
+            </div>
+        </div>
+        <div class="ctrl-switches" style="margin-top:12px;">
+            <label class="ctrl-switch" for="ftShowFaces">
+                <span class="ctrl-switch-text" data-i18n="ft.toggle_faces">Khung mặt</span>
+                <input type="checkbox" id="ftShowFaces" checked>
+                <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+            </label>
+            <label class="ctrl-switch" for="ftShowObjs">
+                <span class="ctrl-switch-text" data-i18n="ft.toggle_objs">Khung cube</span>
+                <input type="checkbox" id="ftShowObjs" checked>
+                <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+            </label>
+            <label class="ctrl-switch" for="ftShowMotion">
+                <span class="ctrl-switch-text" data-i18n="ft.toggle_motion">Motion</span>
+                <input type="checkbox" id="ftShowMotion" checked>
+                <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+            </label>
+        </div>
+    </div>
+
     <div id="games" class="container mod-section tab-content">
         <h2 id="gamesHeading" data-i18n="games.title_lobby">🎮 Game</h2>
 
@@ -1099,6 +1145,7 @@
     <script src="js/xiaozhi.js"></script>
     <script src="js/alexa.js"></script>
     <script src="js/control.js"></script>
+    <script src="js/freetime.js"></script>
     <script src="js/chess.js"></script>
     <script src="js/games_extra.js"></script>
     <script src="js/stim-stats.js"></script>
