@@ -111,6 +111,10 @@
                 <span class="bot-ico" aria-hidden="true">😊</span>
                 <span data-i18n="bot.stim">Stim</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-petting')">
+                <span class="bot-ico" aria-hidden="true">✋</span>
+                <span data-i18n="bot.petting">Cảm biến trên lưng</span>
+            </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stats')">
                 <span class="bot-ico" aria-hidden="true">📊</span>
                 <span data-i18n="bot.stats">Thống kê</span>
@@ -458,6 +462,30 @@
             <div class="stim-wrap">
                 <canvas id="stimCanvas" width="480" height="180" aria-label="stimulation chart"></canvas>
                 <div class="stim-value">Giá trị <small>(Value)</small>: <b id="stimValueLabel">—</b></div>
+            </div>
+        </div>
+
+        <div id="bot-petting" class="bot-section" style="display:none;">
+            <h3>✋ <span data-i18n="sec.petting">Cảm biến trên lưng</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="petting.help1">Khi xoa lưng (cảm biến cảm ứng), robot phản ứng petting và phát tiếng rừ rừ.</li>
+                    <li data-i18n="petting.help2" data-i18n-html="1">Chỉ muốn tắt tiếng rừ rừ / petting → chọn <b>Tắt</b> ở nhóm Petting (wake/timer vẫn dùng cảm biến).</li>
+                    <li data-i18n="petting.help3" data-i18n-html="1">Phần cứng báo ảo liên tục → chọn <b>Tắt hết cảm biến</b> để chặn mọi tính năng chạm lưng.</li>
+                    <li data-i18n="petting.help4">Đổi áp dụng gần như ngay (không cần restart).</li>
+                </ol>
+            </div>
+            <div id="pettingStatus" class="faces-status" style="display:none;"></div>
+            <p style="margin:10px 0 6px;"><b data-i18n="petting.group_touch">Cảm biến trên lưng (tất cả tính năng)</b></p>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="touchSensorEnabled" value="true" onchange="saveTouchSensor()"> <span data-i18n="touch.on">Bật cảm biến</span> <small data-i18n="touch.on_hint">(wake / hủy timer / SDK / …)</small></label>
+                <label><input type="radio" name="touchSensorEnabled" value="false" onchange="saveTouchSensor()"> <span data-i18n="touch.off">Tắt hết cảm biến</span> <small data-i18n="touch.off_hint">(chặn mọi tính năng — hết báo ảo)</small></label>
+            </div>
+            <p style="margin:16px 0 6px;"><b data-i18n="petting.group_petting">Petting / tiếng rừ rừ</b></p>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="pettingEnabled" value="true" onchange="savePetting()"> <span data-i18n="petting.on">Bật</span> <small data-i18n="petting.on_hint">(phản ứng petting + tiếng rừ rừ)</small></label>
+                <label><input type="radio" name="pettingEnabled" value="false" onchange="savePetting()"> <span data-i18n="petting.off">Tắt</span> <small data-i18n="petting.off_hint">(không petting / không rừ rừ)</small></label>
             </div>
         </div>
 
@@ -1074,6 +1102,7 @@
     <script src="js/chess.js"></script>
     <script src="js/games_extra.js"></script>
     <script src="js/stim-stats.js"></script>
+    <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
 </body>
 

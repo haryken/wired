@@ -21,6 +21,7 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewAlexa(),
 	mods.NewPhotos(),
 	mods.NewStimStats(),
+	mods.NewPetting(),
 	mods.NewJournalLogs(),
 	mods.NewChess(),
 	mods.NewXiangqi(),
