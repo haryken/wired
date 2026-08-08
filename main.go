@@ -19,6 +19,7 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewXiaozhi(),
 	mods.NewControl(),
 	mods.NewFreeTime(),
+	mods.NewBattery(),
 	mods.NewAlexa(),
 	mods.NewPhotos(),
 	mods.NewStimStats(),

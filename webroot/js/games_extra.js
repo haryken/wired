@@ -194,29 +194,35 @@
         const grid = document.querySelector('#gamesStepPick .games-pick-grid');
         if (!grid) return;
         EXTRA_IDS.forEach((id) => {
-            if (grid.querySelector('.games-pick-card[data-game="' + id + '"]')) return;
             const meta = EXTRA_META[id];
             if (!meta) return;
-            const btn = el('button', 'games-pick-card games-pick-extra');
-            btn.type = 'button';
-            btn.setAttribute('data-game', id);
-            btn.appendChild(el('span', 'games-pick-ico', meta.ico || '🎮'));
-            btn.appendChild(el('span', 'games-pick-name', meta.short || id));
-            const sub = el('small', '', meta.hint || '');
-            btn.appendChild(sub);
-            btn.addEventListener('click', () => {
-                if (typeof gamesPickGame === 'function') gamesPickGame(id);
-            });
-            grid.appendChild(btn);
+            let btn = grid.querySelector('.games-pick-card[data-game="' + id + '"]');
+            if (!btn) {
+                btn = el('button', 'games-pick-card games-pick-extra');
+                btn.type = 'button';
+                btn.setAttribute('data-game', id);
+                btn.appendChild(el('span', 'games-pick-ico', meta.ico || '🎮'));
+                btn.appendChild(el('span', 'games-pick-name', meta.short || id));
+                btn.appendChild(el('small', '', meta.hint || ''));
+                btn.addEventListener('click', () => {
+                    if (typeof gamesPickGame === 'function') gamesPickGame(id);
+                });
+                grid.appendChild(btn);
+            } else {
+                const nameEl = btn.querySelector('.games-pick-name');
+                if (nameEl) nameEl.textContent = meta.short || id;
+                const sub = btn.querySelector('small');
+                if (sub) sub.textContent = meta.hint || '';
+            }
         });
     }
 
     function bootExtraPickCards() {
         renderExtraPickCards();
-        // i18n may refresh labels after locale load — rebuild names once.
-        if (typeof applyI18n === 'function' || typeof setLocale === 'function') {
-            setTimeout(renderExtraPickCards, 0);
-        }
+        // i18n may refresh labels after locale load — rebuild names.
+        setTimeout(renderExtraPickCards, 0);
+        setTimeout(renderExtraPickCards, 400);
+        document.addEventListener('wireos-i18n', renderExtraPickCards);
     }
 
     if (document.readyState === 'loading') {

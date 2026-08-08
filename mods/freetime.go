@@ -79,6 +79,7 @@ var (
 	ftMu       sync.Mutex
 	ftActive   int32
 	ftStop     chan struct{}
+	ftCancel   context.CancelFunc
 	ftFaces    = map[int32]ftFace{}
 	ftObjects  = map[int32]ftObject{}
 	ftMotionPt *ftMotion
@@ -280,7 +281,7 @@ func ftStart() error {
 		return fmt.Errorf("EnableMotionDetection: %w", err)
 	}
 
-	streamCtx := context.Background()
+	streamCtx, cancel := context.WithCancel(context.Background())
 	client, err := v.Conn.EventStream(streamCtx, &vectorpb.EventRequest{
 		ListType: &vectorpb.EventRequest_WhiteList{
 			WhiteList: &vectorpb.FilterList{
@@ -290,11 +291,13 @@ func ftStart() error {
 		ConnectionId: "wired-freetime",
 	})
 	if err != nil {
+		cancel()
 		return fmt.Errorf("EventStream: %w", err)
 	}
 
 	stop := make(chan struct{})
 	ftStop = stop
+	ftCancel = cancel
 	ftFaces = map[int32]ftFace{}
 	ftObjects = map[int32]ftObject{}
 	ftMotionPt = nil
@@ -302,17 +305,18 @@ func ftStart() error {
 	atomic.StoreInt32(&ftActive, 1)
 
 	go func() {
+		defer cancel()
 		defer atomic.StoreInt32(&ftActive, 0)
 		for {
-			select {
-			case <-stop:
-				return
-			default:
-			}
 			resp, err := client.Recv()
 			if err != nil {
 				log.Println("[FreeTime] EventStream recv:", err)
 				return
+			}
+			select {
+			case <-stop:
+				return
+			default:
 			}
 			ev := resp.GetEvent()
 			if ev == nil {
@@ -377,6 +381,10 @@ func ftStart() error {
 
 func ftStopVision() {
 	ftMu.Lock()
+	if ftCancel != nil {
+		ftCancel()
+		ftCancel = nil
+	}
 	if ftStop != nil {
 		select {
 		case <-ftStop:

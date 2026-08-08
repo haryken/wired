@@ -58,8 +58,13 @@ function xzApplyCfg(cfg) {
     if (convCont) convCont.checked = (conv === 'continuous');
     if (convSingle) convSingle.checked = (conv === 'single');
 
-    const gvi = document.getElementById('xzGameGoogleVi');
-    if (gvi) gvi.checked = !!cfg.game_google_tts_vi;
+    const gviOn = document.getElementById('xzGameTtsOn');
+    const gviOff = document.getElementById('xzGameTtsOff');
+    if (gviOn && gviOff) {
+        const on = !!cfg.game_google_tts_vi;
+        gviOn.checked = on;
+        gviOff.checked = !on;
+    }
 
     const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
     xzAppliedMode = mode;
@@ -90,7 +95,7 @@ async function xzSaveConfig() {
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: '20',
-        game_google_tts_vi: (document.getElementById('xzGameGoogleVi') && document.getElementById('xzGameGoogleVi').checked) ? 'true' : 'false',
+        game_google_tts_vi: (document.getElementById('xzGameTtsOn') && document.getElementById('xzGameTtsOn').checked) ? 'true' : 'false',
     });
     const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
     const j = await resp.json();
@@ -204,9 +209,9 @@ function xzOnModeRadio() {
 }
 
 async function xzSaveGameGoogleVi() {
-    const el = document.getElementById('xzGameGoogleVi');
-    if (!el) return;
-    const on = !!el.checked;
+    const onEl = document.getElementById('xzGameTtsOn');
+    if (!onEl) return;
+    const on = !!onEl.checked;
     try {
         const params = new URLSearchParams({ enabled: on ? 'true' : 'false' });
         const resp = await fetch('/api/mods/Xiaozhi/set_game_google_tts_vi?' + params.toString(), { method: 'POST' });

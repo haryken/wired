@@ -13,21 +13,57 @@
 </head>
 
 <body>
-    <header>
-        <div class="brand">
-            <img class="brand-logo" src="vector-logo.png" width="44" height="44" alt="Vector" decoding="async">
-            <h1 data-i18n="header.title">Cài đặt robot</h1>
+    <header class="site-header">
+        <div class="header-brand-row">
+            <div class="brand">
+                <img class="brand-logo" src="vector-logo.png" width="44" height="44" alt="Vector" decoding="async">
+                <div id="headerBattery" class="hbatt" aria-live="polite" title="Pin">
+                    <span class="hbatt-tip"></span>
+                    <div class="hbatt-shell">
+                        <span class="hbatt-bolt" aria-hidden="true">⚡</span>
+                        <div class="hbatt-segs" aria-hidden="true">
+                            <i class="hbatt-seg"></i><i class="hbatt-seg"></i><i class="hbatt-seg"></i>
+                            <i class="hbatt-seg"></i><i class="hbatt-seg"></i><i class="hbatt-seg"></i>
+                        </div>
+                        <span class="hbatt-pct">--%</span>
+                    </div>
+                </div>
+            </div>
+            <button type="button" id="navBurger" class="nav-burger" aria-label="Open navigation" aria-expanded="false" aria-controls="navDrawer">
+                <span class="nav-burger-line" aria-hidden="true"></span>
+                <span class="nav-burger-line" aria-hidden="true"></span>
+                <span class="nav-burger-line" aria-hidden="true"></span>
+            </button>
         </div>
-        <label class="ui-lang-wrap" for="uiLangSelect">
-            <span class="ui-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
-            <select id="uiLangSelect" aria-label="Language">
-                <option value="vi">Tiếng Việt</option>
-                <option value="en">English</option>
-                <option value="it">Italiano</option>
-                <option value="zh">中文</option>
-            </select>
-        </label>
+        <div class="header-title-row">
+            <h1 data-i18n="header.title">Cài đặt robot</h1>
+            <label class="ui-lang-wrap" for="uiLangSelect">
+                <span class="ui-lang-label" data-i18n="lang.label">Ngôn ngữ</span>
+                <select id="uiLangSelect" aria-label="Language">
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="en">English</option>
+                    <option value="it">Italiano</option>
+                    <option value="zh">中文</option>
+                </select>
+            </label>
+        </div>
     </header>
+
+    <div id="navBackdrop" class="nav-backdrop" hidden></div>
+    <aside id="navDrawer" class="nav-drawer" aria-hidden="true" aria-label="Navigation">
+        <div class="nav-drawer-head">
+            <div class="nav-drawer-brand">
+                <img class="brand-logo" src="vector-logo.png" width="40" height="40" alt="Vector" decoding="async">
+                <div class="nav-drawer-hello">
+                    <span class="nav-drawer-hello-sub">Xin chào!</span>
+                    <span class="nav-drawer-hello-name">Vector</span>
+                </div>
+            </div>
+            <button type="button" id="navDrawerClose" class="nav-drawer-close" aria-label="Close navigation">&times;</button>
+        </div>
+        <nav id="navDrawerList" class="nav-drawer-list" aria-label="Sections"></nav>
+    </aside>
+
     <nav class="site-nav" aria-label="Sections">
         <label class="nav-select-wrap" for="navSelect">
             <span class="nav-select-label" data-i18n="nav.menu">Menu</span>
@@ -37,8 +73,8 @@
                 <option value="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</option>
                 <option value="#voice" data-i18n="nav.voice">Lệnh thoại</option>
                 <option value="#control" data-i18n="nav.control">Điều khiển</option>
-                <option value="#freetime" data-i18n="nav.freetime">Vector Freetime</option>
-                <option value="#games" data-i18n="nav.games">Game</option>
+                <option value="#freetime" data-i18n="nav.freetime">Thời gian tự do</option>
+                <option value="#games" data-i18n="nav.games">Trò chơi</option>
                 <option value="#logs" data-i18n="nav.logs">Nhật ký</option>
                 <option value="#about" data-i18n="nav.about">Giới thiệu</option>
             </select>
@@ -49,8 +85,8 @@
             <button type="button" data-target="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice" data-i18n="nav.voice">Lệnh thoại</button>
             <button type="button" data-target="#control" data-i18n="nav.control">Điều khiển</button>
-            <button type="button" data-target="#freetime" data-i18n="nav.freetime">Vector Freetime</button>
-            <button type="button" data-target="#games" id="navGamesBtn" data-i18n="nav.games">Game</button>
+            <button type="button" data-target="#freetime" data-i18n="nav.freetime">Thời gian tự do</button>
+            <button type="button" data-target="#games" id="navGamesBtn" data-i18n="nav.games">Trò chơi</button>
             <button type="button" data-target="#logs" data-i18n="nav.logs">Nhật ký</button>
             <button type="button" data-target="#about" data-i18n="nav.about">Giới thiệu</button>
         </div>
@@ -524,7 +560,7 @@
                 <button type="button" onclick="alexaRefresh()" data-i18n="alexa.refresh">Làm mới trạng thái</button>
             </div>
             <hr class="smallhr">
-            <h4 style="color:#a855f7; margin:8px 0;" data-i18n="alexa.back_title">Nút lưng bấm gọi ai?</h4>
+            <h4 style="color:#67e8f9; margin:8px 0;" data-i18n="alexa.back_title">Nút lưng bấm gọi ai?</h4>
             <div class="bot-opt-list">
                 <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
                 <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
@@ -588,7 +624,6 @@
                     </ul>
                 </div>
             </div>
-            <p class="help-warn" style="margin-top:8px;" data-i18n="xz.unbind" data-i18n-html="1">Hủy ghép thiết bị làm trên <a href="https://xiaozhi.me" target="_blank" style="color:#c4a0ff;">xiaozhi.me</a> — không có nút hủy trên robot.</p>
         </div>
 
         <div class="bot-opt-list xz-mode-radios" style="margin:8px 0 8px;">
@@ -597,71 +632,81 @@
         </div>
         <div id="xiaozhiStatus" class="xz-status" style="display:none;"></div>
 
-        <div class="help-box" id="xzGameTtsBlock" style="margin:10px 0;">
-            <strong data-i18n="xz.game_tts">Bình luận game</strong>
-            <p style="margin:6px 0 8px;" data-i18n="xz.game_tts_help" data-i18n-html="1">Bật để hiện chế độ <b>SayText Google (VI)</b> trong tab Game. Dùng được dù đang Xiaozhi hay Vosk.</p>
-            <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
-                <input type="checkbox" id="xzGameGoogleVi" style="margin-top:3px;" onchange="xzSaveGameGoogleVi()">
-                <span data-i18n="xz.game_tts_label" data-i18n-html="1"><b>SayText Google tiếng Việt</b> — bình luận cờ bằng giọng Google (vi)</span>
-            </label>
-            <div id="xzGameTtsStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
-        </div>
-
         <div id="xzConfigBlock" class="xz-config-block" style="display:none;">
-            <h3 style="margin:4px 0 10px; color:#c4a0ff;" data-i18n="xz.cfg_title">Cấu hình Xiaozhi</h3>
-            <div class="help-box">
-                <ol>
-                    <li data-i18n="xz.cfg_1" data-i18n-html="1">Máy chủ OTA lần đầu mặc định <code>https://api.tenclass.net/</code>; đã lưu rồi thì giữ nguyên.</li>
-                    <li data-i18n="xz.cfg_2">WebSocket (ô xám) + token tự lấy từ OTA — chỉ xem.</li>
-                    <li data-i18n="xz.cfg_3">ID để trống → MAC / UUID ngẫu nhiên.</li>
-                    <li data-i18n="xz.cfg_4" data-i18n-html="1">Bấm <b>Lưu &amp; kích hoạt</b>: lưu config rồi lấy mã (hoặc báo đã ghép).</li>
-                </ol>
-            </div>
+            <h3 class="xz-config-title" data-i18n="xz.cfg_title">Cấu hình Xiaozhi</h3>
+            <div class="xz-config-card">
+                <div class="help-box xz-config-help">
+                    <ol>
+                        <li data-i18n="xz.cfg_1" data-i18n-html="1"><b>Máy chủ OTA:</b> lần đầu để mặc định <code>https://api.tenclass.net/</code>. Đã lưu rồi thì giữ nguyên.</li>
+                        <li data-i18n="xz.cfg_2" data-i18n-html="1"><b>WebSocket:</b> ô xám — hệ thống tự lấy từ OTA, chỉ xem, không cần sửa.</li>
+                        <li data-i18n="xz.cfg_3" data-i18n-html="1"><b>ID thiết bị / client:</b> lần đầu để trống để robot tự tạo MAC / UUID.</li>
+                        <li data-i18n="xz.cfg_4" data-i18n-html="1"><b>Lấy mã 6 số:</b> bấm <b>Lưu &amp; kích hoạt</b>. Robot hiện mã (hoặc báo đã ghép).</li>
+                        <li data-i18n="xz.cfg_5" data-i18n-html="1"><b>Ghép trên web:</b> vào <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → tạo agent → cấu hình agent → thêm mã 6 số vào agent vừa tạo.</li>
+                        <li data-i18n="xz.cfg_6" data-i18n-html="1"><b>Muốn cấu hình lại / lấy mã mới:</b> xóa hết ô <b>ID thiết bị (MAC)</b> hiện tại → bấm lại <b>Lưu &amp; kích hoạt</b> → làm tiếp bước 5 với mã mới.</li>
+                    </ol>
+                </div>
 
-            <div class="button-container" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                <label data-i18n="xz.lbl_ota">Máy chủ OTA:</label>
-                <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/" style="width:100%;max-width:420px">
+                <div class="xz-config-fields">
+                    <label data-i18n="xz.lbl_ota">Máy chủ OTA:</label>
+                    <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/">
 
-                <label data-i18n="xz.lbl_ws">Đầu cuối WebSocket:</label>
-                <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly data-i18n-placeholder="xz.ph_ws" placeholder="(tự lấy sau Lưu &amp; kích hoạt)" style="width:100%;max-width:420px">
+                    <label data-i18n="xz.lbl_ws">Đầu cuối WebSocket:</label>
+                    <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly data-i18n-placeholder="xz.ph_ws" placeholder="(tự lấy sau Lưu &amp; kích hoạt)">
 
-                <label data-i18n="xz.lbl_did">ID thiết bị (để trống = MAC ngẫu nhiên):</label>
-                <input type="text" id="xzDeviceID" placeholder="auto = random MAC" style="width:100%;max-width:420px">
+                    <label data-i18n="xz.lbl_did">ID thiết bị (để trống = MAC ngẫu nhiên):</label>
+                    <input type="text" id="xzDeviceID" placeholder="auto = random MAC">
 
-                <label data-i18n="xz.lbl_cid">ID client (để trống = UUID ngẫu nhiên):</label>
-                <input type="text" id="xzClientID" placeholder="auto = UUID" style="width:100%;max-width:420px">
+                    <label data-i18n="xz.lbl_cid">ID client (để trống = UUID ngẫu nhiên):</label>
+                    <input type="text" id="xzClientID" placeholder="auto = UUID">
 
-                <div class="xz-conv-block" style="width:100%; max-width:520px; margin-top:10px;">
-                    <strong data-i18n="xz.conv_title">Cách hội thoại</strong>
-                    <div class="bot-opt-list xz-conv-radios" style="margin:8px 0;">
-                        <label class="xz-conv-option">
-                            <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked>
-                            <span>
-                                <b data-i18n="xz.conv_cont">Liên tục</b><br>
-                                <span class="xz-conv-desc" data-i18n="xz.conv_cont_desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu.</span>
-                            </span>
-                        </label>
-                        <label class="xz-conv-option">
-                            <input type="radio" name="xzConvMode" value="single" id="xzConvSingle">
-                            <span>
-                                <b data-i18n="xz.conv_single">Một lượt</b><br>
-                                <span class="xz-conv-desc" data-i18n="xz.conv_single_desc">Một câu hỏi → một câu trả lời rồi tắt mic. Muốn nói tiếp phải Hey Vector lại. Tiết kiệm / ít bị nghe nhầm.</span>
-                            </span>
-                        </label>
+                    <div class="xz-conv-block">
+                        <strong data-i18n="xz.conv_title">Cách hội thoại</strong>
+                        <div class="bot-opt-list xz-conv-radios" style="margin:8px 0;">
+                            <label class="xz-conv-option">
+                                <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked>
+                                <span>
+                                    <b data-i18n="xz.conv_cont">Liên tục</b><br>
+                                    <span class="xz-conv-desc" data-i18n="xz.conv_cont_desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu.</span>
+                                </span>
+                            </label>
+                            <label class="xz-conv-option">
+                                <input type="radio" name="xzConvMode" value="single" id="xzConvSingle">
+                                <span>
+                                    <b data-i18n="xz.conv_single">Một lượt</b><br>
+                                    <span class="xz-conv-desc" data-i18n="xz.conv_single_desc">Một câu hỏi → một câu trả lời rồi tắt mic. Muốn nói tiếp phải Hey Vector lại. Tiết kiệm / ít bị nghe nhầm.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="xz-config-actions">
+                        <button type="button" id="xzSaveActivateBtn" onclick="xzSaveAndActivate()" data-i18n="xz.save_btn">Lưu &amp; kích hoạt</button>
+                    </div>
+                    <div id="xzConfigStatus" class="xz-status" style="display:none;"></div>
+
+                    <div id="xzCodeBox" class="xz-code-box" style="display:none;">
+                        <strong data-i18n="xz.code_label">Mã kích hoạt:</strong>
+                        <span id="xzCode" class="xz-code-value"></span>
+                        <p class="xz-code-help" data-i18n="xz.code_help" data-i18n-html="1">Copy mã này → vào agent trên <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → thêm thiết bị bằng mã 6 số.</p>
                     </div>
                 </div>
-
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-                    <button type="button" id="xzSaveActivateBtn" onclick="xzSaveAndActivate()" data-i18n="xz.save_btn">Lưu &amp; kích hoạt</button>
-                </div>
-                <div id="xzConfigStatus" class="xz-status" style="display:none; width:100%; max-width:520px;"></div>
-
-                <div id="xzCodeBox" style="display:none; margin-top:10px; width:100%; max-width:520px;">
-                    <strong data-i18n="xz.code_label">Mã kích hoạt:</strong>
-                    <span id="xzCode" style="font-size:1.5em; font-weight:bold; letter-spacing:4px; color:#a855f7;"></span>
-                    <p style="margin:4px 0; font-size:0.9em; color:#888;" data-i18n="xz.code_help" data-i18n-html="1">Nhập mã này tại <a href="https://xiaozhi.me" target="_blank" style="color:#a855f7;">xiaozhi.me</a> để liên kết robot với tài khoản.</p>
-                </div>
             </div>
+        </div>
+
+        <div class="help-box" id="xzGameTtsBlock" style="margin:16px 0 8px;">
+            <strong data-i18n="xz.game_tts">Bình luận game</strong>
+            <p style="margin:6px 0 8px;" data-i18n="xz.game_tts_help" data-i18n-html="1">Bật để hiện chế độ <b>SayText Google (VI)</b> trong tab Game. Dùng được dù đang Xiaozhi hay Vosk.</p>
+            <div class="bot-opt-list xz-mode-radios xz-game-tts-radios" style="margin:8px 0;">
+                <label>
+                    <input type="radio" name="xzGameTtsMode" value="on" id="xzGameTtsOn" onchange="xzSaveGameGoogleVi()">
+                    <span data-i18n="xz.game_tts_on" data-i18n-html="1"><b>Bật Google VI</b> — bình luận cờ bằng giọng Google (vi)</span>
+                </label>
+                <label>
+                    <input type="radio" name="xzGameTtsMode" value="off" id="xzGameTtsOff" onchange="xzSaveGameGoogleVi()" checked>
+                    <span data-i18n="xz.game_tts_off" data-i18n-html="1"><b>Tắt</b> — không hiện chế độ Google VI trong tab Game</span>
+                </label>
+            </div>
+            <div id="xzGameTtsStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
         </div>
     </div>
 
@@ -736,6 +781,7 @@
                     <li data-i18n="voice.misc_p5">Mấy giờ · bao nhiêu tuổi · tôi tên gì</li>
                     <li data-i18n="voice.misc_p6">Pháo hoa / fireworks · happy holidays</li>
                     <li data-i18n="voice.misc_p7">Xe cứu hỏa / firetruck / còi xe / siren (show ~12s + tiếng còi)</li>
+                    <li data-i18n="voice.misc_p8">Pin còn bao nhiêu / kiểm tra pin / đang sạc chưa / how much battery (MCP self.battery.get)</li>
                 </ul>
             </div>
 
@@ -883,7 +929,7 @@
         </div>
         <hr class="smallhr">
 
-        <h3 style="margin:8px 0; color:#a855f7;" data-i18n="ctrl.say_title">🗣 Robot nói</h3>
+        <h3 style="margin:8px 0; color:#67e8f9;" data-i18n="ctrl.say_title">🗣 Robot nói</h3>
         <div class="help-box">
             <ol>
                 <li data-i18n="ctrl.say1" data-i18n-html="1">Cần <b>Chiếm quyền</b> trước.</li>
@@ -896,7 +942,7 @@
         </div>
         <hr class="smallhr">
 
-        <h3 style="margin:8px 0; color:#a855f7;" data-i18n="ctrl.audio_title">🔊 Phát âm thanh</h3>
+        <h3 style="margin:8px 0; color:#67e8f9;" data-i18n="ctrl.audio_title">🔊 Phát âm thanh</h3>
         <div class="help-box">
             <ol>
                 <li data-i18n="ctrl.aud1" data-i18n-html="1">Chọn file <b>.wav</b> — trình duyệt resample 8 kHz mono rồi gửi.</li>
@@ -911,13 +957,13 @@
     </div>
 
     <div id="freetime" class="container mod-section tab-content">
-        <h2 data-i18n="ft.h2">👁 Vector Freetime</h2>
+        <h2 data-i18n="ft.h2">👁 Thời gian tự do</h2>
         <div class="help-box">
             <strong data-i18n="common.howto">Cách dùng</strong>
             <ol>
-                <li data-i18n="ft.help1">Xem camera + khung mặt / cube / cảm xúc / motion khi Vector đang tự chơi — không chiếm quyền.</li>
-                <li data-i18n="ft.help2">Vào tab này = bật xem; thoát tab = tắt stream và phát hiện.</li>
-                <li data-i18n="ft.help3">Giơ cạnh cube có marker vào camera (ánh sáng đủ). Muốn lái thì dùng tab Điều khiển.</li>
+                <li data-i18n="ft.help1">Tính năng này giúp bạn thấy được những gì mà Vector thấy.</li>
+                <li data-i18n="ft.help2">Xem camera + khung mặt / khối / cảm xúc / chuyển động khi Vector đang tự chơi — không chiếm quyền điều khiển.</li>
+                <li data-i18n="ft.help3">Vào tab này = bật xem; thoát tab = tắt hình và phát hiện. Muốn lái thì dùng tab Điều khiển.</li>
             </ol>
         </div>
         <div id="ftStatus" class="faces-status" style="display:none;"></div>
@@ -955,24 +1001,24 @@
     </div>
 
     <div id="games" class="container mod-section tab-content">
-        <h2 id="gamesHeading" data-i18n="games.title_lobby">🎮 Game</h2>
+        <h2 id="gamesHeading" data-i18n="games.title_lobby">🎮 Trò chơi</h2>
 
         <!-- Step 1: pick game -->
         <div id="gamesStepPick" class="games-step">
             <div class="help-box">
-                <strong data-i18n="games.pick_title">Bước 1 — Chọn game</strong>
-                <p data-i18n="games.pick_help">Chọn game xong sẽ chọn chế độ bình luận, rồi vào bàn chơi.</p>
+                <strong data-i18n="games.pick_title">Bước 1 — Chọn trò chơi</strong>
+                <p data-i18n="games.pick_help">Chọn trò chơi xong sẽ chọn chế độ bình luận, rồi vào bàn chơi.</p>
             </div>
             <div class="games-pick-grid">
                 <button type="button" class="games-pick-card" id="gamesPickChess" data-game="chess">
                     <span class="games-pick-ico" aria-hidden="true">♟️</span>
                     <span class="games-pick-name" data-i18n="games.chess">Cờ vua</span>
-                    <small data-i18n="games.chess_sub">Chess — bạn Trắng, bot Đen</small>
+                    <small data-i18n="games.chess_sub">Bạn Trắng, robot Đen</small>
                 </button>
                 <button type="button" class="games-pick-card" id="gamesPickXiangqi" data-game="xiangqi">
                     <span class="games-pick-ico" aria-hidden="true">🀄</span>
                     <span class="games-pick-name" data-i18n="games.xiangqi">Cờ tướng</span>
-                    <small data-i18n="games.xiangqi_sub">Xiangqi — bạn Đỏ, bot Đen</small>
+                    <small data-i18n="games.xiangqi_sub">Bạn Đỏ, robot Đen</small>
                 </button>
                 <button type="button" class="games-pick-card" data-game="caro">
                     <span class="games-pick-ico" aria-hidden="true">⭕</span>
@@ -981,23 +1027,23 @@
                 </button>
                 <button type="button" class="games-pick-card" data-game="connect4">
                     <span class="games-pick-ico" aria-hidden="true">🔴</span>
-                    <span class="games-pick-name" data-i18n="games.connect4">Connect Four</span>
+                    <span class="games-pick-name" data-i18n="games.connect4">Cờ thả cột</span>
                     <small data-i18n="games.connect4_sub">Thả cột 7×6 — thắng 4</small>
                 </button>
                 <button type="button" class="games-pick-card" data-game="reversi">
                     <span class="games-pick-ico" aria-hidden="true">⚫</span>
-                    <span class="games-pick-name" data-i18n="games.reversi">Reversi</span>
-                    <small data-i18n="games.reversi_sub">Othello — bạn đen</small>
+                    <span class="games-pick-name" data-i18n="games.reversi">Cờ lật (Othello)</span>
+                    <small data-i18n="games.reversi_sub">Bạn đen, lật quân đối thủ</small>
                 </button>
                 <button type="button" class="games-pick-card" data-game="checkers">
                     <span class="games-pick-ico" aria-hidden="true">⬛</span>
                     <span class="games-pick-name" data-i18n="games.checkers">Cờ đam</span>
-                    <small data-i18n="games.checkers_sub">Checkers — bạn trắng</small>
+                    <small data-i18n="games.checkers_sub">Bạn trắng, ăn bắt buộc</small>
                 </button>
                 <button type="button" class="games-pick-card" data-game="go9">
                     <span class="games-pick-ico" aria-hidden="true">⚪</span>
                     <span class="games-pick-name" data-i18n="games.go9">Cờ vây 9×9</span>
-                    <small data-i18n="games.go9_sub">Go — bạn đen, pass 2 lần</small>
+                    <small data-i18n="games.go9_sub">Bạn đen, pass 2 lần kết thúc</small>
                 </button>
             </div>
         </div>
@@ -1006,7 +1052,7 @@
         <div id="gamesStepMode" class="games-step" hidden>
             <div class="help-box">
                 <strong data-i18n="games.mode_title">Bước 2 — Chọn cách robot bình luận</strong>
-                <p><span data-i18n="games.mode_picked">Game:</span> <b id="gamesPickedGameLabel">Cờ vua</b></p>
+                <p><span data-i18n="games.mode_picked">Trò chơi:</span> <b id="gamesPickedGameLabel">Cờ vua</b></p>
             </div>
             <div class="chess-mode-panel" id="chessModeRow">
                 <div class="chess-mode-title"><span data-i18n="games.mode_label">Chế độ bình luận</span> <span id="chessModeStatus" class="chess-mode-status"></span></div>
@@ -1044,7 +1090,7 @@
                 <p class="chess-mode-hint" data-i18n="games.diff_hint">Chọn xong rồi bấm Chơi. Cấp độ cố định trong ván — muốn đổi thì thoát / ván mới và chọn lại.</p>
             </div>
             <div class="games-actions">
-                <button type="button" id="gamesBackToPickBtn" class="games-secondary-btn" data-i18n="games.back">← Đổi game</button>
+                <button type="button" id="gamesBackToPickBtn" class="games-secondary-btn" data-i18n="games.back">← Đổi trò chơi</button>
                 <button type="button" id="gamesModeStartBtn" class="games-primary-btn" data-i18n="games.start">Chơi ván mới</button>
             </div>
         </div>
@@ -1069,7 +1115,7 @@
                 <div class="chess-toolbar">
                     <button type="button" id="gamesExitBtn" class="chess-btn chess-btn-exit" data-i18n="games.exit">Thoát</button>
                     <button type="button" id="chessNewBtn" class="chess-btn chess-btn-new" data-i18n="games.new">Ván mới</button>
-                    <button type="button" id="gamesPassBtn" class="chess-btn" hidden data-i18n="games.pass">Pass</button>
+                    <button type="button" id="gamesPassBtn" class="chess-btn" hidden data-i18n="games.pass">Bỏ lượt</button>
                 </div>
                 <div id="chessMeta" class="chess-meta"></div>
                 <div class="chess-stage" id="chessStage">
@@ -1134,6 +1180,7 @@
     </div>
     <script src="js/i18n.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/battery.js"></script>
     <script src="js/freq.js"></script>
     <script src="js/wake-engine.js"></script>
     <script src="js/wakeword-pv.js"></script>

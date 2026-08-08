@@ -36,6 +36,7 @@ var (
 	stimStreaming int32
 	stimValue     float64
 	stimStop      chan struct{}
+	stimCancel    context.CancelFunc
 )
 
 func (m *StimStats) HTTP(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +87,7 @@ func beginStimStream() error {
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	client, err := v.Conn.EventStream(ctx, &vectorpb.EventRequest{
 		ListType: &vectorpb.EventRequest_WhiteList{
 			WhiteList: &vectorpb.FilterList{
@@ -96,24 +97,27 @@ func beginStimStream() error {
 		ConnectionId: "wired",
 	})
 	if err != nil {
+		cancel()
 		return err
 	}
 	stop := make(chan struct{})
 	stimStop = stop
+	stimCancel = cancel
 	atomic.StoreInt32(&stimStreaming, 1)
 	stimValue = 0
 
 	go func() {
+		defer cancel()
 		defer atomic.StoreInt32(&stimStreaming, 0)
 		for {
+			resp, err := client.Recv()
+			if err != nil {
+				return
+			}
 			select {
 			case <-stop:
 				return
 			default:
-			}
-			resp, err := client.Recv()
-			if err != nil {
-				return
 			}
 			info := resp.GetEvent().GetStimulationInfo()
 			if info == nil {
@@ -134,6 +138,10 @@ func beginStimStream() error {
 func stopStimStream() {
 	stimMu.Lock()
 	defer stimMu.Unlock()
+	if stimCancel != nil {
+		stimCancel()
+		stimCancel = nil
+	}
 	if stimStop != nil {
 		select {
 		case <-stimStop:

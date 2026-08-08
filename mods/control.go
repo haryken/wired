@@ -39,10 +39,12 @@ func (modu *Control) Load() error {
 }
 
 var (
-	ctrlMu        sync.Mutex
-	bcAssuming    int32
-	bcStop        chan bool
-	camStreaming  int32
+	ctrlMu       sync.Mutex
+	bcAssuming   int32
+	bcStop       chan bool
+	bcCancel     context.CancelFunc
+	camStreaming int32
+	camCancel    context.CancelFunc
 )
 
 func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
@@ -123,12 +125,12 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getRobot() (*vector.Vector, context.Context, error) {
-	v, err := vars.GetVec()
-	if err != nil {
-		return nil, nil, err
-	}
-	return v, context.Background(), nil
+func getRobot() (*vector.Vector, error) {
+	return vars.GetVec()
+}
+
+func rpcCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 8*time.Second)
 }
 
 func assumeControl() error {
@@ -137,16 +139,19 @@ func assumeControl() error {
 	if atomic.LoadInt32(&bcAssuming) == 1 {
 		return nil
 	}
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
 	start := make(chan bool, 1)
 	stop := make(chan bool, 1)
+	ctx, cancel := context.WithCancel(context.Background())
 	bcStop = stop
+	bcCancel = cancel
 	atomic.StoreInt32(&bcAssuming, 1)
 
 	go func() {
+		defer cancel()
 		r, err := v.Conn.BehaviorControl(ctx)
 		if err != nil {
 			log.Println("[Control] BehaviorControl:", err)
@@ -177,7 +182,10 @@ func assumeControl() error {
 				break
 			}
 		}
-		<-stop
+		select {
+		case <-stop:
+		case <-ctx.Done():
+		}
 		_ = r.Send(&vectorpb.BehaviorControlRequest{
 			RequestType: &vectorpb.BehaviorControlRequest_ControlRelease{
 				ControlRelease: &vectorpb.ControlRelease{},
@@ -191,6 +199,7 @@ func assumeControl() error {
 		return nil
 	case <-time.After(8 * time.Second):
 		atomic.StoreInt32(&bcAssuming, 0)
+		cancel()
 		select {
 		case stop <- true:
 		default:
@@ -204,6 +213,10 @@ func releaseControl() {
 	defer ctrlMu.Unlock()
 	if atomic.LoadInt32(&bcAssuming) == 0 {
 		return
+	}
+	if bcCancel != nil {
+		bcCancel()
+		bcCancel = nil
 	}
 	if bcStop != nil {
 		select {
@@ -220,10 +233,12 @@ func releaseControl() {
 }
 
 func driveWheels(lw, rw float32) error {
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
+	ctx, cancel := rpcCtx()
+	defer cancel()
 	_, err = v.Conn.DriveWheels(ctx, &vectorpb.DriveWheelsRequest{
 		LeftWheelMmps:   lw,
 		RightWheelMmps:  rw,
@@ -234,28 +249,34 @@ func driveWheels(lw, rw float32) error {
 }
 
 func moveLift(speed float32) error {
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
+	ctx, cancel := rpcCtx()
+	defer cancel()
 	_, err = v.Conn.MoveLift(ctx, &vectorpb.MoveLiftRequest{SpeedRadPerSec: speed})
 	return err
 }
 
 func moveHead(speed float32) error {
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
+	ctx, cancel := rpcCtx()
+	defer cancel()
 	_, err = v.Conn.MoveHead(ctx, &vectorpb.MoveHeadRequest{SpeedRadPerSec: speed})
 	return err
 }
 
 func sayText(text string) error {
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
+	ctx, cancel := rpcCtx()
+	defer cancel()
 	_, err = v.Conn.SayText(ctx, &vectorpb.SayTextRequest{
 		Text:           text,
 		UseVectorVoice: true,
@@ -277,32 +298,49 @@ func playUploadedSound(r *http.Request) error {
 }
 
 func setMirror(enable bool) error {
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		return err
 	}
+	ctx, cancel := rpcCtx()
+	defer cancel()
 	_, err = v.Conn.EnableMirrorMode(ctx, &vectorpb.EnableMirrorModeRequest{Enable: enable})
 	return err
 }
 
 func stopCamFlag() {
+	ctrlMu.Lock()
+	if camCancel != nil {
+		camCancel()
+		camCancel = nil
+	}
+	ctrlMu.Unlock()
 	atomic.StoreInt32(&camStreaming, 0)
 }
 
 func serveCamStream(w http.ResponseWriter, r *http.Request) {
 	// Stop any previous stream quickly so a new one can attach.
 	if atomic.LoadInt32(&camStreaming) == 1 {
-		atomic.StoreInt32(&camStreaming, 0)
+		stopCamFlag()
 		time.Sleep(150 * time.Millisecond)
 	}
-	v, ctx, err := getRobot()
+	v, err := getRobot()
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	_, _ = v.Conn.EnableImageStreaming(ctx, &vectorpb.EnableImageStreamingRequest{Enable: true})
+	enCtx, enCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	_, _ = v.Conn.EnableImageStreaming(enCtx, &vectorpb.EnableImageStreamingRequest{Enable: true})
+	enCancel()
+
+	ctx, cancel := context.WithCancel(r.Context())
+	ctrlMu.Lock()
+	camCancel = cancel
+	ctrlMu.Unlock()
+
 	client, err := v.Conn.CameraFeed(ctx, &vectorpb.CameraFeedRequest{})
 	if err != nil {
+		cancel()
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -313,13 +351,22 @@ func serveCamStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Accel-Buffering", "no")
 	flusher, okFlush := w.(http.Flusher)
 	if !okFlush {
+		cancel()
 		http.Error(w, "streaming unsupported", 500)
 		return
 	}
 	atomic.StoreInt32(&camStreaming, 1)
 	defer func() {
+		cancel()
+		ctrlMu.Lock()
+		if camCancel != nil {
+			camCancel = nil
+		}
+		ctrlMu.Unlock()
 		atomic.StoreInt32(&camStreaming, 0)
-		_, _ = v.Conn.EnableImageStreaming(ctx, &vectorpb.EnableImageStreamingRequest{Enable: false})
+		offCtx, offCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		_, _ = v.Conn.EnableImageStreaming(offCtx, &vectorpb.EnableImageStreamingRequest{Enable: false})
+		offCancel()
 	}()
 
 	// Keep only the newest JPEG so a slow browser/network never builds backlog.
@@ -328,9 +375,6 @@ func serveCamStream(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer close(recvDone)
 		for {
-			if atomic.LoadInt32(&camStreaming) == 0 {
-				return
-			}
 			resp, err := client.Recv()
 			if err != nil {
 				return
@@ -353,7 +397,7 @@ func serveCamStream(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		case <-r.Context().Done():
+		case <-ctx.Done():
 			return
 		case <-recvDone:
 			return
