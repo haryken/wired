@@ -60,16 +60,18 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 		vars.HTTPSuccess(w, r)
 	case "release":
 		stopMicStream()
+		stopRobotMicStream()
 		releaseControl()
 		_ = setMirror(false)
 		_ = driveWheels(0, 0)
 		stopCamFlag()
 		vars.HTTPSuccess(w, r)
 	case "status":
-		fmt.Fprintf(w, `{"assuming":%v,"cam":%v,"mic":%v}`,
+		fmt.Fprintf(w, `{"assuming":%v,"cam":%v,"mic":%v,"robotMic":%v}`,
 			atomic.LoadInt32(&bcAssuming) == 1,
 			atomic.LoadInt32(&camStreaming) == 1,
-			atomic.LoadInt32(&micStreaming) == 1)
+			atomic.LoadInt32(&micStreaming) == 1,
+			atomic.LoadInt32(&robotMicStreaming) == 1)
 	case "wheels":
 		lw, _ := strconv.ParseFloat(r.FormValue("lw"), 32)
 		rw, _ := strconv.ParseFloat(r.FormValue("rw"), 32)
@@ -113,6 +115,11 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 		serveMicStream(w, r)
 	case "mic-stop":
 		stopMicStream()
+		vars.HTTPSuccess(w, r)
+	case "robot-mic-stream":
+		serveRobotMicStream(w, r)
+	case "robot-mic-stop":
+		stopRobotMicStream()
 		vars.HTTPSuccess(w, r)
 	case "mirror":
 		en := r.FormValue("enable") == "true" || r.FormValue("enable") == "1"

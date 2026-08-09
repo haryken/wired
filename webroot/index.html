@@ -862,7 +862,7 @@
             <strong data-i18n="common.howto">Cách dùng</strong>
             <ol>
                 <li data-i18n="ctrl.help1" data-i18n-html="1">Bấm <b>Chiếm quyền</b> trước — lúc đó mới lái / tay / đầu / gương / micro được.</li>
-                <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền. Bật <b>Micro</b> để nói qua loa robot.</li>
+                <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền. Bật <b>Micro</b> để nói qua loa robot; <b>Nghe robot</b> để nghe mic robot trên điện thoại (đàm thoại 2 chiều).</li>
                 <li data-i18n="ctrl.help3" data-i18n-html="1">Xong thì tắt micro và bấm <b>Nhả quyền</b> — robot mới về trạng thái tự nhiên / Xiaozhi.</li>
                 <li data-i18n="ctrl.help4" data-i18n-html="1">Muốn điều khiển <b>khác mạng</b>: bật <b>Ngoài mạng</b> → copy link HTTPS → mở trên 4G/Wi‑Fi khác.</li>
             </ol>
@@ -911,6 +911,11 @@
                     <label class="ctrl-switch" for="ctrlMicSwitch">
                         <span class="ctrl-switch-text"><span data-i18n="ctrl.mic">Micro</span></span>
                         <input type="checkbox" id="ctrlMicSwitch" disabled onchange="ctrlMicToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlListenSwitch">
+                        <span class="ctrl-switch-text"><span data-i18n="ctrl.listen">Nghe robot</span></span>
+                        <input type="checkbox" id="ctrlListenSwitch" disabled onchange="ctrlListenToggle(this.checked)">
                         <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
                     </label>
                 </div>

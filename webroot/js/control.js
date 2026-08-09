@@ -20,6 +20,11 @@ function ctrlSetDriveEnabled(on) {
         mic.disabled = !on;
         if (!on) mic.checked = false;
     }
+    const listen = document.getElementById('ctrlListenSwitch');
+    if (listen) {
+        listen.disabled = !on;
+        if (!on) listen.checked = false;
+    }
     const sayIn = document.getElementById('ctrlSayText');
     const sayBtn = document.getElementById('ctrlSayBtn');
     if (sayIn) sayIn.disabled = !on;
@@ -52,6 +57,7 @@ async function ctrlRelease() {
     setControlStatus('Đang nhả quyền... (Releasing...)');
     try {
         await ctrlMicStop();
+        await ctrlListenStop();
         await ctrlWheels(0, 0);
         await ctrlLift(0);
         await ctrlHead(0);
@@ -227,6 +233,100 @@ window.addEventListener('beforeunload', () => {
         navigator.sendBeacon('/api/mods/Control/release');
     }
 });
+
+/* ---- Robot mic → phone speaker (anim tap @ 16 kHz) ---- */
+let ctrlListenOn = false;
+let ctrlListenWS = null;
+let ctrlListenCtx = null;
+let ctrlListenNext = 0;
+
+function ctrlListenToggle(on) {
+    if (on) ctrlListenStart();
+    else ctrlListenStop();
+}
+
+function ctrlSetListenSwitch(on) {
+    const sw = document.getElementById('ctrlListenSwitch');
+    if (sw) sw.checked = !!on;
+}
+
+function ctrlListenPlayPCM(buf) {
+    if (!ctrlListenCtx || !buf || buf.byteLength < 2) return;
+    const samples = buf.byteLength >> 1;
+    const i16 = new Int16Array(buf);
+    const f32 = new Float32Array(samples);
+    for (let i = 0; i < samples; i++) f32[i] = i16[i] / 32768;
+    const ab = ctrlListenCtx.createBuffer(1, samples, 16000);
+    ab.copyToChannel(f32, 0);
+    const src = ctrlListenCtx.createBufferSource();
+    src.buffer = ab;
+    src.connect(ctrlListenCtx.destination);
+    const now = ctrlListenCtx.currentTime;
+    if (ctrlListenNext < now + 0.02) ctrlListenNext = now + 0.02;
+    src.start(ctrlListenNext);
+    ctrlListenNext += ab.duration;
+}
+
+async function ctrlListenStart() {
+    if (!ctrlAssumed) {
+        setControlStatus('Cần Chiếm quyền trước khi bật Nghe robot.');
+        ctrlSetListenSwitch(false);
+        return;
+    }
+    if (ctrlListenOn) return;
+    try {
+        setControlStatus('Đang mở nghe mic robot…');
+        ctrlListenCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        if (ctrlListenCtx.state === 'suspended') await ctrlListenCtx.resume();
+        ctrlListenNext = ctrlListenCtx.currentTime;
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = proto + '//' + location.host + '/api/mods/Control/robot-mic-stream';
+        ctrlListenWS = new WebSocket(wsUrl);
+        ctrlListenWS.binaryType = 'arraybuffer';
+        await new Promise((resolve, reject) => {
+            const t = setTimeout(() => reject(new Error('WebSocket timeout')), 8000);
+            ctrlListenWS.onopen = () => { clearTimeout(t); resolve(); };
+            ctrlListenWS.onerror = () => { clearTimeout(t); reject(new Error('WebSocket error')); };
+        });
+        ctrlListenWS.onclose = () => {
+            if (ctrlListenOn) {
+                ctrlListenOn = false;
+                ctrlSetListenSwitch(false);
+                setControlStatus('Nghe robot đã tắt (kết nối đóng).');
+            }
+            ctrlListenCleanup();
+        };
+        ctrlListenWS.onmessage = (ev) => {
+            if (typeof ev.data === 'string') {
+                if (ev.data.indexOf('"error"') >= 0) setControlStatus('Nghe robot lỗi: ' + ev.data);
+                return;
+            }
+            ctrlListenPlayPCM(ev.data);
+        };
+        ctrlListenOn = true;
+        ctrlSetListenSwitch(true);
+        setControlStatus('Đang nghe mic robot — nói gần Vector sẽ phát ra loa máy bạn. Bật cả Micro để đàm thoại 2 chiều (nên dùng tai nghe để tránh hú).');
+    } catch (e) {
+        setControlStatus('Không mở được Nghe robot: ' + e.message);
+        ctrlSetListenSwitch(false);
+        await ctrlListenStop();
+    }
+}
+
+function ctrlListenCleanup() {
+    try { if (ctrlListenWS) ctrlListenWS.close(); } catch (_) {}
+    ctrlListenWS = null;
+    try { if (ctrlListenCtx) ctrlListenCtx.close(); } catch (_) {}
+    ctrlListenCtx = null;
+    ctrlListenNext = 0;
+}
+
+async function ctrlListenStop() {
+    ctrlListenOn = false;
+    ctrlSetListenSwitch(false);
+    ctrlListenCleanup();
+    try { await fetch('/api/mods/Control/robot-mic-stop', { method: 'POST' }); } catch (_) {}
+}
 
 /* ---- Live mic → robot speaker (ExternalAudio @ 8 kHz) ---- */
 let ctrlMicOn = false;
