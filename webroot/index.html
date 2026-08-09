@@ -861,11 +861,11 @@
         <div class="help-box">
             <strong data-i18n="common.howto">Cách dùng</strong>
             <ol>
-                <li data-i18n="ctrl.help1" data-i18n-html="1">Bấm <b>Chiếm quyền</b> trước — lúc đó mới lái / tay / đầu / gương được.</li>
-                <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền.</li>
-                <li data-i18n="ctrl.help3" data-i18n-html="1">Xong thì bấm <b>Nhả quyền</b> — robot mới về trạng thái tự nhiên / Xiaozhi.</li>
+                <li data-i18n="ctrl.help1" data-i18n-html="1">Bấm <b>Chiếm quyền</b> trước — lúc đó mới lái / tay / đầu / gương / micro được.</li>
+                <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền. Bật <b>Micro</b> để nói qua loa robot.</li>
+                <li data-i18n="ctrl.help3" data-i18n-html="1">Xong thì tắt micro và bấm <b>Nhả quyền</b> — robot mới về trạng thái tự nhiên / Xiaozhi.</li>
             </ol>
-            <p class="help-warn" data-i18n="ctrl.warn">Nếu thoát mà không nhả quyền, robot có thể kẹt không tự chơi lại.</p>
+            <p class="help-warn" data-i18n="ctrl.warn">Micro cần trang HTTPS: mở https://IP-robot:8443 — HTTP bị trình duyệt chặn mic (Meet vẫn được vì là HTTPS).</p>
         </div>
         <div id="controlStatus"></div>
         <hr class="smallhr">
@@ -889,6 +889,11 @@
                     <label class="ctrl-switch" for="ctrlMirrorSwitch">
                         <span class="ctrl-switch-text"><span data-i18n="ctrl.mirror">Gương</span></span>
                         <input type="checkbox" id="ctrlMirrorSwitch" disabled onchange="ctrlMirrorToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlMicSwitch">
+                        <span class="ctrl-switch-text"><span data-i18n="ctrl.mic">Micro</span></span>
+                        <input type="checkbox" id="ctrlMicSwitch" disabled onchange="ctrlMicToggle(this.checked)">
                         <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
                     </label>
                 </div>
@@ -946,7 +951,8 @@
         <div class="help-box">
             <ol>
                 <li data-i18n="ctrl.aud1" data-i18n-html="1">Chọn file <b>.wav</b> — trình duyệt resample 8 kHz mono rồi gửi.</li>
-                <li data-i18n="ctrl.aud2" data-i18n-html="1">Nghe thử nếu muốn, rồi <b>Gửi file</b>.</li>
+                <li data-i18n="ctrl.aud2" data-i18n-html="1">Nghe thử nếu muốn, rồi <b>Gửi file</b> (cần Chiếm quyền).</li>
+                <li data-i18n="ctrl.aud3" data-i18n-html="1">Hoặc bật switch <b>Micro</b> phía trên camera để nói trực tiếp qua loa robot.</li>
             </ol>
         </div>
         <div class="button-container" style="gap:6px; flex-wrap:wrap;">

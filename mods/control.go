@@ -3,7 +3,6 @@ package mods
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -60,15 +59,17 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		vars.HTTPSuccess(w, r)
 	case "release":
+		stopMicStream()
 		releaseControl()
 		_ = setMirror(false)
 		_ = driveWheels(0, 0)
 		stopCamFlag()
 		vars.HTTPSuccess(w, r)
 	case "status":
-		fmt.Fprintf(w, `{"assuming":%v,"cam":%v}`,
+		fmt.Fprintf(w, `{"assuming":%v,"cam":%v,"mic":%v}`,
 			atomic.LoadInt32(&bcAssuming) == 1,
-			atomic.LoadInt32(&camStreaming) == 1)
+			atomic.LoadInt32(&camStreaming) == 1,
+			atomic.LoadInt32(&micStreaming) == 1)
 	case "wheels":
 		lw, _ := strconv.ParseFloat(r.FormValue("lw"), 32)
 		rw, _ := strconv.ParseFloat(r.FormValue("rw"), 32)
@@ -107,6 +108,11 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, err.Error())
 			return
 		}
+		vars.HTTPSuccess(w, r)
+	case "mic-stream":
+		serveMicStream(w, r)
+	case "mic-stop":
+		stopMicStream()
 		vars.HTTPSuccess(w, r)
 	case "mirror":
 		en := r.FormValue("enable") == "true" || r.FormValue("enable") == "1"
@@ -283,18 +289,6 @@ func sayText(text string) error {
 		DurationScalar: 1.0,
 	})
 	return err
-}
-
-func playUploadedSound(r *http.Request) error {
-	file, _, err := r.FormFile("sound")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	if _, err := io.Copy(io.Discard, file); err != nil {
-		return err
-	}
-	return fmt.Errorf("play_sound upload accepted but ExternalAudio host path not wired yet")
 }
 
 func setMirror(enable bool) error {

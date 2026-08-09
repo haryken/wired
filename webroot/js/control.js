@@ -15,6 +15,11 @@ function ctrlSetDriveEnabled(on) {
         mirror.disabled = !on;
         if (!on) mirror.checked = false;
     }
+    const mic = document.getElementById('ctrlMicSwitch');
+    if (mic) {
+        mic.disabled = !on;
+        if (!on) mic.checked = false;
+    }
     const sayIn = document.getElementById('ctrlSayText');
     const sayBtn = document.getElementById('ctrlSayBtn');
     if (sayIn) sayIn.disabled = !on;
@@ -46,6 +51,7 @@ async function ctrlAssume() {
 async function ctrlRelease() {
     setControlStatus('Đang nhả quyền... (Releasing...)');
     try {
+        await ctrlMicStop();
         await ctrlWheels(0, 0);
         await ctrlLift(0);
         await ctrlHead(0);
@@ -216,10 +222,182 @@ function ctrlCamStop() {
 }
 
 window.addEventListener('beforeunload', () => {
+    ctrlMicStop();
     if (ctrlAssumed) {
         navigator.sendBeacon('/api/mods/Control/release');
     }
 });
+
+/* ---- Live mic → robot speaker (ExternalAudio @ 8 kHz) ---- */
+let ctrlMicOn = false;
+let ctrlMicStream = null;
+let ctrlMicCtx = null;
+let ctrlMicProc = null;
+let ctrlMicSource = null;
+let ctrlMicWS = null;
+let ctrlMicGain = null;
+
+function ctrlMicToggle(on) {
+    if (on) ctrlMicStart();
+    else ctrlMicStop();
+}
+
+function ctrlSetMicSwitch(on) {
+    const sw = document.getElementById('ctrlMicSwitch');
+    if (sw) sw.checked = !!on;
+}
+
+async function ctrlMicStart() {
+    if (!ctrlAssumed) {
+        setControlStatus('Cần Chiếm quyền trước khi bật micro.');
+        ctrlSetMicSwitch(false);
+        return;
+    }
+    if (ctrlMicOn) return;
+
+    // Chrome/Edge/Safari block getUserMedia on plain HTTP LAN pages.
+    // Google Meet works because it is HTTPS. Use wired :8443 instead.
+    const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (!window.isSecureContext || !hasMedia) {
+        const httpsURL = 'https://' + location.hostname + ':8443/' + (location.hash || '#control');
+        setControlStatus(
+            'Trình duyệt chặn micro trên HTTP (Không bảo mật). ' +
+            'Mở trang HTTPS: <a href="' + httpsURL + '" style="color:#67e8f9">' + httpsURL + '</a> ' +
+            '→ Advanced / Tiếp tục vào site → rồi bật Micro. Meet dùng HTTPS nên mic vẫn được.'
+        );
+        const el = document.getElementById('controlStatus');
+        if (el) el.innerHTML = '<p>' +
+            'Trình duyệt chặn micro trên <b>HTTP</b> (trang Không bảo mật). ' +
+            'Hãy mở: <a href="' + httpsURL + '" style="color:#67e8f9;font-weight:600">' + httpsURL + '</a> ' +
+            '(bấm Advanced → Proceed / Tiếp tục). Google Meet dùng HTTPS nên mic vẫn hoạt động.' +
+            '</p>';
+        ctrlSetMicSwitch(false);
+        return;
+    }
+    try {
+        setControlStatus('Đang xin quyền micro…');
+        ctrlMicStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                channelCount: 1
+            },
+            video: false
+        });
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = proto + '//' + location.host + '/api/mods/Control/mic-stream';
+        ctrlMicWS = new WebSocket(wsUrl);
+        ctrlMicWS.binaryType = 'arraybuffer';
+
+        await new Promise((resolve, reject) => {
+            const t = setTimeout(() => reject(new Error('WebSocket timeout')), 8000);
+            ctrlMicWS.onopen = () => { clearTimeout(t); resolve(); };
+            ctrlMicWS.onerror = () => { clearTimeout(t); reject(new Error('WebSocket error')); };
+        });
+
+        ctrlMicWS.onclose = () => {
+            if (ctrlMicOn) {
+                ctrlMicOn = false;
+                ctrlSetMicSwitch(false);
+                setControlStatus('Micro đã tắt (kết nối đóng).');
+            }
+            ctrlMicCleanupAudio();
+        };
+        ctrlMicWS.onmessage = (ev) => {
+            if (typeof ev.data === 'string' && ev.data.indexOf('"error"') >= 0) {
+                setControlStatus('Micro lỗi: ' + ev.data);
+            }
+        };
+
+        ctrlMicCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctrlMicCtx.state === 'suspended') await ctrlMicCtx.resume();
+        ctrlMicSource = ctrlMicCtx.createMediaStreamSource(ctrlMicStream);
+        // ScriptProcessor: widely supported on phone browsers for PCM tap.
+        const bufferSize = 4096;
+        ctrlMicProc = ctrlMicCtx.createScriptProcessor(bufferSize, 1, 1);
+        ctrlMicGain = ctrlMicCtx.createGain();
+        ctrlMicGain.gain.value = 0; // mute local monitor — only robot speaks
+        const inRate = ctrlMicCtx.sampleRate;
+        const outRate = 8000;
+        // Laptop/phone mics are often quiet after echoCancellation — boost before send.
+        const MIC_GAIN = 2.4;
+        let frac = 0;
+        ctrlMicProc.onaudioprocess = (e) => {
+            if (!ctrlMicOn || !ctrlMicWS || ctrlMicWS.readyState !== 1) return;
+            const input = e.inputBuffer.getChannelData(0);
+            const ratio = inRate / outRate;
+            const outLen = Math.floor((input.length - frac) / ratio);
+            if (outLen <= 0) return;
+            const pcm = new Int16Array(outLen);
+            let i = frac;
+            for (let o = 0; o < outLen; o++) {
+                const i0 = Math.floor(i);
+                const i1 = Math.min(i0 + 1, input.length - 1);
+                const f = i - i0;
+                let s = (input[i0] * (1 - f) + input[i1] * f) * MIC_GAIN;
+                if (s > 1) s = 1;
+                if (s < -1) s = -1;
+                pcm[o] = (s * 0x7fff) | 0;
+                i += ratio;
+            }
+            frac = i - input.length;
+            if (frac < 0) frac = 0;
+            try {
+                ctrlMicWS.send(pcm.buffer);
+            } catch (_) {}
+        };
+        ctrlMicSource.connect(ctrlMicProc);
+        ctrlMicProc.connect(ctrlMicGain);
+        ctrlMicGain.connect(ctrlMicCtx.destination);
+
+        ctrlMicOn = true;
+        ctrlSetMicSwitch(true);
+        setControlStatus('Micro BẬT — nói vào máy, robot phát loa. (Mic ON)');
+    } catch (e) {
+        setControlStatus('Không bật được micro: ' + (e && e.message ? e.message : e));
+        await ctrlMicStop();
+    }
+}
+
+function ctrlMicCleanupAudio() {
+    try {
+        if (ctrlMicProc) {
+            ctrlMicProc.onaudioprocess = null;
+            ctrlMicProc.disconnect();
+        }
+    } catch (_) {}
+    try { if (ctrlMicSource) ctrlMicSource.disconnect(); } catch (_) {}
+    try { if (ctrlMicGain) ctrlMicGain.disconnect(); } catch (_) {}
+    try { if (ctrlMicCtx) ctrlMicCtx.close(); } catch (_) {}
+    try {
+        if (ctrlMicStream) {
+            ctrlMicStream.getTracks().forEach((t) => t.stop());
+        }
+    } catch (_) {}
+    ctrlMicProc = null;
+    ctrlMicSource = null;
+    ctrlMicGain = null;
+    ctrlMicCtx = null;
+    ctrlMicStream = null;
+}
+
+async function ctrlMicStop() {
+    const wasOn = ctrlMicOn;
+    ctrlMicOn = false;
+    ctrlSetMicSwitch(false);
+    try {
+        if (ctrlMicWS) {
+            try { ctrlMicWS.close(); } catch (_) {}
+            ctrlMicWS = null;
+        }
+    } catch (_) {}
+    ctrlMicCleanupAudio();
+    try {
+        await fetch('/api/mods/Control/mic-stop', { method: 'POST' });
+    } catch (_) {}
+    if (wasOn) setControlStatus('Micro TẮT. (Mic OFF)');
+}
 
 async function ctrlSayText() {
     const inp = document.getElementById('ctrlSayText');
@@ -324,6 +502,10 @@ function ctrlBufferToWave(abuffer) {
 }
 
 async function ctrlSendAudio() {
+    if (!ctrlAssumed) {
+        setControlStatus('Cần Chiếm quyền trước. (Assume control first.)');
+        return;
+    }
     if (!ctrlProcessedAudioBlob) {
         setControlStatus('Chưa có file đã xử lý. (No processed audio.)');
         return;

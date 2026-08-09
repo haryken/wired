@@ -56,18 +56,19 @@ func main() {
 }
 
 func startweb() {
-	fmt.Println("starting web at ports 80 and 8080")
+	fmt.Println("starting web at ports 80, 8080 (HTTP) and 8443 (HTTPS for mic)")
 	fs := http.FileServer(http.Dir("/etc/wired/webroot"))
+	mux := http.DefaultServeMux
+	// Root file server — InitMods already registered /api/mods/... on DefaultServeMux.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// no mno non o caching
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
-
 		fs.ServeHTTP(w, r)
 	})
-	// Same DefaultServeMux on both ports. Prefer :8080 as the blocking
-	// listener so a bind failure on privileged :80 still leaves the UI up.
+
+	startHTTPS(mux)
+
 	go func() {
 		if err := http.ListenAndServe(":80", nil); err != nil {
 			fmt.Println("wired listen :80 failed:", err)

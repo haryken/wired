@@ -2,7 +2,12 @@ module github.com/os-vector/wired
 
 go 1.19
 
-require github.com/digital-dream-labs/vector-go-sdk v0.0.0-20210319174132-8b9dd21232b6
+require (
+	github.com/digital-dream-labs/vector-go-sdk v0.0.0-20210319174132-8b9dd21232b6
+	github.com/gorilla/websocket v1.5.3
+	google.golang.org/grpc v1.34.0
+	google.golang.org/protobuf v1.25.0
+)
 
 require (
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
@@ -26,8 +31,6 @@ require (
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
 	golang.org/x/text v0.3.3 // indirect
 	google.golang.org/genproto v0.0.0-20201207150747-9ee31aac76e7 // indirect
-	google.golang.org/grpc v1.34.0 // indirect
-	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
