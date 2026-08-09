@@ -299,26 +299,69 @@ func (rs *remoteShare) startShareProxy(token string) error {
 		req.Header.Set("X-Forwarded-Proto", "https")
 	}
 
+	prefix := "/r/" + token
+	setShareCookie := func(w http.ResponseWriter) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     remoteShareCookie,
+			Value:    token,
+			Path:     "/",
+			HttpOnly: true,
+			// None: some in-app browsers drop Lax cookies across redirects.
+			SameSite: http.SameSiteNoneMode,
+			Secure:   true,
+			MaxAge:   int(remoteDefaultTTL.Seconds()),
+		})
+	}
+	authorized := func(r *http.Request) bool {
+		if c, err := r.Cookie(remoteShareCookie); err == nil && c.Value == token {
+			return true
+		}
+		if r.URL.Query().Get("share") == token {
+			return true
+		}
+		if r.Header.Get("X-Wired-Share") == token {
+			return true
+		}
+		ref := r.Header.Get("Referer")
+		if ref != "" && (strings.Contains(ref, prefix) || strings.Contains(ref, "share="+token)) {
+			return true
+		}
+		return false
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		if strings.HasPrefix(path, "/r/"+token) {
-			http.SetCookie(w, &http.Cookie{
-				Name:     remoteShareCookie,
-				Value:    token,
-				Path:     "/",
-				HttpOnly: true,
-				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
-				MaxAge:   int(remoteDefaultTTL.Seconds()),
-			})
-			http.Redirect(w, r, "/#control", http.StatusFound)
+
+		// Canonical share entry: keep /r/<token>/… so relative assets + Referer stay authorized
+		// (phone in-app browsers often drop cookies after redirect to "/").
+		if path == prefix {
+			setShareCookie(w)
+			q := ""
+			if r.URL.RawQuery != "" {
+				q = "?" + r.URL.RawQuery
+			}
+			http.Redirect(w, r, prefix+"/"+q, http.StatusFound)
 			return
 		}
-		c, err := r.Cookie(remoteShareCookie)
-		if err != nil || c.Value != token {
-			http.Error(w, "Remote control link invalid or expired. Enable sharing again on the robot LAN UI.", http.StatusUnauthorized)
+		if path == prefix+"/" || strings.HasPrefix(path, prefix+"/") {
+			setShareCookie(w)
+			rest := strings.TrimPrefix(path, prefix)
+			if rest == "" {
+				rest = "/"
+			}
+			r.URL.Path = rest
+			r.URL.RawPath = ""
+			proxy.ServeHTTP(w, r)
 			return
+		}
+
+		if !authorized(r) {
+			http.Error(w, "Remote control link invalid or expired. Open the full link from the robot (must include /r/…), or enable sharing again. Tip: open in Chrome/Safari — not Messenger in-app browser.", http.StatusUnauthorized)
+			return
+		}
+		if r.URL.Query().Get("share") == token {
+			setShareCookie(w)
 		}
 		proxy.ServeHTTP(w, r)
 	})
