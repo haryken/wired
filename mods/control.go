@@ -126,6 +126,14 @@ func (m *Control) HTTP(w http.ResponseWriter, r *http.Request) {
 		vars.HTTPSuccess(w, r)
 	case "cam-stream":
 		serveCamStream(w, r)
+	case "remote-enable":
+		st := enableRemoteShare()
+		remoteJSON(w, http.StatusOK, st)
+	case "remote-disable":
+		st := disableRemoteShare()
+		remoteJSON(w, http.StatusOK, st)
+	case "remote-status":
+		remoteJSON(w, http.StatusOK, ctrlRemote.snapshot())
 	default:
 		vars.HTTPError(w, r, "404 not found")
 	}

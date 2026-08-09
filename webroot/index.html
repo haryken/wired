@@ -864,8 +864,10 @@
                 <li data-i18n="ctrl.help1" data-i18n-html="1">Bấm <b>Chiếm quyền</b> trước — lúc đó mới lái / tay / đầu / gương / micro được.</li>
                 <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền. Bật <b>Micro</b> để nói qua loa robot.</li>
                 <li data-i18n="ctrl.help3" data-i18n-html="1">Xong thì tắt micro và bấm <b>Nhả quyền</b> — robot mới về trạng thái tự nhiên / Xiaozhi.</li>
+                <li data-i18n="ctrl.help4" data-i18n-html="1">Muốn điều khiển <b>khác mạng</b>: bật <b>Ngoài mạng</b> → copy link HTTPS → mở trên 4G/Wi‑Fi khác.</li>
             </ol>
             <p class="help-warn" data-i18n="ctrl.warn">Micro cần trang HTTPS: mở https://IP-robot:8443 — HTTP bị trình duyệt chặn mic (Meet vẫn được vì là HTTPS).</p>
+            <p class="help-warn" data-i18n="ctrl.remote_warn">Link ngoài mạng hết hạn sau ~2 giờ; ai có link đều điều khiển được — tắt khi xong.</p>
         </div>
         <div id="controlStatus"></div>
         <hr class="smallhr">
@@ -873,6 +875,21 @@
         <div class="ctrl-session" role="group" aria-label="Session">
             <button type="button" id="ctrlAssumeBtn" class="ctrl-seg" onclick="ctrlAssume()" data-i18n="ctrl.assume">Chiếm quyền</button>
             <button type="button" id="ctrlReleaseBtn" class="ctrl-seg is-active" onclick="ctrlRelease()" data-i18n="ctrl.release">Nhả quyền</button>
+        </div>
+
+        <div class="ctrl-remote" id="ctrlRemotePanel">
+            <label class="ctrl-switch" for="ctrlRemoteSwitch">
+                <span class="ctrl-switch-text"><span data-i18n="ctrl.remote">Ngoài mạng</span></span>
+                <input type="checkbox" id="ctrlRemoteSwitch" onchange="ctrlRemoteToggle(this.checked)">
+                <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+            </label>
+            <div id="ctrlRemoteBox" class="ctrl-remote-box" hidden>
+                <div class="ctrl-remote-row">
+                    <input type="text" id="ctrlRemoteURL" readonly placeholder="…" aria-label="Remote control URL">
+                    <button type="button" id="ctrlRemoteCopyBtn" onclick="ctrlRemoteCopy()" data-i18n="ctrl.remote_copy">Copy link</button>
+                </div>
+                <p id="ctrlRemoteStatus" class="ctrl-remote-status"></p>
+            </div>
         </div>
 
         <div class="ctrl-stage">

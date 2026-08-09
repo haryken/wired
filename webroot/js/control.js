@@ -525,3 +525,109 @@ async function ctrlSendAudio() {
         setControlStatus(`Lỗi gửi audio: ${e.message}`);
     }
 }
+
+let ctrlRemotePoll = null;
+
+function ctrlRemoteSetUI(st) {
+    const box = document.getElementById('ctrlRemoteBox');
+    const sw = document.getElementById('ctrlRemoteSwitch');
+    const url = document.getElementById('ctrlRemoteURL');
+    const status = document.getElementById('ctrlRemoteStatus');
+    if (!box || !sw || !url || !status) return;
+
+    const on = !!(st && (st.enabled || st.phase === 'downloading' || st.phase === 'starting' || st.phase === 'ready'));
+    sw.checked = on && st.phase !== 'error' && st.phase !== 'idle';
+    box.hidden = !on && !(st && st.phase === 'error');
+
+    if (st && st.url) {
+        url.value = st.url;
+        box.hidden = false;
+    } else if (!on) {
+        url.value = '';
+    }
+
+    let msg = '';
+    if (!st || st.phase === 'idle') {
+        msg = '';
+    } else if (st.phase === 'downloading') {
+        msg = st.error || 'Downloading tunnel…';
+    } else if (st.phase === 'starting') {
+        msg = 'Creating public link…';
+    } else if (st.phase === 'ready') {
+        msg = st.expires_at ? ('Ready · expires ' + st.expires_at) : 'Ready';
+    } else if (st.phase === 'error') {
+        msg = st.error || 'Error';
+        box.hidden = false;
+        sw.checked = false;
+    }
+    status.textContent = msg;
+}
+
+async function ctrlRemoteRefresh() {
+    try {
+        const res = await fetch('/api/mods/Control/remote-status');
+        const st = await res.json();
+        ctrlRemoteSetUI(st);
+        if (st.phase === 'ready' || st.phase === 'error' || st.phase === 'idle') {
+            if (ctrlRemotePoll) {
+                clearInterval(ctrlRemotePoll);
+                ctrlRemotePoll = null;
+            }
+        }
+        return st;
+    } catch (e) {
+        console.log('remote-status', e);
+        return null;
+    }
+}
+
+function ctrlRemoteStartPoll() {
+    if (ctrlRemotePoll) clearInterval(ctrlRemotePoll);
+    ctrlRemotePoll = setInterval(ctrlRemoteRefresh, 1500);
+}
+
+async function ctrlRemoteToggle(on) {
+    const status = document.getElementById('ctrlRemoteStatus');
+    const box = document.getElementById('ctrlRemoteBox');
+    try {
+        if (on) {
+            if (box) box.hidden = false;
+            if (status) status.textContent = 'Starting…';
+            const res = await fetch('/api/mods/Control/remote-enable', { method: 'POST' });
+            const st = await res.json();
+            ctrlRemoteSetUI(st);
+            if (st.phase === 'downloading' || st.phase === 'starting') {
+                ctrlRemoteStartPoll();
+            }
+        } else {
+            const res = await fetch('/api/mods/Control/remote-disable', { method: 'POST' });
+            const st = await res.json();
+            ctrlRemoteSetUI(st);
+            if (ctrlRemotePoll) {
+                clearInterval(ctrlRemotePoll);
+                ctrlRemotePoll = null;
+            }
+        }
+    } catch (e) {
+        if (status) status.textContent = 'Network error: ' + e.message;
+        const sw = document.getElementById('ctrlRemoteSwitch');
+        if (sw) sw.checked = false;
+    }
+}
+
+async function ctrlRemoteCopy() {
+    const url = document.getElementById('ctrlRemoteURL');
+    if (!url || !url.value) return;
+    try {
+        await navigator.clipboard.writeText(url.value);
+        setControlStatus('Đã copy link. (Link copied.)');
+    } catch (_) {
+        url.select();
+        document.execCommand('copy');
+        setControlStatus('Đã copy link. (Link copied.)');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    ctrlRemoteRefresh();
+});
