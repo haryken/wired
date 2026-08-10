@@ -628,15 +628,24 @@ async function ctrlSendAudio() {
 
 let ctrlRemotePoll = null;
 
+function ctrlRemoteSetButtons(on) {
+    const onBtn = document.getElementById('ctrlRemoteOnBtn');
+    const offBtn = document.getElementById('ctrlRemoteOffBtn');
+    const panel = document.getElementById('ctrlRemotePanel');
+    if (onBtn) onBtn.classList.toggle('is-active', !!on);
+    if (offBtn) offBtn.classList.toggle('is-active', !on);
+    if (panel) panel.classList.toggle('is-on', !!on);
+}
+
 function ctrlRemoteSetUI(st) {
     const box = document.getElementById('ctrlRemoteBox');
-    const sw = document.getElementById('ctrlRemoteSwitch');
     const url = document.getElementById('ctrlRemoteURL');
     const status = document.getElementById('ctrlRemoteStatus');
-    if (!box || !sw || !url || !status) return;
+    if (!box || !url || !status) return;
 
-    const on = !!(st && (st.enabled || st.phase === 'downloading' || st.phase === 'starting' || st.phase === 'ready'));
-    sw.checked = on && st.phase !== 'error' && st.phase !== 'idle';
+    const busy = !!(st && (st.phase === 'downloading' || st.phase === 'starting'));
+    const on = !!(st && (st.enabled || busy || st.phase === 'ready') && st.phase !== 'error' && st.phase !== 'idle');
+    ctrlRemoteSetButtons(on);
     box.hidden = !on && !(st && st.phase === 'error');
 
     if (st && st.url) {
@@ -646,19 +655,22 @@ function ctrlRemoteSetUI(st) {
         url.value = '';
     }
 
+    status.classList.remove('is-ready', 'is-error');
     let msg = '';
     if (!st || st.phase === 'idle') {
         msg = '';
     } else if (st.phase === 'downloading') {
-        msg = st.error || 'Downloading tunnel…';
+        msg = st.error || 'Đang tải tunnel…';
     } else if (st.phase === 'starting') {
-        msg = 'Creating public link…';
+        msg = 'Đang tạo link công khai…';
     } else if (st.phase === 'ready') {
-        msg = st.expires_at ? ('Ready · expires ' + st.expires_at) : 'Ready';
+        msg = 'Đang bật — link không tự hết hạn (tắt bằng nút Tắt).';
+        status.classList.add('is-ready');
     } else if (st.phase === 'error') {
-        msg = st.error || 'Error';
+        msg = st.error || 'Lỗi';
+        status.classList.add('is-error');
         box.hidden = false;
-        sw.checked = false;
+        ctrlRemoteSetButtons(false);
     }
     status.textContent = msg;
 }
@@ -691,8 +703,12 @@ async function ctrlRemoteToggle(on) {
     const box = document.getElementById('ctrlRemoteBox');
     try {
         if (on) {
+            ctrlRemoteSetButtons(true);
             if (box) box.hidden = false;
-            if (status) status.textContent = 'Starting…';
+            if (status) {
+                status.classList.remove('is-ready', 'is-error');
+                status.textContent = 'Đang bật…';
+            }
             const res = await fetch('/api/mods/Control/remote-enable', { method: 'POST' });
             const st = await res.json();
             ctrlRemoteSetUI(st);
@@ -709,9 +725,11 @@ async function ctrlRemoteToggle(on) {
             }
         }
     } catch (e) {
-        if (status) status.textContent = 'Network error: ' + e.message;
-        const sw = document.getElementById('ctrlRemoteSwitch');
-        if (sw) sw.checked = false;
+        if (status) {
+            status.classList.add('is-error');
+            status.textContent = 'Lỗi mạng: ' + e.message;
+        }
+        ctrlRemoteSetButtons(false);
     }
 }
 

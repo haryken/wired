@@ -1245,36 +1245,97 @@ input[type="text"] {
     color: #eee;
 }
 
-.ctrl-remote {
+.ctrl-remote-card {
     max-width: 420px;
-    margin: 0 auto 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    margin: 0 auto 16px;
+    padding: 14px 14px 12px;
+    border-radius: 16px;
+    background: linear-gradient(165deg, #1a2228 0%, #141414 55%);
+    border: 1px solid #2a3a42;
+    box-sizing: border-box;
+}
+
+.ctrl-remote-head {
+    margin-bottom: 12px;
+}
+
+.ctrl-remote-title {
+    font-size: 15px;
+    font-weight: 650;
+    color: #e8f4f6;
+    letter-spacing: 0.01em;
+}
+
+.ctrl-remote-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #8a9aa3;
+}
+
+.ctrl-remote-card .ctrl-remote-toggle {
+    max-width: none;
+    width: 100%;
+    margin: 0 0 0;
+}
+
+.ctrl-remote-card .ctrl-remote-toggle .ctrl-seg.is-active {
+    background: rgba(34, 211, 238, 0.14);
+    color: #67e8f9;
+}
+
+.ctrl-remote-card.is-on {
+    border-color: rgba(34, 211, 238, 0.35);
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.08);
 }
 
 .ctrl-remote-box {
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: #1c1c1c;
-    border: 1px solid #333;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #2a3338;
+}
+
+.ctrl-remote-link-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #7a8b94;
+    margin-bottom: 6px;
 }
 
 .ctrl-remote-row {
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
+    align-items: stretch;
 }
 
 .ctrl-remote-row input {
-    flex: 1 1 180px;
+    flex: 1 1 auto;
     min-width: 0;
-    background: #111;
-    border: 1px solid #444;
-    color: #e8e8e8;
-    border-radius: 8px;
-    padding: 8px 10px;
+    background: #0d1114;
+    border: 1px solid #334049;
+    color: #d7e6ea;
+    border-radius: 10px;
+    padding: 10px 12px;
     font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ctrl-remote-copy {
+    flex: 0 0 auto;
+    margin: 0;
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    border-radius: 10px;
+    background: rgba(34, 211, 238, 0.1);
+    color: #67e8f9;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ctrl-remote-copy:hover {
+    background: rgba(34, 211, 238, 0.18);
 }
 
 .ctrl-remote-status {
@@ -1283,6 +1344,14 @@ input[type="text"] {
     color: #9ca3af;
     line-height: 1.4;
     word-break: break-word;
+}
+
+.ctrl-remote-status.is-ready {
+    color: #5eead4;
+}
+
+.ctrl-remote-status.is-error {
+    color: #fca5a5;
 }
 
 .ctrl-switches {

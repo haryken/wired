@@ -24,20 +24,18 @@ import (
 )
 
 const (
-	remoteShareCookie   = "wired_share"
-	remoteProxyAddr     = "127.0.0.1:18765"
-	remoteDefaultTTL    = 2 * time.Hour
+	remoteShareCookie    = "wired_share"
+	remoteProxyAddr      = "127.0.0.1:18765"
 	remoteCloudflaredVer = "2025.2.1"
 )
 
 var tryCloudflareURL = regexp.MustCompile(`https://[a-zA-Z0-9-]+\.trycloudflare\.com`)
 
 type remoteShareStatus struct {
-	Enabled   bool   `json:"enabled"`
-	URL       string `json:"url,omitempty"`
-	Phase     string `json:"phase"` // idle | downloading | starting | ready | error
-	Error     string `json:"error,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
+	Enabled bool   `json:"enabled"`
+	URL     string `json:"url,omitempty"`
+	Phase   string `json:"phase"` // idle | downloading | starting | ready | error
+	Error   string `json:"error,omitempty"`
 }
 
 type remoteShare struct {
@@ -48,11 +46,9 @@ type remoteShare struct {
 	token     string
 	publicURL string // https://xxx.trycloudflare.com
 	shareURL  string // public + /r/token/#control
-	expires   time.Time
 	proxySrv  *http.Server
 	cfCmd     *exec.Cmd
 	cfCancel  context.CancelFunc
-	expireT   *time.Timer
 }
 
 var ctrlRemote = &remoteShare{phase: "idle"}
@@ -66,16 +62,12 @@ func remoteJSON(w http.ResponseWriter, code int, st remoteShareStatus) {
 func (rs *remoteShare) snapshot() remoteShareStatus {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
-	st := remoteShareStatus{
+	return remoteShareStatus{
 		Enabled: rs.enabled,
 		URL:     rs.shareURL,
 		Phase:   rs.phase,
 		Error:   rs.errMsg,
 	}
-	if !rs.expires.IsZero() {
-		st.ExpiresAt = rs.expires.UTC().Format(time.RFC3339)
-	}
-	return st
 }
 
 func (rs *remoteShare) setPhase(phase, errMsg string) {
@@ -90,10 +82,9 @@ func enableRemoteShare() remoteShareStatus {
 	rs.mu.Lock()
 	if rs.enabled && rs.shareURL != "" && rs.phase == "ready" {
 		st := remoteShareStatus{
-			Enabled:   true,
-			URL:       rs.shareURL,
-			Phase:     "ready",
-			ExpiresAt: rs.expires.UTC().Format(time.RFC3339),
+			Enabled: true,
+			URL:     rs.shareURL,
+			Phase:   "ready",
 		}
 		rs.mu.Unlock()
 		return st
@@ -121,10 +112,6 @@ func disableRemoteShare() remoteShareStatus {
 
 func (rs *remoteShare) stop(finalPhase string) {
 	rs.mu.Lock()
-	if rs.expireT != nil {
-		rs.expireT.Stop()
-		rs.expireT = nil
-	}
 	cancel := rs.cfCancel
 	cmd := rs.cfCmd
 	srv := rs.proxySrv
@@ -139,7 +126,6 @@ func (rs *remoteShare) stop(finalPhase string) {
 	rs.shareURL = ""
 	rs.publicURL = ""
 	rs.token = ""
-	rs.expires = time.Time{}
 	rs.mu.Unlock()
 
 	if cancel != nil {
@@ -231,7 +217,6 @@ func (rs *remoteShare) start() {
 	}
 
 	share := strings.TrimRight(public, "/") + "/r/" + token + "/#control"
-	expires := time.Now().Add(remoteDefaultTTL)
 
 	rs.mu.Lock()
 	if rs.cfCmd != cmd {
@@ -240,17 +225,9 @@ func (rs *remoteShare) start() {
 	}
 	rs.publicURL = public
 	rs.shareURL = share
-	rs.expires = expires
 	rs.phase = "ready"
 	rs.errMsg = ""
 	rs.enabled = true
-	if rs.expireT != nil {
-		rs.expireT.Stop()
-	}
-	rs.expireT = time.AfterFunc(remoteDefaultTTL, func() {
-		log.Println("control remote share: expired, disabling")
-		rs.stop("idle")
-	})
 	rs.mu.Unlock()
 
 	go func() {
@@ -309,7 +286,7 @@ func (rs *remoteShare) startShareProxy(token string) error {
 			// None: some in-app browsers drop Lax cookies across redirects.
 			SameSite: http.SameSiteNoneMode,
 			Secure:   true,
-			MaxAge:   int(remoteDefaultTTL.Seconds()),
+			// No MaxAge/Expires: session cookie; share stays up until user disables.
 		})
 	}
 	authorized := func(r *http.Request) bool {
