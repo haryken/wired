@@ -293,6 +293,7 @@ function showBotSection(id) {
     if (id === 'bot-locale' && typeof loadWakeLocale === 'function') loadWakeLocale();
     if (id === 'bot-stim' && typeof stimStart === 'function') stimStart();
     else if (typeof stimStop === 'function') stimStop();
+    if (id === 'bot-fakecam' && typeof fakeCamLoad === 'function') fakeCamLoad();
     if (id === 'bot-stats' && typeof statsRefresh === 'function') statsRefresh();
     if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {

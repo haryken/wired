@@ -149,6 +149,10 @@
                 <span class="bot-ico" aria-hidden="true">😊</span>
                 <span data-i18n="bot.stim">Stim</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-fakecam')">
+                <span class="bot-ico" aria-hidden="true">📷</span>
+                <span data-i18n="bot.fakecam">Camera giả</span>
+            </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-petting')">
                 <span class="bot-ico" aria-hidden="true">✋</span>
                 <span data-i18n="bot.petting">Cảm biến trên lưng</span>
@@ -514,6 +518,27 @@
             <div class="stim-wrap">
                 <canvas id="stimCanvas" width="480" height="180" aria-label="stimulation chart"></canvas>
                 <div class="stim-value">Giá trị <small>(Value)</small>: <b id="stimValueLabel">—</b></div>
+            </div>
+        </div>
+
+        <div id="bot-fakecam" class="bot-section" style="display:none;">
+            <h3>📷 <span data-i18n="sec.fakecam">Camera giả</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="fakecam.help1">Máy hỏng camera không có khung hình thật — engine tự bơm ảnh phòng trống (không mặt / không cube) để robot vẫn quan sát và đi được.</li>
+                    <li data-i18n="fakecam.help2">Auto (mặc định) = chỉ giả khi camera hỏng. On = luôn giả (để test). Off = không bao giờ giả.</li>
+                    <li data-i18n="fakecam.help3">Máy camera khỏe: Auto không giả. Áp dụng ~0.5 giây, không cần restart.</li>
+                </ol>
+            </div>
+            <div id="fakeCamStatus" class="faces-status" style="display:none;"></div>
+            <div class="stim-ctrl">
+                <div class="stim-presets" role="group" aria-label="fake camera mode">
+                    <button type="button" onclick="fakeCamSet('auto')" data-i18n="fakecam.auto">Auto</button>
+                    <button type="button" onclick="fakeCamSet('on')" data-i18n="fakecam.on">On</button>
+                    <button type="button" onclick="fakeCamSet('off')" data-i18n="fakecam.off">Off</button>
+                </div>
+                <div class="stim-mode" id="fakeCamModeLabel">—</div>
             </div>
         </div>
 
@@ -1243,6 +1268,7 @@
     <script src="js/chess.js"></script>
     <script src="js/games_extra.js"></script>
     <script src="js/stim-stats.js"></script>
+    <script src="js/fake-camera.js"></script>
     <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
 </body>
