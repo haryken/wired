@@ -1,6 +1,13 @@
 let stimRunning = false;
 let stimTimer = null;
 let stimData = [];
+let stimHolding = false;
+let stimHeldValue = 0.5;
+let stimSliderBusy = false;
+
+function stimT(key, fallback) {
+    return (typeof t === 'function') ? t(key, fallback) : fallback;
+}
 
 function stimSetStatus(msg, isError) {
     const el = document.getElementById('stimStatus');
@@ -13,6 +20,84 @@ function stimSetStatus(msg, isError) {
     el.style.display = 'block';
     el.textContent = msg;
     el.className = 'faces-status ' + (isError ? 'error' : 'ok');
+}
+
+function stimSetSliderUI(value01) {
+    const v = Math.max(0, Math.min(1, Number(value01) || 0));
+    const slider = document.getElementById('stimSlider');
+    const label = document.getElementById('stimSliderLabel');
+    if (slider) slider.value = String(Math.round(v * 100));
+    if (label) label.textContent = v.toFixed(2);
+}
+
+function stimSetModeLabel() {
+    const el = document.getElementById('stimModeLabel');
+    if (!el) return;
+    if (stimHolding) {
+        el.textContent = `${stimT('stim.mode_hold', 'Hold')} ${stimHeldValue.toFixed(2)}`;
+    } else {
+        el.textContent = stimT('stim.mode_auto', 'Auto');
+    }
+}
+
+async function stimLoadHold() {
+    try {
+        const res = await fetch('/api/mods/StimStats/get_hold');
+        if (!res.ok) return;
+        const j = await res.json();
+        stimHolding = !!j.hold;
+        stimHeldValue = Number(j.value) || 0;
+        if (stimHolding) stimSetSliderUI(stimHeldValue);
+        stimSetModeLabel();
+    } catch (_) { /* ignore */ }
+}
+
+async function stimApplyHold(hold, value) {
+    const params = new URLSearchParams();
+    params.set('hold', hold ? 'true' : 'false');
+    if (hold) params.set('value', String(value));
+    const res = await fetch('/api/mods/StimStats/set_stim?' + params.toString(), { method: 'POST' });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.message || `http ${res.status}`);
+    stimHolding = hold;
+    if (hold) stimHeldValue = Number(value) || 0;
+    stimSetModeLabel();
+}
+
+function stimSliderInput(raw) {
+    const v = (Number(raw) || 0) / 100;
+    stimSetSliderUI(v);
+}
+
+async function stimSliderCommit(raw) {
+    if (stimSliderBusy) return;
+    stimSliderBusy = true;
+    const v = Math.max(0, Math.min(1, (Number(raw) || 0) / 100));
+    stimSetSliderUI(v);
+    try {
+        await stimApplyHold(true, v);
+        stimSetStatus(`${stimT('stim.mode_hold', 'Hold')} ${v.toFixed(2)}`, false);
+    } catch (e) {
+        stimSetStatus(e.message, true);
+    } finally {
+        stimSliderBusy = false;
+    }
+}
+
+async function stimPreset(kind) {
+    try {
+        if (kind === 'auto') {
+            await stimApplyHold(false, 0);
+            stimSetStatus(stimT('stim.mode_auto', 'Auto'), false);
+            return;
+        }
+        const v = Math.max(0, Math.min(1, Number(kind)));
+        stimSetSliderUI(v);
+        await stimApplyHold(true, v);
+        stimSetStatus(`${stimT('stim.mode_hold', 'Hold')} ${v.toFixed(2)}`, false);
+    } catch (e) {
+        stimSetStatus(e.message, true);
+    }
 }
 
 function stimDraw() {
@@ -67,6 +152,7 @@ async function stimStart() {
     stimData = [];
     stimDraw();
     stimSetStatus('Đang theo dõi stim… (Streaming stimulation…)', false);
+    stimLoadHold();
     try {
         const res = await fetch('/api/mods/StimStats/begin_stim', { method: 'POST' });
         const j = await res.json().catch(() => ({}));

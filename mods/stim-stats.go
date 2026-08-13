@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -72,6 +75,19 @@ func (m *StimStats) HTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(doc))
+	case "get_hold":
+		hold, val := readStimHold()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"hold":  hold,
+			"value": val,
+		})
+	case "set_stim":
+		if err := setStimHold(r); err != nil {
+			vars.HTTPError(w, r, err.Error())
+			return
+		}
+		vars.HTTPSuccess(w, r)
 	default:
 		vars.HTTPError(w, r, "404 not found")
 	}
@@ -123,13 +139,11 @@ func beginStimStream() error {
 			if info == nil {
 				continue
 			}
-			// WirePod: only trust values when velocity is present in the stringify dump.
-			s := fmt.Sprint(info)
-			if strings.Contains(s, "velocity") {
-				stimMu.Lock()
-				stimValue = float64(info.Value)
-				stimMu.Unlock()
-			}
+			// Proto3 omits zero floats from String(), so a held stim (velocity=0)
+			// never contains "velocity". Always take the value field.
+			stimMu.Lock()
+			stimValue = float64(info.GetValue())
+			stimMu.Unlock()
 		}
 	}()
 	return nil
@@ -171,4 +185,60 @@ func getLifetimeStats() (string, error) {
 		return "", fmt.Errorf("empty lifetime stats")
 	}
 	return resp.NamedJdocs[0].Doc.JsonDoc, nil
+}
+
+func stimHoldPath() string {
+	return filepath.Join(vars.GetModDir("StimStats"), "hold")
+}
+
+func readStimHold() (hold bool, value float64) {
+	raw, err := vars.ReadFile(stimHoldPath())
+	if err != nil {
+		return false, 0
+	}
+	s := strings.TrimSpace(strings.ToLower(raw))
+	if s == "" || s == "auto" || s == "off" || s == "false" || s == "none" {
+		return false, 0
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return false, 0
+	}
+	if v < 0 {
+		v = 0
+	}
+	if v > 1 {
+		v = 1
+	}
+	return true, v
+}
+
+func setStimHold(r *http.Request) error {
+	_ = r.ParseForm()
+	holdStr := strings.TrimSpace(strings.ToLower(r.FormValue("hold")))
+	if holdStr == "" {
+		holdStr = "true"
+	}
+	hold := holdStr != "false" && holdStr != "0" && holdStr != "off" && holdStr != "auto"
+	path := stimHoldPath()
+	if !hold {
+		_ = os.Remove(path)
+		// Keep an explicit auto marker so get_hold is unambiguous after a save.
+		return vars.SaveFile("auto\n", path)
+	}
+	valStr := strings.TrimSpace(r.FormValue("value"))
+	if valStr == "" {
+		valStr = "0.9"
+	}
+	v, err := strconv.ParseFloat(valStr, 64)
+	if err != nil {
+		return fmt.Errorf("invalid stim value")
+	}
+	if v < 0 {
+		v = 0
+	}
+	if v > 1 {
+		v = 1
+	}
+	return vars.SaveFile(strconv.FormatFloat(v, 'f', 3, 64)+"\n", path)
 }

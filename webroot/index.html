@@ -492,11 +492,25 @@
             <div class="help-box">
                 <strong data-i18n="common.howto">Cách dùng</strong>
                 <ol>
-                    <li>Mở mục này để xem mức kích thích realtime của Vector. <em>(Open to watch live stimulation.)</em></li>
-                    <li>Vuốt / chạm / chơi với robot — đường sẽ nhảy. <em>(Pet / play — the graph moves.)</em></li>
+                    <li data-i18n="stim.help1">Máy hỏng camera dễ đơ dưới sàn vì stim không tăng. Kéo thanh hoặc bấm High để robot tỉnh / đi nhiều hơn.</li>
+                    <li data-i18n="stim.help2">Auto = stim tự nhiên (sẽ tụt nếu không có mắt). Low / Med / High giữ mức cho đến khi bấm Auto.</li>
+                    <li data-i18n="stim.help3">Không thay camera: vẫn không nhận mặt / cube bằng mắt. Áp dụng ~0.5 giây, không cần restart.</li>
                 </ol>
             </div>
             <div id="stimStatus" class="faces-status" style="display:none;"></div>
+            <div class="stim-ctrl">
+                <div class="stim-presets" role="group" aria-label="stim presets">
+                    <button type="button" onclick="stimPreset('auto')" data-i18n="stim.auto">Auto</button>
+                    <button type="button" onclick="stimPreset(0.15)" data-i18n="stim.low">Low</button>
+                    <button type="button" onclick="stimPreset(0.5)" data-i18n="stim.med">Med</button>
+                    <button type="button" onclick="stimPreset(0.9)" data-i18n="stim.high">High</button>
+                </div>
+                <label class="stim-slider-row">
+                    <input type="range" id="stimSlider" min="0" max="100" value="50" oninput="stimSliderInput(this.value)" onchange="stimSliderCommit(this.value)">
+                    <span id="stimSliderLabel">0.50</span>
+                </label>
+                <div class="stim-mode" id="stimModeLabel">—</div>
+            </div>
             <div class="stim-wrap">
                 <canvas id="stimCanvas" width="480" height="180" aria-label="stimulation chart"></canvas>
                 <div class="stim-value">Giá trị <small>(Value)</small>: <b id="stimValueLabel">—</b></div>
