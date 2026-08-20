@@ -74,6 +74,7 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 		m.lastErr = ""
 		_ = os.Remove(wifiLastErrorFile)
 		_ = os.Remove(wifiForceAPFlag)
+		m.pulseWifiFace("ok", wifiFaceHold)
 		m.mu.Unlock()
 		hsSetHoldAP(false)
 		wifiLog("hotspot finish ok")
@@ -82,6 +83,7 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 	m.phase = wifiPhaseFail
 	m.lastErr = errMsg
 	_ = os.WriteFile(wifiLastErrorFile, []byte(errMsg+"\n"), 0644)
+	m.pulseWifiFace("fail", wifiFaceHold)
 	m.mu.Unlock()
 	wifiLog("hotspot restore AP failed=%q", ssid)
 	hsSetHoldAP(true)

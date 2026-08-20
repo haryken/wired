@@ -83,6 +83,7 @@ func (m *WifiSetup) finishJoinLAN(ok bool, prevConfig []byte, prevSSID, prevSvc,
 		m.phase = wifiPhaseOK
 		m.lastErr = ""
 		_ = os.Remove(wifiLastErrorFile)
+		m.pulseWifiFace("ok", wifiFaceHold)
 		m.mu.Unlock()
 		lanSetHoldAP(false)
 		wifiLog("lan finish ok")
@@ -91,6 +92,7 @@ func (m *WifiSetup) finishJoinLAN(ok bool, prevConfig []byte, prevSSID, prevSvc,
 	m.phase = wifiPhaseFail
 	m.lastErr = errMsg
 	_ = os.WriteFile(wifiLastErrorFile, []byte(errMsg+"\n"), 0644)
+	m.pulseWifiFace("fail", wifiFaceHold)
 	m.mu.Unlock()
 	wifiLog("lan finish fail %s", errMsg)
 	if prevSSID != "" && lanJoined(prevSSID) {

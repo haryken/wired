@@ -37,12 +37,14 @@ const (
 	wifiLastErrorFile      = "/run/wireos-wifi-last-error"
 	wifiForceAPFlag        = "/run/wireos-force-ap"
 	wifiBootWaitFlag       = "/run/wireos-wifi-boot-wait"
+	wifiFaceFile           = "/run/wireos-wifi-face"
 	wifiTraceFile          = "/run/wireos-wifi-trace.log"
 	wifiJoinTimeout        = 28 * time.Second
 	wifiLanTryTimeout      = 22 * time.Second
 	wifiHotspotJoinTimeout = 40 * time.Second
 	wifiAckHold            = 1200 * time.Millisecond
 	wifiSavedGrace         = 90 * time.Second
+	wifiFaceHold           = 8 * time.Second
 )
 
 type wifiPhase string
@@ -73,6 +75,7 @@ type WifiSetup struct {
 	prevSSID    string
 	prevSvc     string
 	uiSource    string
+	faceSeq     int
 }
 
 func NewWifiSetup() *WifiSetup {
@@ -91,6 +94,7 @@ func (m *WifiSetup) Load() error {
 		m.phase = wifiPhaseFail
 		m.lastErr = strings.TrimSpace(string(b))
 	}
+	_ = os.Remove(wifiFaceFile)
 	go func() {
 		time.Sleep(2 * time.Second)
 		clearStaleWifiJoinFlags()
@@ -357,6 +361,7 @@ func (m *WifiSetup) acceptConnect(ssid, pass string, hidden bool, fromHotspot bo
 	m.attemptSSID = ssid
 	_ = os.Remove(wifiLastErrorFile)
 	_ = writeWifiPending(ssid, hidden)
+	m.pulseWifiFace("trying", 0)
 	creds := wifiCreds{SSID: ssid, Pass: pass, Hidden: hidden}
 	prevSSID := m.prevSSID
 	prevSvc := m.prevSvc
@@ -393,6 +398,33 @@ func setWifiHoldAP(on bool) {
 		return
 	}
 	_ = os.Remove(wifiHoldAPFlag)
+}
+
+func setWifiFaceState(state string) {
+	if state == "" {
+		_ = os.Remove(wifiFaceFile)
+		return
+	}
+	_ = os.WriteFile(wifiFaceFile, []byte(state+"\n"), 0644)
+}
+
+// pulseWifiFace writes /run/wireos-wifi-face for vic-anim overlay (trying/ok/fail).
+// hold==0 keeps state until the next call; otherwise clears after hold.
+func (m *WifiSetup) pulseWifiFace(state string, hold time.Duration) {
+	m.faceSeq++
+	seq := m.faceSeq
+	setWifiFaceState(state)
+	if hold <= 0 {
+		return
+	}
+	go func() {
+		time.Sleep(hold)
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if m.faceSeq == seq {
+			setWifiFaceState("")
+		}
+	}()
 }
 
 func uiSourceName(fromHotspot bool) string {
