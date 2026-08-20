@@ -9,6 +9,7 @@ import (
 )
 
 var EnabledMods []vars.Modification = []vars.Modification{
+	mods.NewWifiSetup(),
 	mods.NewFreqChange(),
 	mods.NewWakeEngine(),
 	mods.NewWakeWordPV(),
@@ -68,14 +69,16 @@ func startweb() {
 		fs.ServeHTTP(w, r)
 	})
 
-	startHTTPS(mux)
+	handler := mods.WrapCaptive(mux)
+
+	startHTTPS(handler)
 
 	go func() {
-		if err := http.ListenAndServe(":80", nil); err != nil {
+		if err := http.ListenAndServe(":80", handler); err != nil {
 			fmt.Println("wired listen :80 failed:", err)
 		}
 	}()
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", handler); err != nil {
 		fmt.Println("wired listen :8080 failed:", err)
 	}
 }

@@ -69,6 +69,7 @@
             <span class="nav-select-label" data-i18n="nav.menu">Menu</span>
             <select id="navSelect">
                 <option value="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</option>
+                <option value="#wifi" data-i18n="nav.wifi">WiFi</option>
                 <option value="#aud" data-i18n="nav.aud">Cập nhật OS</option>
                 <option value="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</option>
                 <option value="#voice" data-i18n="nav.voice">Lệnh thoại</option>
@@ -81,6 +82,7 @@
         </label>
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-target="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</button>
+            <button type="button" data-target="#wifi" data-i18n="nav.wifi">WiFi</button>
             <button type="button" data-target="#aud" data-i18n="nav.aud">Cập nhật OS</button>
             <button type="button" data-target="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice" data-i18n="nav.voice">Lệnh thoại</button>
@@ -606,6 +608,43 @@
             </div>
         </div>
     </div>
+
+    <div id="wifi" class="container mod-section tab-content">
+        <h2 data-i18n="wifi.h3">WiFi nhà</h2>
+        <div class="help-box">
+            <strong data-i18n="common.howto">Cách dùng</strong>
+            <ol>
+                <li data-i18n="wifi.help1">Bấm Quét mạng → chọn WiFi → nhập mật khẩu → Áp dụng (robot rớt mạng vài chục giây).</li>
+                <li data-i18n="wifi.help2">Mất mạng: robot phát hotspot mở (tên Vector, không mật khẩu) → bấm Kết nối → http://10.3.141.1/wifi</li>
+                <li data-i18n="wifi.help3">Chỉ WiFi 2.4 GHz. Mật khẩu nhà ≥ 8 ký tự (mạng mở thì để trống).</li>
+            </ol>
+        </div>
+
+        <div class="xz-config-block">
+            <div class="xz-config-card wifi-card">
+                <div id="wifiStatusLine" class="xz-status wifi-status"></div>
+                <p id="wifiScanHint" class="wifi-hint" data-i18n="wifi.pick">Chọn mạng rồi nhập mật khẩu.</p>
+                <div class="xz-config-actions wifi-actions">
+                    <button type="button" id="wifiScanBtn" class="wifi-btn-primary" onclick="wifiScan()" data-i18n="wifi.scan">Quét mạng</button>
+                </div>
+                <div id="wifiNetworkList" class="wifi-net-list"></div>
+                <div class="xz-config-fields">
+                    <label data-i18n="wifi.ssid">Tên WiFi nhà (hoặc gõ tay nếu ẩn):</label>
+                    <input type="text" id="wifiSsid" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="wifi.ssid_ph">
+                    <label data-i18n="wifi.pass">Mật khẩu WiFi nhà:</label>
+                    <input type="password" id="wifiPass" minlength="8">
+                </div>
+                <div class="xz-config-actions wifi-actions">
+                    <button type="button" class="wifi-btn-primary" onclick="wifiApply()" data-i18n="wifi.apply">Áp dụng mạng</button>
+                </div>
+                <details class="wifi-advanced">
+                    <summary data-i18n="wifi.details">Chi tiết kỹ thuật</summary>
+                    <pre id="wifiLog" class="ota-log">Trạng thái WiFi hiện ở đây.</pre>
+                </details>
+            </div>
+        </div>
+    </div>
+
 
     <div id="aud" class="container mod-section tab-content">
         <h2>🔄 <span data-i18n="aud.h2">Cập nhật OS</span></h2>
@@ -1251,6 +1290,7 @@
     </div>
     <script src="js/share-auth.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/wifi-setup.js"></script>
     <script src="js/main.js"></script>
     <script src="js/battery.js"></script>
     <script src="js/freq.js"></script>

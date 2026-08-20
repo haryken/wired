@@ -26,6 +26,9 @@ function activateSection(target) {
     if (target === '#freetime' && typeof ftOnShow === 'function') {
         ftOnShow();
     }
+    if (target === '#wifi' && typeof wifiScan === 'function') {
+        wifiScan();
+    }
 }
 
 const tabs = document.querySelectorAll('.tabs button');
@@ -167,7 +170,15 @@ if (legacyBotHash[location.hash]) {
 } else if (location.hash && document.querySelector(location.hash)) {
     activateSection(location.hash);
 } else {
-    activateSection('#botsettings');
+    const wifiPath = (location.pathname || '').replace(/\/+$/, '');
+    if (wifiPath === '/wifi' || location.hostname === '10.3.141.1') {
+        activateSection('#wifi');
+    } else {
+        activateSection('#botsettings');
+        fetch('/api/mods/WifiSetup/status').then(r => r.json()).then(j => {
+            if (j && j.ap) activateSection('#wifi');
+        }).catch(() => {});
+    }
 }
 
 function hide(id) { document.getElementById(id).style.display = 'none'; }
