@@ -14,6 +14,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/digital-dream-labs/hugh v0.0.0-20210107135018-4ade8d79a71c // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect

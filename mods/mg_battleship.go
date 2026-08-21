@@ -418,7 +418,7 @@ func NewBattleship() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getBattleship().playUCI(u) },
 		func() []string { return getBattleship().legalUCIs() },
 		func() (string, string) {
-			if getChessCommentMode() == chessModeGoogleVI {
+			if chessPreferVIText() {
 				return "Ván battleship mới. Bắn vào bàn đối phương.", "Battleship. Ván mới."
 			}
 			return "New battleship game. Fire at the enemy board.", "Battleship. Ván mới."

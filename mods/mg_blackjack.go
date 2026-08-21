@@ -81,7 +81,7 @@ func bjSpeakRank(card string) (vi, en string) {
 
 func bjSpeakCardMode(card string) string {
 	vi, en := bjSpeakRank(card)
-	if getChessCommentMode() == chessModeGoogleVI {
+	if chessPreferVIText() {
 		return vi
 	}
 	return en

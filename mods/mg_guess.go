@@ -245,7 +245,7 @@ func (g *guessGame) snapshotLocked() map[string]interface{} {
 	}
 	dVI, dEN := guessDiffLabel(g.difficulty)
 	diffLabel := dEN
-	if getChessCommentMode() == chessModeGoogleVI {
+	if chessPreferVIText() {
 		diffLabel = dVI
 	}
 	extra := map[string]interface{}{

@@ -51,6 +51,7 @@ func (m *Chess) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["commentMode"] = getChessCommentMode()
 		st["xiaozhiAvailable"] = chessXiaozhiAvailable()
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
+		st["googleTTSLang"] = chessGoogleTTSLang()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
 	case "comment":
@@ -64,16 +65,21 @@ func (m *Chess) HTTP(w http.ResponseWriter, r *http.Request) {
 			"commentMode":       getChessCommentMode(),
 			"xiaozhiAvailable":  chessXiaozhiAvailable(),
 			"googleVIAvailable": chessGoogleVIAvailable(),
+			"googleTTSLang":     chessGoogleTTSLang(),
 			"difficulty":        g.getDifficulty(),
 		})
 	case "comment_mode":
 		if v := r.FormValue("mode"); v != "" {
 			setChessCommentMode(v)
 		}
+		if v := r.FormValue("lang"); v != "" {
+			setChessGoogleTTSLang(v)
+		}
 		writeJSON(w, 200, map[string]interface{}{
 			"commentMode":       getChessCommentMode(),
 			"xiaozhiAvailable":  chessXiaozhiAvailable(),
 			"googleVIAvailable": chessGoogleVIAvailable(),
+			"googleTTSLang":     chessGoogleTTSLang(),
 			"comment":           chessCommentEnabled(),
 			"difficulty":        g.getDifficulty(),
 		})
@@ -101,7 +107,7 @@ func (m *Chess) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
-		if getChessCommentMode() == chessModeGoogleVI {
+		if chessPreferVIText() {
 			queueChessSpeak("Ván mới. Bạn cầm trắng. Đến lượt bạn.", getChess().summaryText())
 		} else {
 			queueChessSpeak("New game. You are white. Your move.", getChess().summaryText())

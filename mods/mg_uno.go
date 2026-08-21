@@ -134,7 +134,7 @@ func unoSpeakCard(card, chosenColor string) (vi, en string) {
 
 func unoSpeakCardMode(card, chosenColor string) string {
 	vi, en := unoSpeakCard(card, chosenColor)
-	if getChessCommentMode() == chessModeGoogleVI {
+	if chessPreferVIText() {
 		return vi
 	}
 	return en

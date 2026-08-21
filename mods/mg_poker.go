@@ -253,7 +253,7 @@ func (g *pokerGame) refreshEvalLocked() {
 	if len(g.playerHand) == 5 {
 		cat, key, vi, en, _ := pokerEvaluate5(g.playerHand)
 		g.playerCat, g.playerKey = cat, key
-		if getChessCommentMode() == chessModeGoogleVI {
+		if chessPreferVIText() {
 			g.playerName = vi
 		} else {
 			g.playerName = en
@@ -262,7 +262,7 @@ func (g *pokerGame) refreshEvalLocked() {
 	if len(g.botHand) == 5 {
 		cat, key, vi, en, _ := pokerEvaluate5(g.botHand)
 		g.botCat, g.botKey = cat, key
-		if getChessCommentMode() == chessModeGoogleVI {
+		if chessPreferVIText() {
 			g.botName = vi
 		} else {
 			g.botName = en

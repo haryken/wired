@@ -390,7 +390,7 @@ func NewSudoku() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getSudoku().playUCI(u) },
 		func() []string { return getSudoku().legalUCIs() },
 		func() (string, string) {
-			if getChessCommentMode() == chessModeGoogleVI {
+			if chessPreferVIText() {
 				return "Ván sudoku mới. Điền số từ 1 đến 9.", "Sudoku. Ván mới."
 			}
 			return "New sudoku puzzle. Fill in digits 1 to 9.", "Sudoku. Ván mới."

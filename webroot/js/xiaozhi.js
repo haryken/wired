@@ -80,14 +80,6 @@ function xzApplyCfg(cfg) {
     if (convCont) convCont.checked = (conv === 'continuous');
     if (convSingle) convSingle.checked = (conv === 'single');
 
-    const gviOn = document.getElementById('xzGameTtsOn');
-    const gviOff = document.getElementById('xzGameTtsOff');
-    if (gviOn && gviOff) {
-        const on = !!cfg.game_google_tts_vi;
-        gviOn.checked = on;
-        gviOff.checked = !on;
-    }
-
     const preset = (cfg.identity_mode === 'vi_pool') ? 'vi_pool'
         : (cfg.identity_mode === 'custom') ? 'custom'
         : (cfg.device_id ? 'custom' : 'vi_pool');
@@ -96,7 +88,7 @@ function xzApplyCfg(cfg) {
     const using = document.getElementById('xzPoolUsing');
     if (using && preset === 'vi_pool') {
         using.textContent = (cfg.device_id || cfg.client_id)
-            ? ('Đang dùng: MAC ' + (cfg.device_id || '—') + ' · client ' + (cfg.client_id || '—'))
+            ? ('MAC đang dùng: ' + (cfg.device_id || '—'))
             : '';
     }
 
@@ -137,7 +129,7 @@ async function xzSaveConfig() {
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: '20',
         identity_mode: xzSelectedPreset(),
-        game_google_tts_vi: (document.getElementById('xzGameTtsOn') && document.getElementById('xzGameTtsOn').checked) ? 'true' : 'false',
+        game_google_tts_vi: 'true',
     });
     const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
     const j = await resp.json();
@@ -223,7 +215,13 @@ async function xzRenewPool() {
             return;
         }
         if (j.config) xzApplyCfg(j.config);
-        xzSetPoolStatus(typeof t === 'function' ? t('xz.pool_renewed', 'Đã làm mới. Đánh thức robot (Hey Vector).') : 'Đã làm mới. Đánh thức robot (Hey Vector).', false);
+        const mac = (j.config && j.config.device_id) || '';
+        xzSetPoolStatus(
+            mac
+                ? ((typeof t === 'function' ? t('xz.pool_renewed_mac', 'Đã làm mới. MAC đang dùng: ') : 'Đã làm mới. MAC đang dùng: ') + mac)
+                : (typeof t === 'function' ? t('xz.pool_renewed', 'Đã làm mới. Đánh thức robot (Hey Vector).') : 'Đã làm mới. Đánh thức robot (Hey Vector).'),
+            false
+        );
     } catch (e) {
         xzSetPoolStatus('Lỗi: ' + e.message, true);
     } finally {
@@ -272,28 +270,6 @@ async function xzSetListenMode(mode) {
 
 function xzOnModeRadio() {
     xzSetListenMode(xzSelectedMode());
-}
-
-async function xzSaveGameGoogleVi() {
-    const onEl = document.getElementById('xzGameTtsOn');
-    if (!onEl) return;
-    const on = !!onEl.checked;
-    try {
-        const params = new URLSearchParams({ enabled: on ? 'true' : 'false' });
-        const resp = await fetch('/api/mods/Xiaozhi/set_game_google_tts_vi?' + params.toString(), { method: 'POST' });
-        const j = await resp.json();
-        if (j.status !== 'success') {
-            xzSetElStatus('xzGameTtsStatus', 'Lỗi lưu: ' + (j.message || 'unknown'), true);
-            await xzLoad();
-            return;
-        }
-        if (j.config) xzApplyCfg(j.config);
-        xzSetElStatus('xzGameTtsStatus', on
-            ? 'Đã bật Google VI — chọn trong tab Game → chế độ bình luận.'
-            : 'Đã tắt Google VI.', false);
-    } catch (e) {
-        xzSetElStatus('xzGameTtsStatus', 'Lỗi: ' + e.message, true);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {

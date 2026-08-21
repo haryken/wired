@@ -77,7 +77,7 @@ func (c *miniCommon) baseSnap(game, uiMode string, extra map[string]interface{})
 }
 
 func viOrEN(vi, en string) (string, string) {
-	if getChessCommentMode() == chessModeGoogleVI {
+	if chessPreferVIText() {
 		return vi, vi
 	}
 	return en, en

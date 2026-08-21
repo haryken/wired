@@ -80,7 +80,13 @@ function photosCloseLightbox(ev) {
 }
 
 async function photosDelete(id) {
-    if (!confirm(`Xóa ảnh #${id}? (Delete photo?)`)) return;
+    const ok = await wireosConfirm({
+        title: 'Xóa ảnh',
+        message: 'Xóa ảnh #' + id + '?',
+        ok: 'Xóa',
+        cancel: 'Hủy',
+    });
+    if (!ok) return;
     try {
         const res = await fetch(`/api/mods/Photos/delete?id=${id}`);
         const txt = await res.text();

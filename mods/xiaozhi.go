@@ -32,16 +32,17 @@ type XiaozhiCfg struct {
 	ConversationMode      string `json:"conversation_mode"`
 	IdleTimeoutSec        int    `json:"idle_timeout_sec"`
 	TTSMode               string `json:"tts_mode"`
-	// GameGoogleTTSVI enables "SayText Google (VI)" game comment mode for both
-	// Vosk and Xiaozhi listen modes (set on Xiaozhi tab).
+	// GameGoogleTTSVI enables Google TTS game comments (always on in UI; kept for compat).
 	GameGoogleTTSVI bool `json:"game_google_tts_vi"`
+	// GameGoogleTTSLang is Google Translate TTS language (vi, en, zh-CN, …). Default vi.
+	GameGoogleTTSLang string `json:"game_google_tts_lang,omitempty"`
 	// IdentityMode: "vi_pool" = shared Vietnamese preset; "custom" = xiaozhi.me pair.
 	IdentityMode string `json:"identity_mode,omitempty"`
 }
 
 func defaultXiaozhiCfg() XiaozhiCfg {
 	return XiaozhiCfg{
-		Enabled:               false,
+		Enabled:               true,
 		OTABaseURL:            "https://api.tenclass.net/",
 		Endpoint:              "wss://api.tenclass.net/xiaozhi/v1/",
 		ProtocolVersion:       1,
@@ -49,6 +50,9 @@ func defaultXiaozhiCfg() XiaozhiCfg {
 		ConversationMode:      "continuous",
 		IdleTimeoutSec:        20,
 		TTSMode:               "xiaozhi",
+		GameGoogleTTSVI:       true,
+		GameGoogleTTSLang:     "vi",
+		IdentityMode:          xiaozhiIdentityViPool,
 	}
 }
 
@@ -71,6 +75,11 @@ func ensureXiaozhiDefaults(cfg *XiaozhiCfg) {
 	}
 	if cfg.ProtocolVersion == 0 {
 		cfg.ProtocolVersion = 1
+	}
+	// Game Google TTS is always available; language picked in Games lobby.
+	cfg.GameGoogleTTSVI = true
+	if strings.TrimSpace(cfg.GameGoogleTTSLang) == "" {
+		cfg.GameGoogleTTSLang = "vi"
 	}
 }
 
@@ -524,17 +533,34 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case vars.IsEndpoint(r, "set_game_google_tts_vi"):
+		// Kept for old clients — Google game TTS is always on.
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
-		v := strings.TrimSpace(r.FormValue("enabled"))
-		if v == "" {
-			v = strings.TrimSpace(r.FormValue("game_google_tts_vi"))
+		cfg.GameGoogleTTSVI = true
+		if lang := strings.TrimSpace(r.FormValue("lang")); lang != "" {
+			cfg.GameGoogleTTSLang = normalizeGoogleTTSLang(lang)
 		}
-		if v == "" {
-			vars.HTTPError(w, r, "enabled required")
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
-		cfg.GameGoogleTTSVI = v == "true" || v == "1" || v == "on"
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	case vars.IsEndpoint(r, "set_game_google_tts_lang"):
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		lang := strings.TrimSpace(r.FormValue("lang"))
+		if lang == "" {
+			vars.HTTPError(w, r, "lang required")
+			return
+		}
+		cfg.GameGoogleTTSVI = true
+		cfg.GameGoogleTTSLang = normalizeGoogleTTSLang(lang)
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

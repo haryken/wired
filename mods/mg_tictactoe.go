@@ -400,7 +400,7 @@ func NewTicTacToe() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getTTT().playUCI(u) },
 		func() []string { return getTTT().legalUCIs() },
 		func() (string, string) {
-			if getChessCommentMode() == chessModeGoogleVI {
+			if chessPreferVIText() {
 				return "Ván tic tac toe mới. Bạn cầm X, đi trước. Đến lượt bạn.", "Tic tac toe. Ván mới."
 			}
 			return "New tic-tac-toe game. You are X and go first. Your move.", "Tic tac toe. Ván mới."

@@ -1,0 +1,184 @@
+#!/bin/sh
+# Open setup AP (no password) — ConnMan tethering cannot do open WiFi.
+# ConnMan/wpa_supplicant must be stopped first or AP never broadcasts.
+# Usage: vic-setup-ap on [ssid] | off | status
+set -eu
+IFACE="${WIREOS_WLAN:-wlan0}"
+AP_IP="10.3.141.1"
+CONF="/run/wireos-ap.conf"
+PID="/run/wireos-ap-wpa.pid"
+DHCP_PID="/run/wireos-ap-dhcp.pid"
+DHCP_CONF="/run/wireos-ap-dhcp.conf"
+FLAG="/run/wireos-setup-ap"
+LOG="/run/vic-setup-ap.log"
+
+log() {
+  echo "vic-setup-ap: $*" | tee -a "$LOG" > /dev/kmsg 2>/dev/null || echo "vic-setup-ap: $*"
+}
+
+ssid_default() {
+  n="$(getprop anki.robot.name 2>/dev/null || true)"
+  [ -n "$n" ] || n="Vector"
+  echo "$n"
+}
+
+connman_wifi_powered() {
+  busctl --system call net.connman /net/connman/technology/wifi \
+    net.connman.Technology SetProperty sv Powered b "$1" >/dev/null 2>&1 || true
+}
+
+connman_tether_off() {
+  busctl --system call net.connman /net/connman/technology/wifi \
+    net.connman.Technology SetProperty sv Tethering b false >/dev/null 2>&1 || true
+}
+
+stop_ap() {
+  if [ -f "$PID" ]; then
+    kill "$(cat "$PID")" 2>/dev/null || true
+    rm -f "$PID"
+  fi
+  if [ -f "$DHCP_PID" ]; then
+    kill "$(cat "$DHCP_PID")" 2>/dev/null || true
+    rm -f "$DHCP_PID"
+  fi
+  killall wpa_supplicant 2>/dev/null || true
+  ip addr del "$AP_IP/24" dev "$IFACE" 2>/dev/null || true
+  rm -f "$FLAG" "$CONF" "$DHCP_CONF"
+}
+
+start_dhcp() {
+  cat >"$DHCP_CONF" <<EOF
+start 10.3.141.50
+end 10.3.141.150
+interface $IFACE
+option subnet 255.255.255.0
+option router $AP_IP
+option dns $AP_IP
+lease 43200
+EOF
+  if command -v udhcpd >/dev/null 2>&1; then
+    udhcpd -f "$DHCP_CONF" >/dev/null 2>&1 &
+    echo $! >"$DHCP_PID"
+    return 0
+  fi
+  if command -v busybox >/dev/null 2>&1 && busybox --list 2>/dev/null | grep -q udhcpd; then
+    busybox udhcpd -f "$DHCP_CONF" >/dev/null 2>&1 &
+    echo $! >"$DHCP_PID"
+    return 0
+  fi
+  if command -v dnsmasq >/dev/null 2>&1; then
+    dnsmasq --interface="$IFACE" --bind-interfaces \
+      --dhcp-range=10.3.141.50,10.3.141.150,12h \
+      --address=/#/$AP_IP --no-resolv --port=53 \
+      --pid-file="$DHCP_PID" >/dev/null 2>&1 || true
+    return 0
+  fi
+  log "no udhcpd/dnsmasq — phone may need static IP $AP_IP"
+}
+
+cmd="${1:-status}"
+case "$cmd" in
+  status)
+    if [ -f "$FLAG" ]; then
+      echo "on $(tr '\n' ' ' <"$FLAG")"
+      exit 0
+    fi
+    echo off
+    exit 1
+    ;;
+  off)
+    stop_ap
+    systemctl start wpa_supplicant >/dev/null 2>&1 || true
+    systemctl start connman >/dev/null 2>&1 || true
+    connman_wifi_powered true
+    echo "vic-setup-ap off"
+    ;;
+  on)
+    SSID="${2:-$(ssid_default)}"
+    SSID="$(printf '%s' "$SSID" | tr -d '\n\r\"')"
+    [ -n "$SSID" ] || SSID="Vector"
+    : >"$LOG"
+    log "starting open AP ssid=$SSID"
+
+    # Scan + cache BEFORE killing client radio.
+    CACHE_DATA="/data/lib/connman/wireos-wifi-scan.json"
+    CACHE_RUN="/run/wireos-wifi-scan.json"
+    mkdir -p /data/lib/connman /run
+    connman_wifi_powered true
+    connmanctl scan wifi >/dev/null 2>&1 || \
+      busctl --system call net.connman /net/connman/technology/wifi \
+        net.connman.Technology Scan >/dev/null 2>&1 || true
+    sleep 2
+    TMP_JSON="$(mktemp /run/wireos-scan.XXXXXX 2>/dev/null || echo /run/wireos-scan.tmp)"
+    connmanctl services 2>/dev/null | awk '
+      BEGIN { print "["; n=0 }
+      {
+        svc=$NF
+        if (svc !~ /^wifi_/) next
+        line=$0
+        sub(/^[\* ]+[A-Za-z]*[ ]*/, "", line)
+        sub(/[ \t]+wifi_[^ \t]+$/, "", line)
+        gsub(/^[ \t]+|[ \t]+$/, "", line)
+        if (line == "" || line ~ /^wifi_/) next
+        gsub(/\\/, "\\\\", line); gsub(/"/, "\\\"", line)
+        secure = (svc ~ /_none$/) ? "false" : "true"
+        if (n++) printf ","
+        printf "{\"ssid\":\"%s\",\"signal\":60,\"secure\":%s}", line, secure
+      }
+      END { print "]" }
+    ' >"$TMP_JSON" 2>/dev/null || echo '[]' >"$TMP_JSON"
+    cp -f "$TMP_JSON" "$CACHE_DATA" 2>/dev/null || true
+    cp -f "$TMP_JSON" "$CACHE_RUN" 2>/dev/null || true
+    rm -f "$TMP_JSON"
+    log "prescan cached $(wc -c <"$CACHE_DATA" 2>/dev/null || echo 0) bytes"
+
+    stop_ap
+    connman_tether_off
+    connman_wifi_powered false
+    # ConnMan owns wlan0; a second wpa_supplicant never broadcasts.
+    systemctl stop connman >/dev/null 2>&1 || true
+    systemctl stop wpa_supplicant >/dev/null 2>&1 || true
+    sleep 1
+    killall wpa_supplicant 2>/dev/null || true
+    sleep 1
+    ip link set "$IFACE" down 2>/dev/null || true
+    ip addr flush dev "$IFACE" 2>/dev/null || true
+    ip link set "$IFACE" up
+    ip addr add "$AP_IP/24" broadcast 10.3.141.255 dev "$IFACE" 2>/dev/null || true
+    cat >"$CONF" <<EOF
+ctrl_interface=/var/run/wpa_supplicant
+update_config=0
+ap_scan=2
+network={
+	ssid="$SSID"
+	mode=2
+	frequency=2437
+	key_mgmt=NONE
+}
+EOF
+    rm -rf /var/run/wpa_supplicant 2>/dev/null || true
+    mkdir -p /var/run/wpa_supplicant
+    ok=0
+    if wpa_supplicant -B -D nl80211 -i "$IFACE" -c "$CONF" -P "$PID" >>"$LOG" 2>&1; then
+      ok=1
+    elif wpa_supplicant -B -i "$IFACE" -c "$CONF" -P "$PID" >>"$LOG" 2>&1; then
+      ok=1
+    fi
+    if [ "$ok" -ne 1 ]; then
+      log "wpa_supplicant AP failed"
+      systemctl start wpa_supplicant >/dev/null 2>&1 || true
+      systemctl start connman >/dev/null 2>&1 || true
+      sleep 1
+      connman_wifi_powered true
+      exit 1
+    fi
+    start_dhcp
+    printf '%s\nopen\n' "$SSID" >"$FLAG"
+    log "on ssid=$SSID ip=$AP_IP (open, no password)"
+    echo "vic-setup-ap on ssid=$SSID ip=$AP_IP (open)"
+    ;;
+  *)
+    echo "usage: vic-setup-ap on [ssid] | off | status" >&2
+    exit 2
+    ;;
+esac

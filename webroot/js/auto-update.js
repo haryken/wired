@@ -98,9 +98,12 @@ async function startOtaFromURL() {
     }
     markOtaUrlField(true);
 
-    const ok = confirm(
-        'Bắt đầu cập nhật OS từ URL này?\nRobot sẽ tắt mắt trong lúc tải/cài, rồi có thể tự khởi động lại.\n\nStart OS update from this URL?\nEyes will go dark; robot may reboot when done.\n\n' + v.url
-    );
+    const ok = await wireosConfirm({
+        title: 'Cập nhật OS',
+        message: 'Bắt đầu cập nhật OS từ URL này?\nRobot sẽ tắt mắt trong lúc tải/cài, rồi có thể tự khởi động lại.\n\n' + v.url,
+        ok: 'Bắt đầu cập nhật',
+        cancel: 'Hủy',
+    });
     if (!ok) return;
 
     const box = document.getElementById('otaLogBox');

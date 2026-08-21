@@ -17,7 +17,7 @@
         <div class="header-brand-row">
             <div class="brand">
                 <img class="brand-logo" src="vector-logo.png" width="44" height="44" alt="Vector" decoding="async">
-                <div id="headerBattery" class="hbatt" aria-live="polite" title="Pin">
+                <div id="headerBattery" class="hbatt" aria-live="polite" title="Pin" hidden>
                     <span class="hbatt-tip"></span>
                     <div class="hbatt-shell">
                         <span class="hbatt-bolt" aria-hidden="true">⚡</span>
@@ -69,6 +69,7 @@
             <span class="nav-select-label" data-i18n="nav.menu">Menu</span>
             <select id="navSelect">
                 <option value="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</option>
+                <option value="#wifi" data-i18n="nav.wifi">WiFi</option>
                 <option value="#aud" data-i18n="nav.aud">Cập nhật OS</option>
                 <option value="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</option>
                 <option value="#voice" data-i18n="nav.voice">Lệnh thoại</option>
@@ -81,6 +82,7 @@
         </label>
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-target="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</button>
+            <button type="button" data-target="#wifi" data-i18n="nav.wifi">WiFi</button>
             <button type="button" data-target="#aud" data-i18n="nav.aud">Cập nhật OS</button>
             <button type="button" data-target="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice" data-i18n="nav.voice">Lệnh thoại</button>
@@ -143,7 +145,11 @@
             </button>
             <button type="button" class="bot-nav-item" id="navLocale" onclick="showBotSection('bot-locale')">
                 <span class="bot-ico" aria-hidden="true">🗣</span>
-                <span data-i18n="bot.thf">Giọng THF</span>
+                <span data-i18n="bot.thf">Độ nhạy từ đánh thức</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-battery')">
+                <span class="bot-ico" aria-hidden="true">🔋</span>
+                <span data-i18n="bot.battery">Hiện pin</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
                 <span class="bot-ico" aria-hidden="true">😊</span>
@@ -396,7 +402,7 @@
                 <strong data-i18n="wake.choose">Chọn engine</strong>
                 <ul>
                     <li><b>Picovoice</b> — mở khóa <b>Từ đánh thức</b> + <b>Độ nhạy</b>.</li>
-                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Giọng THF</b> (model giọng / độ nhạy wake).</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Độ nhạy từ đánh thức</b> (model / độ nhạy wake).</li>
                 </ul>
                 <p class="help-warn">Chọn radio rồi bấm <b>Lưu engine + restart</b> để áp dụng. Tile khóa/mở phía trên chỉ đổi sau khi lưu (đổi radio chưa lưu không ảnh hưởng).</p>
             </div>
@@ -409,8 +415,8 @@
                 <button type="button" onclick="saveWakeEngine()" data-i18n="wake.save">Lưu engine + restart</button>
             </div>
             <div id="wakeThfHint" class="help-box" style="display:none;">
-                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Giọng THF</b> (không phải đổi ngôn ngữ robot).</p>
-                <p><em>Use Giọng THF for accent/wake sensitivity — not UI language.</em></p>
+                <p>THF đang bật — chỉnh model / độ nhạy wake ở mục <b>Độ nhạy từ đánh thức</b> (không phải đổi ngôn ngữ robot).</p>
+                <p><em>Use wake-word sensitivity for accent/wake — not UI language.</em></p>
             </div>
         </div>
 
@@ -440,7 +446,7 @@
         </div>
 
         <div id="bot-sens" class="bot-section" style="display:none;">
-            <h3>📶 <span data-i18n="sec.sens">Độ nhạy từ đánh thức</span></h3>
+            <h3>📶 <span data-i18n="sec.sens">Độ nhạy</span></h3>
             <div id="sensEngineLock" class="help-box" style="display:none;">
                 <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
             </div>
@@ -466,25 +472,41 @@
         </div>
 
         <div id="bot-locale" class="bot-section" style="display:none;">
-            <h3>🗣 <span data-i18n="sec.thf">Giọng THF</span></h3>
+            <h3>🗣 <span data-i18n="sec.thf">Độ nhạy từ đánh thức</span></h3>
             <div id="localeEngineLock" class="help-box" style="display:none;">
                 <p class="help-warn">Chỉ dùng với engine <b>Hey Vector (THF)</b>. Đang Picovoice — mục này bị khóa.</p>
             </div>
             <div id="localeControls">
             <div class="help-box">
-                <p><b>Không phải đổi ngôn ngữ.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
-                <p>★ <b>en-AU</b> thường <b>nhạy nhất với người Việt</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
-                <p><em>Accent profile for wake detection — not robot language. ★ en-AU recommended for Vietnamese speakers.</em></p>
+                <p><b>Không phải đổi ngôn ngữ robot.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
+                <p>★ <b>Tiếng Việt (người Việt)</b> thường <b>nhạy nhất</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
+                <p><em>Wake-word sensitivity profile — not robot language. ★ Vietnamese speakers: recommended.</em></p>
             </div>
             <div id="wakeLocaleStatus"></div>
             <div class="bot-opt-list">
-                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ en-AU <small>(Úc — khuyến nghị cho người Việt / most sensitive)</small></label>
-                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> en-US <small>(Mỹ — cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> en-GB <small>(Anh — cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> fr-FR <small>(Pháp — cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> de-DE <small>(Đức — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ Tiếng Việt (người Việt) <small>(khuyến nghị — nhạy nhất)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> Tiếng Anh Mỹ <small>(cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> Tiếng Anh Anh <small>(cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> Tiếng Pháp <small>(cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> Tiếng Đức <small>(cần phát âm chuẩn hơn)</small></label>
             </div>
             </div>
+        </div>
+
+        <div id="bot-battery" class="bot-section" style="display:none;">
+            <h3>🔋 <span data-i18n="sec.battery">Hiện pin trên UI</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="batt.help1">Bật để hiện thanh pin trên header (poll mỗi vài giây).</li>
+                    <li data-i18n="batt.help2">Tắt (mặc định) để giảm lag khi web gọi API pin liên tục.</li>
+                </ol>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="showBatteryUi" value="on" onchange="setShowBatteryUi(true)"> <span data-i18n="batt.on">Bật hiện pin</span></label>
+                <label><input type="radio" name="showBatteryUi" value="off" onchange="setShowBatteryUi(false)" checked> <span data-i18n="batt.off">Tắt hiện pin</span></label>
+            </div>
+            <div id="batteryUiStatus" class="faces-status" style="display:none;"></div>
         </div>
 
         <div id="bot-stim" class="bot-section" style="display:none;">
@@ -568,6 +590,62 @@
         </div>
     </div>
 
+    <div id="wifi" class="container mod-section tab-content">
+        <h2 data-i18n="wifi.h3">WiFi nhà (hotspot)</h2>
+        <div class="help-box">
+            <strong data-i18n="common.howto">Cách dùng</strong>
+            <ol>
+                <li data-i18n="wifi.help1">Khi mất mạng, robot phát hotspot mở (tên Vector, không mật khẩu).</li>
+                <li data-i18n="wifi.help2">Nối hotspot → mở http://10.3.141.1/wifi → Quét/chọn WiFi nhà → nhập mật khẩu → Áp dụng.</li>
+                <li data-i18n="wifi.help3">Chỉ WiFi 2.4 GHz. Mật khẩu nhà ≥ 8 ký tự (mạng mở thì để trống). Sai mật khẩu → hotspot bật lại.</li>
+            </ol>
+        </div>
+        <div class="xz-config-block">
+            <div class="xz-config-card wifi-card">
+                <div id="wifiStatusLine" class="xz-status wifi-status"></div>
+
+                <div id="wifiConnectedPanel" class="wifi-connected-panel" hidden>
+                    <p id="wifiConnectedHint" class="wifi-hint" data-i18n="wifi.connected_only">
+                        Robot đang nối WiFi nhà. Chỉ xem trạng thái — đổi mạng khi mất kết nối (hotspot).
+                    </p>
+                    <div id="wifiConnectedNet" class="wifi-net selected" role="status"></div>
+                </div>
+
+                <div id="wifiJoinPanel">
+                    <p id="wifiScanHint" class="wifi-hint" data-i18n="wifi.pick">Chọn mạng rồi nhập mật khẩu.</p>
+                    <div class="xz-config-actions wifi-actions">
+                        <button type="button" id="wifiScanBtn" class="wifi-btn-primary" onclick="wifiScan()" data-i18n="wifi.scan">Quét mạng</button>
+                    </div>
+                    <div id="wifiNetworkList" class="wifi-net-list"></div>
+                    <div class="xz-config-fields">
+                        <label data-i18n="wifi.ssid">Tên WiFi nhà (hoặc gõ tay nếu ẩn):</label>
+                        <input type="text" id="wifiSsid" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="wifi.ssid_ph">
+                        <label data-i18n="wifi.pass">Mật khẩu WiFi nhà:</label>
+                        <div class="wifi-pass-wrap">
+                            <input type="password" id="wifiPass" minlength="8" autocomplete="current-password" data-i18n-placeholder="wifi.pass_ph" placeholder="">
+                            <button type="button" id="wifiPassToggle" class="wifi-pass-eye" onclick="wifiTogglePass()" aria-label="Hiện mật khẩu" title="Hiện/ẩn mật khẩu">
+                                <svg class="wifi-eye-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                                    <path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+                                </svg>
+                                <svg class="wifi-eye-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" hidden>
+                                    <path fill="currentColor" d="M2.1 3.51 3.51 2.1l18.39 18.39-1.41 1.41-3.13-3.13A12.3 12.3 0 0 1 12 19c-5 0-9.27-3.11-11-7a13.5 13.5 0 0 1 4.2-5.05L2.1 3.51zM12 7a5 5 0 0 1 4.9 4.02l-1.57-1.57A2.5 2.5 0 0 0 12.55 8.1L12 7zm0-2c5 0 9.27 3.11 11 7a13.6 13.6 0 0 1-3.35 4.36l-1.45-1.45A11.5 11.5 0 0 0 21.05 12C19.5 8.8 16 7 12 7c-.7 0-1.38.08-2.03.23L8.4 5.66C9.52 5.23 10.73 5 12 5z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="xz-config-actions wifi-actions">
+                        <button type="button" class="wifi-btn-primary" onclick="wifiApply()" data-i18n="wifi.apply">Áp dụng mạng</button>
+                    </div>
+                </div>
+
+                <details class="wifi-advanced">
+                    <summary data-i18n="wifi.details">Chi tiết kỹ thuật</summary>
+                    <pre id="wifiLog" class="ota-log">Trạng thái WiFi hiện ở đây.</pre>
+                </details>
+            </div>
+        </div>
+    </div>
+
     <div id="aud" class="container mod-section tab-content">
         <h2>🔄 <span data-i18n="aud.h2">Cập nhật OS</span></h2>
         <div class="help-box">
@@ -638,11 +716,11 @@
                 <div class="bot-opt-list xz-mode-radios" style="margin:0 0 12px;">
                     <label>
                         <input type="radio" name="xzPreset" value="vi_pool" id="xzPresetVi" checked onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
+                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình tiếng Việt có sẵn</b></span>
                     </label>
                     <label>
                         <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
+                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tự cấu hình</b></span>
                     </label>
                 </div>
 
@@ -650,9 +728,8 @@
                     <p data-i18n="xz.pool_help" data-i18n-html="1">Chọn cái này rồi <b>đánh thức robot</b> (Hey Vector) là nói chuyện được luôn — không cần mã 6 số.</p>
                     <p id="xzPoolUsing" class="wifi-hint" style="margin:8px 0;"></p>
                     <div class="xz-config-actions" style="margin-top:10px;">
-                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới MAC</button>
+                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới cấu hình</button>
                     </div>
-                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
                     <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
                 </div>
 
@@ -714,22 +791,6 @@
                 </div>
                 </div>
             </div>
-        </div>
-
-        <div class="help-box" id="xzGameTtsBlock" style="margin:16px 0 8px;">
-            <strong data-i18n="xz.game_tts">Bình luận game</strong>
-            <p style="margin:6px 0 8px;" data-i18n="xz.game_tts_help" data-i18n-html="1">Bật để hiện chế độ <b>SayText Google (VI)</b> trong tab Game. Dùng được dù đang Xiaozhi hay Vosk.</p>
-            <div class="bot-opt-list xz-mode-radios xz-game-tts-radios" style="margin:8px 0;">
-                <label>
-                    <input type="radio" name="xzGameTtsMode" value="on" id="xzGameTtsOn" onchange="xzSaveGameGoogleVi()">
-                    <span data-i18n="xz.game_tts_on" data-i18n-html="1"><b>Bật Google VI</b> — bình luận cờ bằng giọng Google (vi)</span>
-                </label>
-                <label>
-                    <input type="radio" name="xzGameTtsMode" value="off" id="xzGameTtsOff" onchange="xzSaveGameGoogleVi()" checked>
-                    <span data-i18n="xz.game_tts_off" data-i18n-html="1"><b>Tắt</b> — không hiện chế độ Google VI trong tab Game</span>
-                </label>
-            </div>
-            <div id="xzGameTtsStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
         </div>
     </div>
 
@@ -1118,13 +1179,27 @@
                     <button type="button" class="chess-mode-btn active" id="chessModeSayTextBtn" data-mode="saytext">
                         <span data-i18n="games.mode_st">Giọng robot bằng tiếng Anh</span>
                     </button>
-                    <button type="button" class="chess-mode-btn" id="chessModeGoogleViBtn" data-mode="google_vi" hidden>
-                        <span data-i18n="games.mode_gvi">Giọng Google tiếng Việt</span>
-                        <small data-i18n="games.mode_gvi_sub">Giọng Google tiếng Việt</small>
+                    <button type="button" class="chess-mode-btn" id="chessModeGoogleViBtn" data-mode="google_vi">
+                        <span data-i18n="games.mode_gvi">Giọng Google</span>
+                        <small data-i18n="games.mode_gvi_sub">Chọn ngôn ngữ bên dưới</small>
                     </button>
                 </div>
+                <div id="gamesGoogleLangRow" class="games-google-lang-row" hidden style="margin-top:10px;">
+                    <label for="gamesGoogleLang" data-i18n="games.gvi_lang">Giọng bình luận Google</label>
+                    <select id="gamesGoogleLang" class="wireos-select" onchange="gamesOnGoogleLangChange()">
+                        <option value="vi" selected>Tiếng Việt</option>
+                        <option value="zh-CN">中文 (Tiếng Trung)</option>
+                        <option value="en">English (Anh)</option>
+                        <option value="it">Italiano (Ý)</option>
+                        <option value="ru">Русский (Nga)</option>
+                        <option value="fr">Français (Pháp)</option>
+                        <option value="de">Deutsch (Đức)</option>
+                        <option value="es">Español (Tây Ban Nha)</option>
+                        <option value="pt">Português (Bồ Đào Nha)</option>
+                    </select>
+                </div>
                 <p class="chess-mode-hint" id="chessModeHint" data-i18n="games.hint_st">Robot đọc nước đi bằng giọng tiếng Anh (SayText).</p>
-                <p class="chess-mode-hint" id="chessModeGoogleHint" hidden data-i18n="games.hint_gvi">Bật trong tab Xiaozhi → Bình luận game.</p>
+                <p class="chess-mode-hint" id="chessModeGoogleHint" hidden></p>
             </div>
             <div class="chess-mode-panel" id="gamesDiffRow">
                 <div class="chess-mode-title"><span data-i18n="games.diff_title">Cấp độ đối thủ</span> <span id="gamesDiffStatus" class="chess-mode-status"></span></div>
@@ -1235,6 +1310,7 @@
     </div>
     <script src="js/share-auth.js"></script>
     <script src="js/i18n.js"></script>
+    <script src="js/ui-confirm.js"></script>
     <script src="js/main.js"></script>
     <script src="js/battery.js"></script>
     <script src="js/freq.js"></script>
@@ -1254,6 +1330,7 @@
     <script src="js/stim-stats.js"></script>
     <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
+    <script src="js/wifi-setup.js"></script>
 </body>
 
 </html>

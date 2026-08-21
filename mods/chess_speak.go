@@ -36,6 +36,7 @@ type chessAnnouncePayload struct {
 	Say     string `json:"say"`
 	Prompt  string `json:"prompt,omitempty"`
 	Summary string `json:"summary,omitempty"`
+	Lang    string `json:"lang,omitempty"`
 }
 
 func chessCommentEnabled() bool {
@@ -59,11 +60,58 @@ func chessXiaozhiAvailable() bool {
 }
 
 func chessGoogleVIAvailable() bool {
+	// Always on — language is chosen in the Games lobby dropdown.
+	return true
+}
+
+// chessGoogleTTSLang is the Google Translate TTS language code (default vi).
+func chessGoogleTTSLang() string {
 	cfg, err := loadXiaozhiCfg()
 	if err != nil {
-		return false
+		return "vi"
 	}
-	return cfg.GameGoogleTTSVI
+	return normalizeGoogleTTSLang(cfg.GameGoogleTTSLang)
+}
+
+// chessPreferVIText uses Vietnamese comment strings only for Google + vi.
+func chessPreferVIText() bool {
+	return getChessCommentMode() == chessModeGoogleVI && chessGoogleTTSLang() == "vi"
+}
+
+func normalizeGoogleTTSLang(lang string) string {
+	lang = strings.ToLower(strings.TrimSpace(lang))
+	switch lang {
+	case "", "vi", "vi-vn":
+		return "vi"
+	case "zh", "zh-cn", "cn", "chinese":
+		return "zh-CN"
+	case "en", "en-us", "en-gb":
+		return "en"
+	case "it", "it-it":
+		return "it"
+	case "ru", "ru-ru":
+		return "ru"
+	case "fr", "fr-fr":
+		return "fr"
+	case "de", "de-de":
+		return "de"
+	case "es", "es-es":
+		return "es"
+	case "pt", "pt-br", "pt-pt":
+		return "pt"
+	default:
+		return "vi"
+	}
+}
+
+func setChessGoogleTTSLang(lang string) string {
+	lang = normalizeGoogleTTSLang(lang)
+	cfg, _ := loadXiaozhiCfg()
+	ensureXiaozhiDefaults(&cfg)
+	cfg.GameGoogleTTSVI = true
+	cfg.GameGoogleTTSLang = lang
+	_ = saveXiaozhiCfg(cfg)
+	return lang
 }
 
 func getChessCommentMode() string {
@@ -114,16 +162,21 @@ func queueGameSpeak(gameID, say, summary string) {
 		return
 	}
 	mode := getChessCommentMode()
-	// google_vi expects Vietnamese phrasing from the caller; if English slipped in, still speak.
+	// google_vi: VI text when lang=vi; otherwise English text + Google voice lang.
 	prompt := ""
 	if mode == chessModeXiaozhi {
 		prompt = buildXiaozhiGamePrompt(gameID, say, summary)
+	}
+	lang := ""
+	if mode == chessModeGoogleVI {
+		lang = chessGoogleTTSLang()
 	}
 	payload, err := json.Marshal(chessAnnouncePayload{
 		Mode:    mode,
 		Say:     say,
 		Prompt:  prompt,
 		Summary: strings.TrimSpace(summary),
+		Lang:    lang,
 	})
 	if err != nil {
 		log.Println("[Chess] announce marshal:", err)
@@ -311,9 +364,9 @@ func buildChessCommentVI(youMove, botMove, youPiece, botPiece, status, winner st
 	return strings.TrimSpace(strings.Join(parts, " "))
 }
 
-// buildChessSpokenComment picks English (saytext/xiaozhi) or Vietnamese (google_vi).
+// buildChessSpokenComment picks English (saytext/xiaozhi/non-vi Google) or Vietnamese (Google vi).
 func buildChessSpokenComment(youMove, botMove, youPiece, botPiece, status, winner string) string {
-	if getChessCommentMode() == chessModeGoogleVI {
+	if chessPreferVIText() {
 		return buildChessCommentVI(youMove, botMove, youPiece, botPiece, status, winner)
 	}
 	return buildChessComment(youMove, botMove, youPiece, botPiece, status, winner)

@@ -46,6 +46,7 @@ func (m *Xiangqi) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["commentMode"] = getChessCommentMode()
 		st["xiaozhiAvailable"] = chessXiaozhiAvailable()
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
+		st["googleTTSLang"] = chessGoogleTTSLang()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
 	case "comment":
@@ -59,16 +60,21 @@ func (m *Xiangqi) HTTP(w http.ResponseWriter, r *http.Request) {
 			"commentMode":       getChessCommentMode(),
 			"xiaozhiAvailable":  chessXiaozhiAvailable(),
 			"googleVIAvailable": chessGoogleVIAvailable(),
+			"googleTTSLang":     chessGoogleTTSLang(),
 			"difficulty":        g.getDifficulty(),
 		})
 	case "comment_mode":
 		if v := r.FormValue("mode"); v != "" {
 			setChessCommentMode(v)
 		}
+		if v := r.FormValue("lang"); v != "" {
+			setChessGoogleTTSLang(v)
+		}
 		writeJSON(w, 200, map[string]interface{}{
 			"commentMode":       getChessCommentMode(),
 			"xiaozhiAvailable":  chessXiaozhiAvailable(),
 			"googleVIAvailable": chessGoogleVIAvailable(),
+			"googleTTSLang":     chessGoogleTTSLang(),
 			"comment":           chessCommentEnabled(),
 			"difficulty":        g.getDifficulty(),
 		})
@@ -93,6 +99,7 @@ func (m *Xiangqi) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["commentMode"] = getChessCommentMode()
 		st["xiaozhiAvailable"] = chessXiaozhiAvailable()
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
+		st["googleTTSLang"] = chessGoogleTTSLang()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
 		queueChessSpeak(xiangqiNewGameSpeak(), getXiangqi().summaryText())
@@ -118,6 +125,7 @@ func (m *Xiangqi) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["commentMode"] = getChessCommentMode()
 		st["xiaozhiAvailable"] = chessXiaozhiAvailable()
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
+		st["googleTTSLang"] = chessGoogleTTSLang()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
 		// TTS is queued inside playUCI / runBotThinkXQ (per-move).

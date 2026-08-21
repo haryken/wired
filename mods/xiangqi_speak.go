@@ -76,9 +76,9 @@ func xiangqiSpeakMoveVI(piece, uci string) string {
 }
 
 // xiangqiVietnamese reports whether the active comment mode should speak
-// Vietnamese (google_vi / Xiaozhi conversation) instead of English SayText.
+// Vietnamese (Google TTS lang=vi) instead of English SayText.
 func xiangqiVietnamese() bool {
-	return getChessCommentMode() == "google_vi"
+	return chessPreferVIText()
 }
 
 // buildXiangqiCommentEN returns English for Vector Acapela SayText, e.g.

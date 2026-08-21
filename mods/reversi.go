@@ -25,7 +25,7 @@ func NewReversi() *Reversi {
 		playUCI:       func(u string) (map[string]interface{}, error) { return getReversi().playUCI(u) },
 		legalUCIs:     func() []string { return getReversi().legalUCIs() },
 		newGameSpeak: func() (string, string) {
-			if getChessCommentMode() == chessModeGoogleVI {
+			if chessPreferVIText() {
 				return "Ván Reversi mới. Bạn cầm đen. Đến lượt bạn.", "Reversi. Ván mới."
 			}
 			return "New Reversi. You are black. Your move.", "Reversi. Ván mới."

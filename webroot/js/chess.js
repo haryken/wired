@@ -122,10 +122,20 @@ let chessState = null;
 let chessSelected = null;
 let chessLegal = [];
 let gamesXiaozhiAvailable = false;
-let gamesGoogleVIAvailable = false;
+let gamesGoogleVIAvailable = true;
 let gamesCommentMode = 'saytext';
+let gamesGoogleTTSLang = 'vi';
 let gamesDifficulty = 'medium';
 let gamesSession = loadGamesSession();
+
+const GAMES_GOOGLE_LANGS = ['vi', 'zh-CN', 'en', 'it', 'ru', 'fr', 'de', 'es', 'pt'];
+
+function normalizeGoogleTTSLang(lang) {
+    lang = String(lang || '').trim();
+    if (lang === 'zh' || lang === 'zh-cn' || lang === 'cn') return 'zh-CN';
+    if (GAMES_GOOGLE_LANGS.indexOf(lang) >= 0) return lang;
+    return 'vi';
+}
 
 function normalizeDifficulty(d) {
     d = String(d || '').toLowerCase();
@@ -219,7 +229,7 @@ async function chessFetchCaps(path, opts) {
 function gamesModeLabel(mode) {
     mode = normalizeCommentMode(mode);
     if (mode === 'xiaozhi') return gT('games.mode_xz', 'Giọng robot + Xiaozhi');
-    if (mode === 'google_vi') return gT('games.mode_gvi', 'SayText Google (VI)');
+    if (mode === 'google_vi') return gT('games.mode_gvi', 'Giọng Google');
     return gT('games.mode_st', 'Giọng robot bằng tiếng Anh');
 }
 
@@ -307,8 +317,16 @@ function gamesShowStep(step) {
 function gamesClampMode(mode) {
     mode = normalizeCommentMode(mode);
     if (mode === 'xiaozhi' && !gamesXiaozhiAvailable) return 'saytext';
-    if (mode === 'google_vi' && !gamesGoogleVIAvailable) return 'saytext';
+    // Google TTS mode is always available.
     return mode;
+}
+
+function gamesSyncGoogleLangSelect() {
+    const sel = document.getElementById('gamesGoogleLang');
+    if (!sel) return;
+    const lang = normalizeGoogleTTSLang(gamesGoogleTTSLang);
+    gamesGoogleTTSLang = lang;
+    if (sel.value !== lang) sel.value = lang;
 }
 
 function gamesRenderModeUI() {
@@ -319,6 +337,7 @@ function gamesRenderModeUI() {
     const stBtn = document.getElementById('chessModeSayTextBtn');
     const gviBtn = document.getElementById('chessModeGoogleViBtn');
     const btns = document.querySelector('#gamesStepMode .chess-mode-btns');
+    const langRow = document.getElementById('gamesGoogleLangRow');
 
     if (xzBtn) {
         xzBtn.disabled = !gamesXiaozhiAvailable;
@@ -326,18 +345,20 @@ function gamesRenderModeUI() {
     }
     if (stBtn) stBtn.classList.toggle('active', mode === 'saytext');
     if (gviBtn) {
-        gviBtn.hidden = !gamesGoogleVIAvailable;
-        gviBtn.disabled = !gamesGoogleVIAvailable;
+        gviBtn.hidden = false;
+        gviBtn.disabled = false;
         gviBtn.classList.toggle('active', mode === 'google_vi');
     }
     if (btns) {
-        btns.classList.toggle('has-google', !!gamesGoogleVIAvailable);
+        btns.classList.toggle('has-google', true);
     }
+    if (langRow) langRow.hidden = mode !== 'google_vi';
+    gamesSyncGoogleLangSelect();
 
     const status = document.getElementById('chessModeStatus');
     const hint = document.getElementById('chessModeHint');
     const gHint = document.getElementById('chessModeGoogleHint');
-    if (gHint) gHint.hidden = gamesGoogleVIAvailable;
+    if (gHint) gHint.hidden = true;
 
     if (mode === 'xiaozhi') {
         if (status) status.textContent = gT('games.mode_picked_prefix', 'Đã chọn:') + ' ' + gamesModeLabel(mode);
@@ -347,14 +368,14 @@ function gamesRenderModeUI() {
     } else if (mode === 'google_vi') {
         if (status) status.textContent = gT('games.mode_picked_prefix', 'Đã chọn:') + ' ' + gamesModeLabel(mode);
         if (hint) {
-            hint.textContent = gT('games.hint_gvi_on', 'Bình luận tiếng Việt bằng Google TTS. Không mở mic hội thoại.');
+            hint.textContent = gT('games.hint_gvi_on', 'Bình luận bằng Google TTS theo ngôn ngữ đã chọn. Không mở mic hội thoại.');
         }
     } else {
         if (status) status.textContent = gT('games.mode_picked_prefix', 'Đã chọn:') + ' ' + gamesModeLabel(mode);
         if (hint) {
             hint.textContent = gamesXiaozhiAvailable
                 ? gT('games.hint_st', 'Robot đọc nước đi bằng giọng tiếng Anh (SayText).')
-                : gT('games.hint_st_vosk', 'Xiaozhi đang tắt (Vosk) — giọng robot tiếng Anh / Google VI (nếu bật).');
+                : gT('games.hint_st_vosk', 'Xiaozhi đang tắt (Vosk) — giọng robot tiếng Anh / Google (nếu chọn).');
         }
     }
 
@@ -383,7 +404,8 @@ async function gamesRefreshCaps() {
     try {
         const st = await chessFetchCaps('comment');
         gamesXiaozhiAvailable = !!st.xiaozhiAvailable;
-        gamesGoogleVIAvailable = !!st.googleVIAvailable;
+        gamesGoogleVIAvailable = true;
+        if (st.googleTTSLang) gamesGoogleTTSLang = normalizeGoogleTTSLang(st.googleTTSLang);
         if (gamesSession.activeGame || gamesSession.pendingGame) {
             gamesCommentMode = gamesClampMode(gamesSession.commentMode);
         } else {
@@ -392,7 +414,7 @@ async function gamesRefreshCaps() {
         gamesRenderModeUI();
     } catch (_) {
         gamesXiaozhiAvailable = false;
-        gamesGoogleVIAvailable = false;
+        gamesGoogleVIAvailable = true;
         gamesCommentMode = 'saytext';
         gamesRenderModeUI();
     }
@@ -418,7 +440,27 @@ async function gamesApplyCommentMode(mode) {
     mode = gamesClampMode(mode);
     gamesCommentMode = mode;
     try {
-        await chessFetchCaps('comment_mode?mode=' + encodeURIComponent(mode));
+        let q = 'comment_mode?mode=' + encodeURIComponent(mode);
+        if (mode === 'google_vi') {
+            q += '&lang=' + encodeURIComponent(normalizeGoogleTTSLang(gamesGoogleTTSLang));
+        }
+        await chessFetchCaps(q);
+    } catch (_) {}
+    gamesRenderModeUI();
+}
+
+async function gamesOnGoogleLangChange() {
+    const sel = document.getElementById('gamesGoogleLang');
+    if (!sel) return;
+    gamesGoogleTTSLang = normalizeGoogleTTSLang(sel.value);
+    if (gamesCommentMode !== 'google_vi') {
+        await gamesApplyCommentMode('google_vi');
+        return;
+    }
+    try {
+        await chessFetchCaps(
+            'comment_mode?mode=google_vi&lang=' + encodeURIComponent(gamesGoogleTTSLang)
+        );
     } catch (_) {}
     gamesRenderModeUI();
 }
