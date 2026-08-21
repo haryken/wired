@@ -43,9 +43,15 @@ func GetModDir(modname string) string {
 	return filepath.Join(WiredData, modname)
 }
 
+const ankiVictorData = "/data/data/com.anki.victor"
+
 func SaveFile(contents string, path string) error {
 	os.MkdirAll(filepath.Dir(path), 0777)
-	return os.WriteFile(path, []byte(contents), 0777)
+	err := os.WriteFile(path, []byte(contents), 0777)
+	if strings.HasPrefix(path, ankiVictorData) {
+		SetAnkiPerms()
+	}
+	return err
 }
 
 func ReadFile(path string) (contents string, err error) {
@@ -56,8 +62,22 @@ func ReadFile(path string) (contents string, err error) {
 	return string(out), nil
 }
 
+// SetAnkiPerms makes Anki's /data tree writable by engine/net after wired
+// (root) MkdirAll. Otherwise CLEAR OUT SOUL leaves persistent/ as root:root
+// 755, vic-switchboard cannot create sessions, and the robot loops fault 913.
 func SetAnkiPerms() {
-	
+	persistent := filepath.Join(ankiVictorData, "persistent")
+	switchboard := filepath.Join(persistent, "switchboard")
+	cache := filepath.Join(ankiVictorData, "cache")
+	for _, d := range []string{ankiVictorData, persistent, switchboard, cache} {
+		_ = os.MkdirAll(d, 0770)
+	}
+	_ = exec.Command("chown", "anki:anki", ankiVictorData, persistent, cache).Run()
+	_ = exec.Command("chmod", "770", ankiVictorData, persistent, cache, switchboard).Run()
+	_ = exec.Command("chown", "-R", "net:anki", switchboard).Run()
+	if _, err := os.Stat(filepath.Join(persistent, "wake_engine")); err == nil {
+		_ = exec.Command("chown", "anki:anki", filepath.Join(persistent, "wake_engine")).Run()
+	}
 }
 
 func ExtraHTTP(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +99,7 @@ func InitMods() {
 		}
 		http.HandleFunc("/api/mods/"+mod.Name()+"/", mod.HTTP)
 	}
+	SetAnkiPerms()
 	http.HandleFunc("/api/extra/", ExtraHTTP)
 }
 

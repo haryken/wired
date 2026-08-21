@@ -55,7 +55,7 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if vars.IsEndpoint(r, "set") {
 		engine := normalizeWakeEngine(r.FormValue("engine"))
-		if err := os.MkdirAll(filepath.Dir(WakeEngineLocation), 0777); err != nil {
+		if err := os.MkdirAll(filepath.Dir(WakeEngineLocation), 0770); err != nil {
 			vars.HTTPError(w, r, "mkdir: "+err.Error())
 			return
 		}
@@ -68,8 +68,10 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 
 func (modu *WakeEngine) Load() error {
 	// Seed OTA default on first boot so file exists for anim + UI.
+	// SaveFile → SetAnkiPerms so this does not leave persistent/ as root:root
+	// (that blocks vic-switchboard sessions after CLEAR OUT SOUL → fault 913).
 	if _, err := os.Stat(WakeEngineLocation); os.IsNotExist(err) {
-		_ = os.MkdirAll(filepath.Dir(WakeEngineLocation), 0777)
+		_ = os.MkdirAll(filepath.Dir(WakeEngineLocation), 0770)
 		vars.SaveFile(WakeEngineTHF+"\n", WakeEngineLocation)
 	}
 	return nil
