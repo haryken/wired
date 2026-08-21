@@ -635,6 +635,28 @@
         <div id="xzConfigBlock" class="xz-config-block" style="display:none;">
             <h3 class="xz-config-title" data-i18n="xz.cfg_title">Cấu hình Xiaozhi</h3>
             <div class="xz-config-card">
+                <div class="bot-opt-list xz-mode-radios" style="margin:0 0 12px;">
+                    <label>
+                        <input type="radio" name="xzPreset" value="vi_pool" id="xzPresetVi" checked onchange="xzOnPresetRadio()">
+                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
+                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
+                    </label>
+                </div>
+
+                <div id="xzPoolHelp" class="help-box xz-config-help">
+                    <p data-i18n="xz.pool_help" data-i18n-html="1">Chọn cái này rồi <b>đánh thức robot</b> (Hey Vector) là nói chuyện được luôn — không cần mã 6 số.</p>
+                    <p id="xzPoolUsing" class="wifi-hint" style="margin:8px 0;"></p>
+                    <div class="xz-config-actions" style="margin-top:10px;">
+                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới MAC</button>
+                    </div>
+                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
+                    <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
+                </div>
+
+                <div id="xzCustomFields" style="display:none;">
                 <div class="help-box xz-config-help">
                     <ol>
                         <li data-i18n="xz.cfg_1" data-i18n-html="1"><b>Máy chủ OTA:</b> lần đầu để mặc định <code>https://api.tenclass.net/</code>. Đã lưu rồi thì giữ nguyên.</li>
@@ -689,6 +711,7 @@
                         <span id="xzCode" class="xz-code-value"></span>
                         <p class="xz-code-help" data-i18n="xz.code_help" data-i18n-html="1">Copy mã này → vào agent trên <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → thêm thiết bị bằng mã 6 số.</p>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

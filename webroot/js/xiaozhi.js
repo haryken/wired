@@ -22,9 +22,30 @@ function xzSetConfigStatus(msg, isError) {
     xzSetElStatus('xzConfigStatus', msg, isError);
 }
 
+function xzSetPoolStatus(msg, isError) {
+    xzSetElStatus('xzPoolStatus', msg, isError);
+}
+
 function xzSelectedMode() {
     const vosk = document.getElementById('xzModeVosk');
     return (vosk && vosk.checked) ? 'vosk' : 'xiaozhi';
+}
+
+function xzSelectedPreset() {
+    const custom = document.getElementById('xzPresetCustom');
+    return (custom && custom.checked) ? 'custom' : 'vi_pool';
+}
+
+function xzShowPresetUI(preset) {
+    const isPool = preset !== 'custom';
+    const vi = document.getElementById('xzPresetVi');
+    const cu = document.getElementById('xzPresetCustom');
+    if (vi) vi.checked = isPool;
+    if (cu) cu.checked = !isPool;
+    const pool = document.getElementById('xzPoolHelp');
+    const custom = document.getElementById('xzCustomFields');
+    if (pool) pool.style.display = isPool ? 'block' : 'none';
+    if (custom) custom.style.display = isPool ? 'none' : 'block';
 }
 
 function xzShowConfigForMode(mode) {
@@ -34,6 +55,7 @@ function xzShowConfigForMode(mode) {
     const voskRadio = document.getElementById('xzModeVosk');
     if (xzRadio) xzRadio.checked = (mode === 'xiaozhi');
     if (voskRadio) voskRadio.checked = (mode === 'vosk');
+    if (mode === 'xiaozhi') xzShowPresetUI(xzSelectedPreset());
 }
 
 function xzSelectedConvMode() {
@@ -66,6 +88,18 @@ function xzApplyCfg(cfg) {
         gviOff.checked = !on;
     }
 
+    const preset = (cfg.identity_mode === 'vi_pool') ? 'vi_pool'
+        : (cfg.identity_mode === 'custom') ? 'custom'
+        : (cfg.device_id ? 'custom' : 'vi_pool');
+    xzShowPresetUI(preset);
+
+    const using = document.getElementById('xzPoolUsing');
+    if (using && preset === 'vi_pool') {
+        using.textContent = (cfg.device_id || cfg.client_id)
+            ? ('Đang dùng: MAC ' + (cfg.device_id || '—') + ' · client ' + (cfg.client_id || '—'))
+            : '';
+    }
+
     const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
     xzAppliedMode = mode;
     xzShowConfigForMode(mode);
@@ -82,6 +116,13 @@ async function xzLoad() {
     }
 }
 
+async function xzOnPresetRadio() {
+    xzShowPresetUI(xzSelectedPreset());
+    if (xzSelectedMode() !== 'xiaozhi') return;
+    xzAppliedMode = null;
+    await xzSetListenMode('xiaozhi');
+}
+
 /** Persist config fields. Returns {ok, config?, message?}. Does not set UI status. */
 async function xzSaveConfig() {
     let otaVal = document.getElementById('xzOTABaseURL').value.trim();
@@ -95,6 +136,7 @@ async function xzSaveConfig() {
         tts_mode: 'xiaozhi',
         conversation_mode: xzSelectedConvMode(),
         idle_timeout_sec: '20',
+        identity_mode: xzSelectedPreset(),
         game_google_tts_vi: (document.getElementById('xzGameTtsOn') && document.getElementById('xzGameTtsOn').checked) ? 'true' : 'false',
     });
     const resp = await fetch('/api/mods/Xiaozhi/save?' + params.toString(), { method: 'POST' });
@@ -167,6 +209,29 @@ async function xzSaveAndActivate() {
     }
 }
 
+async function xzRenewPool() {
+    if (xzSaveBusy) return;
+    xzSaveBusy = true;
+    const btn = document.getElementById('xzRenewBtn');
+    if (btn) btn.disabled = true;
+    xzSetPoolStatus(typeof t === 'function' ? t('xz.pool_renewing', 'Đang làm mới…') : 'Đang làm mới…', false);
+    try {
+        const resp = await fetch('/api/mods/Xiaozhi/renew_pool', { method: 'POST' });
+        const j = await resp.json();
+        if (j.status !== 'success') {
+            xzSetPoolStatus((typeof t === 'function' ? t('xz.pool_renew_err', 'Lỗi làm mới: ') : 'Lỗi làm mới: ') + (j.message || 'unknown'), true);
+            return;
+        }
+        if (j.config) xzApplyCfg(j.config);
+        xzSetPoolStatus(typeof t === 'function' ? t('xz.pool_renewed', 'Đã làm mới. Đánh thức robot (Hey Vector).') : 'Đã làm mới. Đánh thức robot (Hey Vector).', false);
+    } catch (e) {
+        xzSetPoolStatus('Lỗi: ' + e.message, true);
+    } finally {
+        xzSaveBusy = false;
+        if (btn) btn.disabled = false;
+    }
+}
+
 async function xzSetListenMode(mode) {
     if (xzModeBusy) return;
     const wantXz = (mode === 'xiaozhi');
@@ -181,6 +246,7 @@ async function xzSetListenMode(mode) {
         : 'Đang bật Vosk (tắt Xiaozhi)… đang restart cloud…', false);
     try {
         const params = new URLSearchParams({ enabled: wantXz ? 'true' : 'false' });
+        if (wantXz) params.set('identity_mode', xzSelectedPreset());
         const resp = await fetch('/api/mods/Xiaozhi/set_enabled?' + params.toString(), { method: 'POST' });
         const j = await resp.json();
         if (j.status !== 'success') {
@@ -194,8 +260,8 @@ async function xzSetListenMode(mode) {
             xzShowConfigForMode(mode);
         }
         xzSetModeStatus(wantXz
-            ? 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.'
-            : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.', false);
+            ? (typeof t === 'function' ? t('xz.on_xiaozhi', 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.') : 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.')
+            : (typeof t === 'function' ? t('xz.on_vosk', 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.') : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.'), false);
     } catch (e) {
         xzSetModeStatus('Lỗi đổi chế độ: ' + e.message, true);
         await xzLoad();

@@ -35,6 +35,8 @@ type XiaozhiCfg struct {
 	// GameGoogleTTSVI enables "SayText Google (VI)" game comment mode for both
 	// Vosk and Xiaozhi listen modes (set on Xiaozhi tab).
 	GameGoogleTTSVI bool `json:"game_google_tts_vi"`
+	// IdentityMode: "vi_pool" = shared Vietnamese preset; "custom" = xiaozhi.me pair.
+	IdentityMode string `json:"identity_mode,omitempty"`
 }
 
 func defaultXiaozhiCfg() XiaozhiCfg {
@@ -136,6 +138,102 @@ func genUUIDv4() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
+const (
+	xiaozhiIdentityViPool  = "vi_pool"
+	xiaozhiIdentityCustom  = "custom"
+	xiaozhiTenclassOTA     = "https://api.tenclass.net/"
+	xiaozhiTenclassWSS     = "wss://api.tenclass.net/xiaozhi/v1/"
+	xiaozhiSkipRotatePath  = "/run/xiaozhi-skip-rotate"
+)
+
+var xiaozhiViPoolMACs = []string{
+	"1c:db:d4:b5:73:3c",
+	"58:a0:23:a6:fe:31",
+	"a8:b5:44:dd:e3:cf",
+	"1c:db:d4:b5:74:7c",
+	"1c:db:d4:b5:6a:d8",
+	"1c:db:d4:b5:74:54",
+	"1c:db:d4:b5:72:ec",
+	"1c:db:d4:b5:71:d4",
+	"1c:db:d4:b5:74:d4",
+	"1c:db:d4:a9:48:84",
+	"1c:db:d4:a9:59:b4",
+	"1c:db:d4:a9:5b:a0",
+	"28:df:eb:02:6c:7d",
+	"bc:fc:e7:8a:d8:06",
+	"dc:b4:d9:0c:a4:9c",
+	"dc:b4:d9:0c:a4:80",
+	"dc:b4:d9:0c:a6:00",
+	"dc:b4:d9:03:4e:f4",
+	"dc:b4:d9:0c:a5:38",
+	"dc:b4:d9:03:43:38",
+}
+
+func macInXiaozhiViPool(mac string) bool {
+	mac = strings.ToLower(strings.TrimSpace(mac))
+	for _, m := range xiaozhiViPoolMACs {
+		if m == mac {
+			return true
+		}
+	}
+	return false
+}
+
+func isXiaozhiViPool(cfg XiaozhiCfg) bool {
+	mode := strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
+	if mode == xiaozhiIdentityCustom {
+		return false
+	}
+	if mode == xiaozhiIdentityViPool {
+		return true
+	}
+	return mode == "" && macInXiaozhiViPool(cfg.DeviceID)
+}
+
+func applyXiaozhiViPoolDefaults(cfg *XiaozhiCfg) {
+	cfg.IdentityMode = xiaozhiIdentityViPool
+	cfg.OTABaseURL = xiaozhiTenclassOTA
+	cfg.Endpoint = xiaozhiTenclassWSS
+	cfg.AutoApplyOTAWebsocket = true
+	cfg.TTSMode = "xiaozhi"
+	if cfg.ConversationMode == "" {
+		cfg.ConversationMode = "continuous"
+	}
+}
+
+func pickXiaozhiPoolMAC(avoid string) string {
+	avoid = strings.ToLower(strings.TrimSpace(avoid))
+	n := len(xiaozhiViPoolMACs)
+	if n == 0 {
+		return genRandomMAC()
+	}
+	var b [1]byte
+	_, _ = rand.Read(b[:])
+	start := int(b[0]) % n
+	for i := 0; i < n; i++ {
+		mac := xiaozhiViPoolMACs[(start+i)%n]
+		if mac != avoid {
+			return mac
+		}
+	}
+	return xiaozhiViPoolMACs[start]
+}
+
+func applyXiaozhiViPool(cfg *XiaozhiCfg) {
+	applyXiaozhiViPoolDefaults(cfg)
+	cfg.DeviceID = pickXiaozhiPoolMAC(cfg.DeviceID)
+	cfg.ClientID = genUUIDv4()
+	cfg.Token = ""
+}
+
+func markXiaozhiSkipRotate() {
+	_ = os.WriteFile(xiaozhiSkipRotatePath, []byte("1"), 0644)
+}
+
+func restartVicCloud() {
+	_ = exec.Command("/bin/systemctl", "restart", "vic-cloud").Start()
+}
+
 // buildOTABody builds the JSON body sent to /xiaozhi/ota/ (ESP32-style).
 func buildOTABody(deviceID, clientID string) []byte {
 	hostname, _ := os.Hostname()
@@ -233,6 +331,9 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			cfg = defaultXiaozhiCfg()
 		}
 		ensureXiaozhiDefaults(&cfg)
+		if isXiaozhiViPool(cfg) && strings.TrimSpace(cfg.IdentityMode) == "" {
+			cfg.IdentityMode = xiaozhiIdentityViPool
+		}
 		b, _ := json.Marshal(cfg)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(b)
@@ -240,10 +341,34 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	case vars.IsEndpoint(r, "save"):
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
-		if v := r.FormValue("ota_base_url"); v != "" {
-			cfg.OTABaseURL = normalizeOTABaseURL(v)
+		ident := strings.ToLower(strings.TrimSpace(r.FormValue("identity_mode")))
+		if ident == "" {
+			ident = strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
 		}
-		// Endpoint/token are never set from the form — only from OTA responses.
+		if ident == xiaozhiIdentityViPool || (ident == "" && isXiaozhiViPool(cfg)) {
+			applyXiaozhiViPoolDefaults(&cfg)
+			if strings.TrimSpace(cfg.DeviceID) == "" {
+				cfg.DeviceID = pickXiaozhiPoolMAC("")
+			}
+			if strings.TrimSpace(cfg.ClientID) == "" {
+				cfg.ClientID = genUUIDv4()
+			}
+		} else {
+			cfg.IdentityMode = xiaozhiIdentityCustom
+			if v := r.FormValue("ota_base_url"); v != "" {
+				cfg.OTABaseURL = normalizeOTABaseURL(v)
+			}
+			if v := strings.TrimSpace(r.FormValue("device_id")); v == "" {
+				cfg.DeviceID = genRandomMAC()
+			} else {
+				cfg.DeviceID = v
+			}
+			if v := strings.TrimSpace(r.FormValue("client_id")); v == "" {
+				cfg.ClientID = genUUIDv4()
+			} else {
+				cfg.ClientID = v
+			}
+		}
 		if v := r.FormValue("enabled"); v != "" {
 			cfg.Enabled = v == "true" || v == "1" || v == "on"
 		}
@@ -259,17 +384,6 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if v := r.FormValue("game_google_tts_vi"); v != "" {
 			cfg.GameGoogleTTSVI = v == "true" || v == "1" || v == "on"
-		}
-		// Blank device/client IDs → generate (random MAC / UUID). Non-blank keeps user value.
-		if v := strings.TrimSpace(r.FormValue("device_id")); v == "" {
-			cfg.DeviceID = genRandomMAC()
-		} else {
-			cfg.DeviceID = v
-		}
-		if v := strings.TrimSpace(r.FormValue("client_id")); v == "" {
-			cfg.ClientID = genUUIDv4()
-		} else {
-			cfg.ClientID = v
 		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
@@ -340,19 +454,34 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		want := v == "true" || v == "1" || v == "on"
+		ident := strings.ToLower(strings.TrimSpace(r.FormValue("identity_mode")))
+		if want && ident == "" {
+			if isXiaozhiViPool(cfg) || strings.TrimSpace(cfg.IdentityMode) == "" {
+				ident = xiaozhiIdentityViPool
+			} else {
+				ident = xiaozhiIdentityCustom
+			}
+		}
+		prevIdent := strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
 		changed := cfg.Enabled != want
+		identChanged := want && ident != "" && ident != prevIdent
 		cfg.Enabled = want
 		cfg.AutoApplyOTAWebsocket = true
 		if want {
-			if cfg.DeviceID == "" {
-				cfg.DeviceID = genRandomMAC()
-			}
-			if cfg.ClientID == "" {
-				cfg.ClientID = genUUIDv4()
-			}
-			// Best-effort: pull WSS endpoint/token on first enable / mode switch on.
-			if result, err := doOTAPost(cfg); err == nil {
-				applyWebsocketFromOTAResult(&cfg, result)
+			if ident == xiaozhiIdentityViPool {
+				// Defaults only — boot rotates MAC/UUID (unless skip file).
+				applyXiaozhiViPoolDefaults(&cfg)
+			} else {
+				cfg.IdentityMode = xiaozhiIdentityCustom
+				if cfg.DeviceID == "" {
+					cfg.DeviceID = genRandomMAC()
+				}
+				if cfg.ClientID == "" {
+					cfg.ClientID = genUUIDv4()
+				}
+				if result, err := doOTAPost(cfg); err == nil {
+					applyWebsocketFromOTAResult(&cfg, result)
+				}
 			}
 		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
@@ -360,8 +489,8 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		restarted := false
-		if changed {
-			_ = exec.Command("/bin/systemctl", "restart", "vic-cloud").Start()
+		if changed || identChanged {
+			restartVicCloud()
 			restarted = true
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -369,6 +498,28 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			"status":    "success",
 			"config":    cfg,
 			"restarted": restarted,
+		})
+		return
+
+	case vars.IsEndpoint(r, "renew_pool"):
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		applyXiaozhiViPool(&cfg)
+		cfg.Enabled = true
+		if result, err := doOTAPost(cfg); err == nil {
+			applyWebsocketFromOTAResult(&cfg, result)
+		}
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		markXiaozhiSkipRotate()
+		restartVicCloud()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":    "success",
+			"config":    cfg,
+			"restarted": true,
 		})
 		return
 
