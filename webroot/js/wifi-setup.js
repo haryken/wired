@@ -6,6 +6,8 @@ function wifiT(key, fallback) {
 let wifiOpenNet = false;
 let wifiScanBusy = false;
 let wifiCanJoin = false;
+let wifiDidAutoScan = false;
+let wifiApSsid = '';
 
 function wifiSetJoinMode(canJoin, status) {
     wifiCanJoin = !!canJoin;
@@ -38,6 +40,7 @@ async function wifiRefreshStatus() {
         const bits = [];
         if (j.ap) bits.push('Hotspot mở: ' + (j.ap_ssid || '?') + ' (không mật khẩu)');
         else bits.push('Hotspot: off');
+        if (j.ap_ssid) wifiApSsid = j.ap_ssid;
         if (j.client_ssid) bits.push('WiFi nhà: ' + j.client_ssid);
         if (j.ips && j.ips.length) bits.push('IP: ' + j.ips.join(', '));
         line.textContent = bits.join(' · ');
@@ -58,6 +61,10 @@ async function wifiRefreshStatus() {
         const hint = document.getElementById('wifiScanHint');
         if (hint && j.ap && !hint.dataset.locked) {
             hint.textContent = wifiT('wifi.ap_pass_hint', 'Hotspot robot không cần mật khẩu. Ô bên dưới là mật khẩu WiFi NHÀ.');
+        }
+        if (j.ap && !wifiDidAutoScan) {
+            wifiDidAutoScan = true;
+            wifiScan();
         }
         if (log && !log.dataset.touched) log.textContent = JSON.stringify(j, null, 2);
     } catch (e) {
@@ -155,10 +162,58 @@ function wifiTogglePass() {
     btn.setAttribute('aria-label', show
         ? wifiT('wifi.hide_pass', 'Ẩn mật khẩu')
         : wifiT('wifi.show_pass', 'Hiện mật khẩu'));
-    const on = btn.querySelector('.wifi-eye-on');
-    const off = btn.querySelector('.wifi-eye-off');
-    if (on) on.hidden = !!show;
-    if (off) off.hidden = !show;
+}
+
+function wifiSentModal(ok) {
+    const ap = wifiApSsid || 'Vector XXXX';
+    let root = document.getElementById('wifiSentModal');
+    if (!root) {
+        root = document.createElement('div');
+        root.id = 'wifiSentModal';
+        root.className = 'wireos-modal wifi-sent-modal';
+        root.hidden = true;
+        root.innerHTML =
+            '<div class="wireos-modal-backdrop" data-wifi-sent-close></div>' +
+            '<div class="wireos-modal-panel" role="dialog" aria-modal="true">' +
+            '  <div class="wifi-sent-mark" aria-hidden="true">✓</div>' +
+            '  <h3 id="wifiSentTitle" class="wireos-modal-title"></h3>' +
+            '  <p id="wifiSentBody" class="wireos-modal-body"></p>' +
+            '  <div class="wireos-modal-actions">' +
+            '    <button type="button" class="wireos-modal-btn primary" data-wifi-sent-close></button>' +
+            '  </div>' +
+            '</div>';
+        document.body.appendChild(root);
+        root.querySelectorAll('[data-wifi-sent-close]').forEach((el) => {
+            el.addEventListener('click', () => {
+                root.hidden = true;
+                document.body.classList.remove('wireos-modal-open');
+            });
+        });
+    }
+    const title = document.getElementById('wifiSentTitle');
+    const body = document.getElementById('wifiSentBody');
+    const btn = root.querySelector('.wireos-modal-btn');
+    const mark = root.querySelector('.wifi-sent-mark');
+    if (ok) {
+        if (mark) mark.textContent = '✓';
+        title.textContent = wifiT('wifi.sent_title', 'Đã gửi thành công');
+        const bodyTpl = wifiT('wifi.sent_body',
+            'Robot đã nhận WiFi nhà.\n\nĐợi khoảng 30 giây: hotspot sẽ tắt để thử vào mạng nhà.\n\n• Thành công: mở lại http://<IP-robot>:8080/\n• Thất bại: hotspot {ap} bật lại — nối phone vào {ap} rồi nhập lại mật khẩu.');
+        body.textContent = bodyTpl.split('{ap}').join(ap);
+        btn.textContent = wifiT('wifi.sent_ok', 'Đã hiểu');
+    } else {
+        if (mark) mark.textContent = '!';
+        title.textContent = wifiT('wifi.sent_fail_title', 'Chưa gửi được');
+        body.textContent = wifiT('wifi.sent_fail_body', 'Không gửi được tới robot. Kiểm tra phone còn nối hotspot rồi thử lại.');
+        btn.textContent = wifiT('wifi.sent_ok', 'Đã hiểu');
+    }
+    if (mark) {
+        mark.style.animation = 'none';
+        void mark.offsetWidth;
+        mark.style.animation = '';
+    }
+    root.hidden = false;
+    document.body.classList.add('wireos-modal-open');
 }
 
 async function wifiApply() {
@@ -190,13 +245,26 @@ async function wifiApply() {
         });
         const t = await r.text();
         if (log) log.textContent = t;
-        alert('Đã gửi. Robot sẽ rớt mạng ~30–60 giây rồi vào WiFi mới. Mở lại http://<IP-mới>:8080/');
+        if (!r.ok) {
+            wifiSentModal(false);
+            return;
+        }
+        wifiSentModal(true);
     } catch (e) {
         if (log) log.textContent = String(e);
+        wifiSentModal(false);
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function wifiBoot() {
     wifiRefreshStatus();
     setInterval(wifiRefreshStatus, 8000);
-});
+    if (/[?&]wifi=sent\b/.test(location.search)) {
+        wifiSentModal(true);
+    }
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wifiBoot);
+} else {
+    wifiBoot();
+}

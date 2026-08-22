@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/os-vector/wired/vars"
 )
@@ -701,8 +702,6 @@ func setAutoConnectNamed(ssid string, on bool) {
 	}
 }
 
-
-
 func wifiJoinInProgress() bool {
 	if _, err := os.Stat(wifiTryingFlag); err == nil {
 		return true
@@ -1200,6 +1199,25 @@ func mergeWifiNets(dst, src []wifiNet) []wifiNet {
 			by[n.SSID] = old
 		}
 	}
+	// "Huynh 2.4" parsed as "2.4" (connman flags / last token) — keep the longer name.
+	for short := range by {
+		for full, fn := range by {
+			if short == full {
+				continue
+			}
+			if strings.HasSuffix(full, " "+short) {
+				if fn.Signal < by[short].Signal {
+					fn.Signal = by[short].Signal
+				}
+				if by[short].Secure {
+					fn.Secure = true
+				}
+				by[full] = fn
+				delete(by, short)
+				break
+			}
+		}
+	}
 	out := make([]wifiNet, 0, len(by))
 	for _, n := range by {
 		out = append(out, n)
@@ -1315,7 +1333,7 @@ func parseIwScan(out string) []wifiNet {
 		if strings.HasPrefix(t, "SSID:") {
 			s := strings.TrimSpace(strings.TrimPrefix(t, "SSID:"))
 			if s != "" {
-				cur.SSID = s
+				cur.SSID = unescapeIwSSID(s)
 			}
 		}
 		if strings.HasPrefix(t, "RSN:") || strings.HasPrefix(t, "WPA:") || strings.Contains(t, "Privacy") {
@@ -1326,6 +1344,45 @@ func parseIwScan(out string) []wifiNet {
 	return nets
 }
 
+func stripConnmanServiceFlags(name string) string {
+	s := strings.TrimSpace(name)
+	s = strings.TrimPrefix(s, "*")
+	s = strings.TrimSpace(s)
+	i := 0
+	for i < len(s) && (s[i] == 'A' || s[i] == 'O' || s[i] == 'R') {
+		i++
+	}
+	if i > 0 && i < len(s) && s[i] == ' ' {
+		s = strings.TrimSpace(s[i:])
+	}
+	return s
+}
+
+func ssidFromConnmanPath(path string) string {
+	path = strings.TrimSpace(path)
+	if i := strings.Index(path, "wifi_"); i >= 0 {
+		path = path[i:]
+	}
+	parts := strings.Split(path, "_")
+	if len(parts) < 5 || parts[0] != "wifi" {
+		return ""
+	}
+	raw, err := hex.DecodeString(parts[2])
+	if err != nil || len(raw) == 0 {
+		return ""
+	}
+	s := string(raw)
+	if !utf8.ValidString(s) {
+		return ""
+	}
+	for _, r := range s {
+		if r < 32 || r == 127 {
+			return ""
+		}
+	}
+	return s
+}
+
 func parseConnmanctl(out string) []wifiNet {
 	var nets []wifiNet
 	for _, line := range strings.Split(out, "\n") {
@@ -1334,9 +1391,12 @@ func parseConnmanctl(out string) []wifiNet {
 			continue
 		}
 		path := strings.TrimSpace(line[idx+1:])
-		name := strings.TrimSpace(line[:idx])
-		name = strings.TrimLeft(name, "*AOR ")
-		name = strings.TrimSpace(name)
+		name := stripConnmanServiceFlags(strings.TrimSpace(line[:idx]))
+		if decoded := ssidFromConnmanPath(path); decoded != "" {
+			if name == "" || strings.HasSuffix(decoded, " "+name) || len(decoded) > len(name) {
+				name = decoded
+			}
+		}
 		if name == "" {
 			continue
 		}
@@ -1364,9 +1424,13 @@ func dbmToPct(dbm int) int {
 }
 
 func wifiWaitHTML() string {
+	ap, _ := setupAPCreds()
+	if ap == "" {
+		ap = "Vector XXXX"
+	}
 	return `<!doctype html><html lang="vi"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="refresh" content="2;url=/wifi?wifi=sent">
+<meta http-equiv="refresh" content="2;url=/#wifi">
 <title>Vector · Đã gửi WiFi</title>
 <link rel="stylesheet" href="/style.css">
 </head><body>
@@ -1376,9 +1440,9 @@ func wifiWaitHTML() string {
 </div>
 <div class="container" style="padding:24px">
 <h2>Đã gửi thành công</h2>
-<p>Robot đã nhận WiFi nhà. Hotspot sẽ tắt sau giây lát để thử nối (~30 giây).</p>
-<p>Nếu <b>không</b> thấy hotspot trở lại: đã vào WiFi nhà — mở <code>http://&lt;IP-robot&gt;:8080/</code>.</p>
-<p>Nếu hotspot bật lại: sai mật khẩu, vào lại trang này để sửa.</p>
+<p>Robot đã nhận WiFi nhà. Đợi khoảng <b>30 giây</b>: hotspot tắt để thử vào mạng nhà.</p>
+<p>• Thành công: mở <code>http://&lt;IP-robot&gt;:8080/</code></p>
+<p>• Thất bại: hotspot <b>` + html.EscapeString(ap) + `</b> bật lại — nối phone vào đó rồi nhập lại mật khẩu.</p>
 </div></body></html>`
 }
 
@@ -1427,9 +1491,9 @@ Trang này: <code>http://` + html.EscapeString(apIP) + `/wifi</code></p>
 <p><label>Mật khẩu WiFi nhà<br>
 <span class="wifi-pass-wrap" style="position:relative;display:block;width:100%">
 <input name="pass" id="pass" type="password" minlength="8" style="width:100%;min-height:44px;box-sizing:border-box;padding:10px 44px 10px 12px">
-<button type="button" id="passEye" aria-label="Hiện mật khẩu" onclick="(function(b){var i=document.getElementById('pass');if(!i||!b)return;var s=i.type==='password';i.type=s?'text':'password';b.setAttribute('aria-pressed',s?'true':'false');b.setAttribute('aria-label',s?'Ẩn mật khẩu':'Hiện mật khẩu');var on=b.querySelector('.wifi-eye-on'),off=b.querySelector('.wifi-eye-off');if(on)on.hidden=!!s;if(off)off.hidden=!s;})(this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:8px;background:transparent;color:#9ca3af;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+<button type="button" id="passEye" class="wifi-pass-eye" aria-label="Hiện mật khẩu" aria-pressed="false" onclick="(function(b){var i=document.getElementById('pass');if(!i||!b)return;var s=i.type==='password';i.type=s?'text':'password';b.setAttribute('aria-pressed',s?'true':'false');b.setAttribute('aria-label',s?'Ẩn mật khẩu':'Hiện mật khẩu');})(this)">
 <svg class="wifi-eye-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
-<svg class="wifi-eye-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" hidden><path fill="currentColor" d="M2.1 3.51 3.51 2.1l18.39 18.39-1.41 1.41-3.13-3.13A12.3 12.3 0 0 1 12 19c-5 0-9.27-3.11-11-7a13.5 13.5 0 0 1 4.2-5.05L2.1 3.51zM12 7a5 5 0 0 1 4.9 4.02l-1.57-1.57A2.5 2.5 0 0 0 12.55 8.1L12 7zm0-2c5 0 9.27 3.11 11 7a13.6 13.6 0 0 1-3.35 4.36l-1.45-1.45A11.5 11.5 0 0 0 21.05 12C19.5 8.8 16 7 12 7c-.7 0-1.38.08-2.03.23L8.4 5.66C9.52 5.23 10.73 5 12 5z"/></svg>
+<svg class="wifi-eye-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2.1 3.51 3.51 2.1l18.39 18.39-1.41 1.41-3.13-3.13A12.3 12.3 0 0 1 12 19c-5 0-9.27-3.11-11-7a13.5 13.5 0 0 1 4.2-5.05L2.1 3.51zM12 7a5 5 0 0 1 4.9 4.02l-1.57-1.57A2.5 2.5 0 0 0 12.55 8.1L12 7zm0-2c5 0 9.27 3.11 11 7a13.6 13.6 0 0 1-3.35 4.36l-1.45-1.45A11.5 11.5 0 0 0 21.05 12C19.5 8.8 16 7 12 7c-.7 0-1.38.08-2.03.23L8.4 5.66C9.52 5.23 10.73 5 12 5z"/></svg>
 </button>
 </span></label></p>
 <p id="wifiFormMsg" class="wifi-banner wifi-banner-ok" style="display:none"></p>
@@ -1457,7 +1521,7 @@ function wifiScanPortal(){
       var b=document.createElement('button');
       b.type='button';
       b.className='wifi-net';
-      b.innerHTML='<span>'+escapeHtml(n.ssid)+'</span><span class="wifi-net-meta">'+(n.secure?'🔒 ':'mở ')+(n.signal||0)+'%</span>';
+      b.innerHTML='<span class="wifi-net-name">'+escapeHtml(n.ssid)+'</span><span class="wifi-net-meta">'+(n.secure?'🔒 ':'mở ')+(n.signal||0)+'%</span>';
       b.onclick=function(){
         document.querySelectorAll('.wifi-net').forEach(function(x){x.classList.remove('selected')});
         b.classList.add('selected');

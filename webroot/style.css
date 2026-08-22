@@ -2323,7 +2323,22 @@ html.i18n-pure small.sub {
     color: #67e8f9;
 }
 .wifi-pass-eye svg {
+    display: none;
+    width: 20px;
+    height: 20px;
+}
+.wifi-pass-eye .wifi-eye-on {
     display: block;
+}
+.wifi-pass-eye[aria-pressed="true"] .wifi-eye-on {
+    display: none;
+}
+.wifi-pass-eye[aria-pressed="true"] .wifi-eye-off {
+    display: block;
+}
+.wifi-pass-eye .wifi-eye-on[hidden],
+.wifi-pass-eye .wifi-eye-off[hidden] {
+    display: none !important;
 }
 
 .wifi-connected-panel .wifi-net {
@@ -2457,5 +2472,44 @@ body.wireos-modal-open {
 }
 .wireos-modal-btn.primary:hover {
     background: #0891b2;
+}
+
+.wifi-sent-modal .wireos-modal-panel {
+    text-align: center;
+    padding: 22px 20px 18px;
+    animation: wifiSentPop 0.42s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+.wifi-sent-mark {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34, 211, 238, 0.14);
+    border: 2px solid #22d3ee;
+    color: #67e8f9;
+    font-size: 32px;
+    font-weight: 700;
+    animation: wifiSentPulse 1.2s ease-out 1;
+}
+.wifi-sent-modal .wireos-modal-title {
+    color: #67e8f9;
+}
+.wifi-sent-modal .wireos-modal-body {
+    text-align: left;
+}
+.wifi-sent-modal .wireos-modal-actions {
+    justify-content: center;
+}
+@keyframes wifiSentPop {
+    from { transform: scale(0.86) translateY(12px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+}
+@keyframes wifiSentPulse {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
 }
 
