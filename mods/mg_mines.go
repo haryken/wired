@@ -332,10 +332,10 @@ func NewMinesweeper() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getMinesweeper().playUCI(u) },
 		func() []string { return getMinesweeper().legalUCIs() },
 		func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván dò mìn mới. Mở một ô để bắt đầu.", "Dò mìn. Ván mới."
-			}
-			return "New minesweeper game. Reveal a cell to start.", "Minesweeper. Ván mới."
+			return speakNew(
+				"New minesweeper game. Reveal a cell to start.",
+				"Ván dò mìn mới. Mở một ô để bắt đầu.",
+			)
 		},
 	)
 }

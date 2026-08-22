@@ -80,11 +80,16 @@ func bjSpeakRank(card string) (vi, en string) {
 }
 
 func bjSpeakCardMode(card string) string {
-	vi, en := bjSpeakRank(card)
-	if chessPreferVIText() {
+	lang := gameSpeakLang()
+	if lang == "en" {
+		_, en := bjSpeakRank(card)
+		return en
+	}
+	if lang == "vi" {
+		vi, _ := bjSpeakRank(card)
 		return vi
 	}
-	return en
+	return bjRankSpoken(card)
 }
 
 type bjGame struct {
@@ -134,16 +139,17 @@ func (g *bjGame) drawLocked() string {
 func (g *bjGame) askHitMsg(justCard string) string {
 	pv := bjHandValue(g.playerHand)
 	if justCard != "" {
-		vi, en := bjSpeakRank(justCard)
-		msg, _ := viOrEN(
-			fmt.Sprintf("Bạn đã rút được lá %s. Tổng điểm hiện tại là %d. Bạn có muốn rút thêm không?", vi, pv),
-			fmt.Sprintf("You drew a %s. Your total is %d. Do you want to hit again?", en, pv),
+		msg, _ := speakf(
+			"Bạn đã rút được lá %s. Tổng điểm hiện tại là %d. Bạn có muốn rút thêm không?",
+			"You drew a %s. Your total is %d. Do you want to hit again?",
+			bjSpeakCardMode(justCard), pv,
 		)
 		return msg
 	}
-	msg, _ := viOrEN(
-		fmt.Sprintf("Điểm hiện tại của bạn là %d. Bạn có muốn rút thêm không?", pv),
-		fmt.Sprintf("Your current score is %d. Do you want to hit?", pv),
+	msg, _ := speakf(
+		"Điểm hiện tại của bạn là %d. Bạn có muốn rút thêm không?",
+		"Your current score is %d. Do you want to hit?",
+		pv,
 	)
 	return msg
 }
@@ -156,27 +162,31 @@ func (g *bjGame) finishResolveLocked() {
 		g.message, _ = viOrEN("Quắc! Bạn thua.", "Bust! You lose.")
 	case dv > 21:
 		g.status, g.winner, g.bank = "win", "human", g.bank+10
-		g.message, _ = viOrEN(
-			fmt.Sprintf("Nhà cái quắc với %d điểm! Bạn thắng!", dv),
-			fmt.Sprintf("Dealer busts with %d! You win!", dv),
+		g.message, _ = speakf(
+			"Nhà cái quắc với %d điểm! Bạn thắng!",
+			"Dealer busts with %d! You win!",
+			dv,
 		)
 	case pv > dv:
 		g.status, g.winner, g.bank = "win", "human", g.bank+10
-		g.message, _ = viOrEN(
-			fmt.Sprintf("Bạn %d — nhà cái %d. Bạn thắng!", pv, dv),
-			fmt.Sprintf("You %d — dealer %d. You win!", pv, dv),
+		g.message, _ = speakf(
+			"Bạn %d — nhà cái %d. Bạn thắng!",
+			"You %d — dealer %d. You win!",
+			pv, dv,
 		)
 	case pv < dv:
 		g.status, g.winner, g.bank = "lose", "bot", g.bank-10
-		g.message, _ = viOrEN(
-			fmt.Sprintf("Bạn %d — nhà cái %d. Bạn thua.", pv, dv),
-			fmt.Sprintf("You %d — dealer %d. You lose.", pv, dv),
+		g.message, _ = speakf(
+			"Bạn %d — nhà cái %d. Bạn thua.",
+			"You %d — dealer %d. You lose.",
+			pv, dv,
 		)
 	default:
 		g.status, g.winner = "draw", ""
-		g.message, _ = viOrEN(
-			fmt.Sprintf("Hoà (push) ở %d điểm.", pv),
-			fmt.Sprintf("Push at %d.", pv),
+		g.message, _ = speakf(
+			"Hoà (push) ở %d điểm.",
+			"Push at %d.",
+			pv,
 		)
 	}
 	g.humanTurn = false
@@ -193,9 +203,10 @@ func (g *bjGame) beginDealerTurnLocked() int {
 	g.drawAnimTo = ""
 	g.lastCard = ""
 	dv := bjHandValue(g.dealerHand)
-	g.message, _ = viOrEN(
-		fmt.Sprintf("Đủ rồi — tới lượt nhà cái. Nhà cái đang có %d điểm.", dv),
-		fmt.Sprintf("Standing — dealer's turn. Dealer shows %d.", dv),
+	g.message, _ = speakf(
+		"Đủ rồi — tới lượt nhà cái. Nhà cái đang có %d điểm.",
+		"Standing — dealer's turn. Dealer shows %d.",
+		dv,
 	)
 	return g.thinkGen
 }
@@ -326,10 +337,10 @@ func (g *bjGame) playUCI(uci string) (map[string]interface{}, error) {
 			g.status, g.winner, g.bank = "lose", "bot", g.bank-10
 			g.humanTurn = false
 			g.dealerRevealed = true
-			vi, en := bjSpeakRank(card)
-			g.message, _ = viOrEN(
-				fmt.Sprintf("Bạn rút lá %s — tổng %d. Quắc! Bạn thua.", vi, pv),
-				fmt.Sprintf("You drew a %s — total %d. Bust! You lose.", en, pv),
+			g.message, _ = speakf(
+				"Bạn rút lá %s — tổng %d. Quắc! Bạn thua.",
+				"You drew a %s — total %d. Bust! You lose.",
+				bjSpeakCardMode(card), pv,
 			)
 		} else if len(g.playerHand) >= 5 {
 			g.status, g.winner, g.bank = "win", "human", g.bank+10
@@ -419,21 +430,24 @@ func (g *bjGame) runDealerThink(gen int) {
 		g.drawAnimTo = "dealer"
 		g.lastMove = "dealer_hit"
 		dv = bjHandValue(g.dealerHand)
-		vi, en := bjSpeakRank(card)
+		rank := bjSpeakCardMode(card)
 		if dv > 21 {
-			g.message, _ = viOrEN(
-				fmt.Sprintf("Nhà cái rút lá %s. Tổng nhà cái %d — quắc!", vi, dv),
-				fmt.Sprintf("Dealer draws a %s. Dealer total %d — bust!", en, dv),
+			g.message, _ = speakf(
+				"Nhà cái rút lá %s. Tổng nhà cái %d — quắc!",
+				"Dealer draws a %s. Dealer total %d — bust!",
+				rank, dv,
 			)
 		} else if dv >= 17 {
-			g.message, _ = viOrEN(
-				fmt.Sprintf("Nhà cái rút lá %s. Tổng nhà cái %d — dừng rút.", vi, dv),
-				fmt.Sprintf("Dealer draws a %s. Dealer total %d — stands.", en, dv),
+			g.message, _ = speakf(
+				"Nhà cái rút lá %s. Tổng nhà cái %d — dừng rút.",
+				"Dealer draws a %s. Dealer total %d — stands.",
+				rank, dv,
 			)
 		} else {
-			g.message, _ = viOrEN(
-				fmt.Sprintf("Nhà cái rút lá %s. Tổng nhà cái hiện tại %d — rút tiếp.", vi, dv),
-				fmt.Sprintf("Dealer draws a %s. Dealer total is %d — hits again.", en, dv),
+			g.message, _ = speakf(
+				"Nhà cái rút lá %s. Tổng nhà cái hiện tại %d — rút tiếp.",
+				"Dealer draws a %s. Dealer total is %d — hits again.",
+				rank, dv,
 			)
 		}
 		msg := g.message

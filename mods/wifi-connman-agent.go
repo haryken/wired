@@ -186,3 +186,114 @@ func hsFindWifiServicePath(bus *dbus.Conn, ssid string, hidden bool) (dbus.Objec
 	}
 	return "", fmt.Errorf("không thấy service WiFi %q — quét lại", ssid)
 }
+
+// listConnmanWifiNets uses Manager.GetServices Name (same D-Bus path as
+// hsFindWifiServicePath). connmanctl text columns split "Huynh 2.4" → "2.4".
+func listConnmanWifiNets() []wifiNet {
+	bus, err := dbus.SystemBus()
+	if err != nil {
+		return nil
+	}
+	manager := bus.Object("net.connman", "/")
+	var services [][]interface{}
+	if err := manager.Call("net.connman.Manager.GetServices", 0).Store(&services); err != nil {
+		return nil
+	}
+	var nets []wifiNet
+	seen := map[string]wifiNet{}
+	for _, pair := range services {
+		if len(pair) < 2 {
+			continue
+		}
+		path, ok := pair[0].(dbus.ObjectPath)
+		if !ok {
+			if s, ok2 := pair[0].(string); ok2 {
+				path = dbus.ObjectPath(s)
+			} else {
+				continue
+			}
+		}
+		props, ok := pair[1].(map[string]dbus.Variant)
+		if !ok {
+			continue
+		}
+		typ, _ := props["Type"].Value().(string)
+		if typ != "wifi" {
+			continue
+		}
+		if freq := dbusUint(props["Frequency"]); freq >= 5000 {
+			continue
+		}
+		name := ""
+		if v, ok := props["Name"]; ok {
+			name, _ = v.Value().(string)
+		}
+		name = strings.TrimSpace(name)
+		if decoded := ssidFromConnmanPath(string(path)); decoded != "" {
+			if name == "" || len(decoded) > len(name) || strings.HasSuffix(decoded, " "+name) {
+				name = decoded
+			}
+		}
+		if name == "" {
+			continue
+		}
+		n := wifiNet{
+			SSID:   name,
+			Signal: int(dbusUint(props["Strength"])),
+			Secure: connmanPropsSecure(props),
+		}
+		if n.Signal <= 0 {
+			n.Signal = 50
+		}
+		if old, ok := seen[name]; !ok || n.Signal > old.Signal {
+			seen[name] = n
+		}
+	}
+	for _, n := range seen {
+		nets = append(nets, n)
+	}
+	return nets
+}
+
+func connmanPropsSecure(props map[string]dbus.Variant) bool {
+	v, ok := props["Security"]
+	if !ok {
+		return false
+	}
+	switch sec := v.Value().(type) {
+	case []string:
+		for _, s := range sec {
+			if s == "psk" || s == "ieee8021x" || s == "wep" || s == "wpa" || s == "rsn" {
+				return true
+			}
+		}
+	case []interface{}:
+		for _, x := range sec {
+			s, _ := x.(string)
+			if s == "psk" || s == "ieee8021x" || s == "wep" || s == "wpa" || s == "rsn" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dbusUint(v dbus.Variant) uint32 {
+	switch n := v.Value().(type) {
+	case byte:
+		return uint32(n)
+	case uint16:
+		return uint32(n)
+	case uint32:
+		return n
+	case int16:
+		if n > 0 {
+			return uint32(n)
+		}
+	case int32:
+		if n > 0 {
+			return uint32(n)
+		}
+	}
+	return 0
+}

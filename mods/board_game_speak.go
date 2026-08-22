@@ -60,10 +60,14 @@ func buildPlaceCommentVI(game, youMove, botMove, status, winner string) string {
 }
 
 func buildPlaceSpoken(game, youMove, botMove, status, winner string) string {
-	if chessPreferVIText() {
+	lang := gameSpeakLang()
+	if lang == "en" {
+		return buildPlaceCommentEN(game, youMove, botMove, status, winner)
+	}
+	if lang == "vi" {
 		return buildPlaceCommentVI(game, youMove, botMove, status, winner)
 	}
-	return buildPlaceCommentEN(game, youMove, botMove, status, winner)
+	return buildPlaceCommentForLang(youMove, botMove, status, winner)
 }
 
 func buildPlaceSpokenHumanOnly(game, youMove, status, winner string) string {

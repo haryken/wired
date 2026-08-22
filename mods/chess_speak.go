@@ -73,9 +73,10 @@ func chessGoogleTTSLang() string {
 	return normalizeGoogleTTSLang(cfg.GameGoogleTTSLang)
 }
 
-// chessPreferVIText uses Vietnamese comment strings only for Google + vi.
+// chessPreferVIText is true only for Google TTS + Vietnamese.
+// Other Google languages use gameSpeakLang() + localized templates.
 func chessPreferVIText() bool {
-	return getChessCommentMode() == chessModeGoogleVI && chessGoogleTTSLang() == "vi"
+	return gameSpeakLang() == "vi"
 }
 
 func normalizeGoogleTTSLang(lang string) string {
@@ -162,7 +163,7 @@ func queueGameSpeak(gameID, say, summary string) {
 		return
 	}
 	mode := getChessCommentMode()
-	// google_vi: VI text when lang=vi; otherwise English text + Google voice lang.
+	// google_vi: comment text matches GameGoogleTTSLang (vi, zh-CN, it, …).
 	prompt := ""
 	if mode == chessModeXiaozhi {
 		prompt = buildXiaozhiGamePrompt(gameID, say, summary)
@@ -364,12 +365,16 @@ func buildChessCommentVI(youMove, botMove, youPiece, botPiece, status, winner st
 	return strings.TrimSpace(strings.Join(parts, " "))
 }
 
-// buildChessSpokenComment picks English (saytext/xiaozhi/non-vi Google) or Vietnamese (Google vi).
+// buildChessSpokenComment matches SayText (English) or the Google TTS language.
 func buildChessSpokenComment(youMove, botMove, youPiece, botPiece, status, winner string) string {
-	if chessPreferVIText() {
+	lang := gameSpeakLang()
+	if lang == "en" {
+		return buildChessComment(youMove, botMove, youPiece, botPiece, status, winner)
+	}
+	if lang == "vi" {
 		return buildChessCommentVI(youMove, botMove, youPiece, botPiece, status, winner)
 	}
-	return buildChessComment(youMove, botMove, youPiece, botPiece, status, winner)
+	return buildChessCommentForLang(youMove, botMove, youPiece, botPiece, status, winner)
 }
 
 func speakGameName(id string) string {

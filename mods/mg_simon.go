@@ -127,7 +127,7 @@ func (g *simonGame) playUCI(uci string) (map[string]interface{}, error) {
 		level := len(g.sequence)
 		seq := append([]int{}, g.sequence...)
 		g.playerInput = nil
-		g.message, _ = viOrEN(fmt.Sprintf("Sai rồi! Bạn thua ở mức %d.", level), fmt.Sprintf("Wrong! You lost at level %d.", level))
+		g.message, _ = speakf("Sai rồi! Bạn thua ở mức %d.", "Wrong! You lost at level %d.", level)
 		resp := g.snapshotLocked()
 		resp["sequence"] = seq
 		msg := g.message
@@ -141,7 +141,7 @@ func (g *simonGame) playUCI(uci string) (map[string]interface{}, error) {
 		g.sequence = append(g.sequence, rand.Intn(4))
 		g.playerInput = nil
 		g.lastMove = "playback"
-		msg, _ = viOrEN(fmt.Sprintf("Chính xác! Dãy mới có %d bước.", len(g.sequence)), fmt.Sprintf("Correct! New sequence has %d steps.", len(g.sequence)))
+		msg, _ = speakf("Chính xác! Dãy mới có %d bước.", "Correct! New sequence has %d steps.", len(g.sequence))
 	} else {
 		msg, _ = viOrEN("Tiếp tục...", "Keep going...")
 	}

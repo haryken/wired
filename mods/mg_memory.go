@@ -399,10 +399,10 @@ func NewMemory() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getMemory().playUCI(u) },
 		func() []string { return getMemory().legalUCIs() },
 		func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván trí nhớ mới. Lật 2 ô để tìm cặp giống nhau.", "Trí nhớ. Ván mới."
-			}
-			return "New memory game. Flip two cards to find matching pairs.", "Memory. Ván mới."
+			return speakNew(
+				"New memory game. Flip two cards to find matching pairs.",
+				"Ván trí nhớ mới. Lật 2 ô để tìm cặp giống nhau.",
+			)
 		},
 	)
 }

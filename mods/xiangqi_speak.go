@@ -75,12 +75,6 @@ func xiangqiSpeakMoveVI(piece, uci string) string {
 	return xiangqiPieceNameVI(piece) + " từ " + xiangqiSpeakSq(from) + " đến " + xiangqiSpeakSq(to)
 }
 
-// xiangqiVietnamese reports whether the active comment mode should speak
-// Vietnamese (Google TTS lang=vi) instead of English SayText.
-func xiangqiVietnamese() bool {
-	return chessPreferVIText()
-}
-
 // buildXiangqiCommentEN returns English for Vector Acapela SayText, e.g.
 // "You moved chariot from a 0 to a 1. I moved horse from h 9 to g 7."
 func buildXiangqiCommentEN(youMove, botMove, youPiece, botPiece, status, winner string) string {
@@ -137,19 +131,19 @@ func buildXiangqiCommentVI(youMove, botMove, youPiece, botPiece, status, winner 
 	return strings.TrimSpace(strings.Join(parts, " "))
 }
 
-// buildXiangqiSpokenComment picks English (saytext) or Vietnamese
-// (google_vi / Xiaozhi conversation) phrasing based on the active chess
-// comment mode, then delegates to queueChessSpeak in xiangqi.go.
+// buildXiangqiSpokenComment matches SayText (English) or the Google TTS language.
 func buildXiangqiSpokenComment(youMove, botMove, youPiece, botPiece, status, winner string) string {
-	if xiangqiVietnamese() {
+	lang := gameSpeakLang()
+	if lang == "en" {
+		return buildXiangqiCommentEN(youMove, botMove, youPiece, botPiece, status, winner)
+	}
+	if lang == "vi" {
 		return buildXiangqiCommentVI(youMove, botMove, youPiece, botPiece, status, winner)
 	}
-	return buildXiangqiCommentEN(youMove, botMove, youPiece, botPiece, status, winner)
+	return buildXiangqiCommentForLang(youMove, botMove, youPiece, botPiece, status, winner)
 }
 
 func xiangqiNewGameSpeak() string {
-	if xiangqiVietnamese() {
-		return "Ván mới. Bạn cầm Đỏ. Đến lượt bạn."
-	}
-	return "New game. You are red. Your move."
+	s, _ := speakNew("New game. You are red. Your move.", "Ván mới. Bạn cầm Đỏ. Đến lượt bạn.")
+	return s
 }

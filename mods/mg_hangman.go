@@ -180,7 +180,7 @@ func (g *hangmanGame) playUCI(uci string) (map[string]interface{}, error) {
 	} else if len(g.wrong) >= hangmanMaxWrong {
 		g.status = "lose"
 		g.winner = "bot"
-		g.message, _ = viOrEN(fmt.Sprintf("Bạn thua! Từ đúng là %s.", g.secret), fmt.Sprintf("You lose! The word was %s.", g.secret))
+		g.message, _ = speakf("Bạn thua! Từ đúng là %s.", "You lose! The word was %s.", g.secret)
 	}
 
 	resp := g.snapshotLocked()

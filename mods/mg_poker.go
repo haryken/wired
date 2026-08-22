@@ -251,22 +251,14 @@ func newPokerGame() *pokerGame {
 
 func (g *pokerGame) refreshEvalLocked() {
 	if len(g.playerHand) == 5 {
-		cat, key, vi, en, _ := pokerEvaluate5(g.playerHand)
+		cat, key, _, _, _ := pokerEvaluate5(g.playerHand)
 		g.playerCat, g.playerKey = cat, key
-		if chessPreferVIText() {
-			g.playerName = vi
-		} else {
-			g.playerName = en
-		}
+		g.playerName = pokerHandSpoken(key)
 	}
 	if len(g.botHand) == 5 {
-		cat, key, vi, en, _ := pokerEvaluate5(g.botHand)
+		cat, key, _, _, _ := pokerEvaluate5(g.botHand)
 		g.botCat, g.botKey = cat, key
-		if chessPreferVIText() {
-			g.botName = vi
-		} else {
-			g.botName = en
-		}
+		g.botName = pokerHandSpoken(key)
 	}
 }
 

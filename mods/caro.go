@@ -25,10 +25,10 @@ func NewCaro() *Caro {
 		playUCI:       func(u string) (map[string]interface{}, error) { return getCaro().playUCI(u) },
 		legalUCIs:     func() []string { return getCaro().legalUCIs() },
 		newGameSpeak: func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván caro mới. Bạn cầm X. Freestyle, cấm 2 đầu. Đến lượt bạn.", "Cờ caro. Ván mới."
-			}
-			return "New caro game. You are X. Freestyle with double-open bans. Your move.", "Cờ caro. Ván mới."
+			return speakNew(
+				"New caro game. You are X. Freestyle with double-open bans. Your move.",
+				"Ván caro mới. Bạn cầm X. Freestyle, cấm 2 đầu. Đến lượt bạn.",
+			)
 		},
 	}
 	return m

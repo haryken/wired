@@ -352,10 +352,10 @@ func NewG2048() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getG2048().playUCI(u) },
 		func() []string { return getG2048().legalUCIs() },
 		func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván 2048 mới. Gộp các ô cùng số để đạt 2048.", "2048. Ván mới."
-			}
-			return "New 2048 game. Merge matching tiles to reach 2048.", "2048. Ván mới."
+			return speakNew(
+				"New 2048 game. Merge matching tiles to reach 2048.",
+				"Ván 2048 mới. Gộp các ô cùng số để đạt 2048.",
+			)
 		},
 	)
 }

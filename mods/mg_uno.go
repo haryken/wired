@@ -133,11 +133,16 @@ func unoSpeakCard(card, chosenColor string) (vi, en string) {
 }
 
 func unoSpeakCardMode(card, chosenColor string) string {
-	vi, en := unoSpeakCard(card, chosenColor)
-	if chessPreferVIText() {
+	lang := gameSpeakLang()
+	if lang == "en" {
+		_, en := unoSpeakCard(card, chosenColor)
+		return en
+	}
+	if lang == "vi" {
+		vi, _ := unoSpeakCard(card, chosenColor)
 		return vi
 	}
-	return en
+	return unoSpeakCardLang(card, chosenColor)
 }
 
 func unoNewDeck() []string {

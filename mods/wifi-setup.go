@@ -29,7 +29,8 @@ const (
 	wifiConnmanStateDir    = "/data/lib/connman"
 	wifiOpenAPIP           = "10.3.141.1"
 	wifiSetupAPBin         = "/usr/bin/vic-setup-ap"
-	wifiScanCache          = "/data/lib/connman/wireos-wifi-scan.json"
+	wifiScanCache          = "/data/wired/wifi-scan.json"
+	wifiScanCacheLegacy    = "/data/lib/connman/wireos-wifi-scan.json"
 	wifiScanCacheRun       = "/run/wireos-wifi-scan.json"
 	wifiPreferBleFlag      = "/run/wireos-prefer-ble"
 	wifiPendingFile        = "/run/wireos-wifi-pending.json"
@@ -1117,31 +1118,33 @@ type wifiNet struct {
 }
 
 func (m *WifiSetup) scanNetworks() ([]wifiNet, error) {
-	if tetheringOn() {
-		return loadWifiScanCache(), nil
-	}
-
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
+	ap := tetheringOn()
 	var nets []wifiNet
-	if out, err := exec.CommandContext(ctx, "iwlist", "wlan0", "scan").CombinedOutput(); err == nil {
-		nets = mergeWifiNets(nets, parseIwlist(string(out)))
-	}
-	if len(nets) == 0 {
-		if out, err := exec.CommandContext(ctx, "iw", "dev", "wlan0", "scan").CombinedOutput(); err == nil {
-			nets = mergeWifiNets(nets, parseIwScan(string(out)))
+	// D-Bus Name + hex path keep spaces ("Huynh 2.4"). iwlist cannot scan
+	// during hotspot; ConnMan services / last good cache still can.
+	nets = mergeWifiNets(nets, listConnmanWifiNets())
+
+	if !ap {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		if out, err := exec.CommandContext(ctx, "iwlist", "wlan0", "scan").CombinedOutput(); err == nil {
+			nets = mergeWifiNets(nets, parseIwlist(string(out)))
 		}
-	}
-	if len(nets) == 0 {
+		if len(nets) == 0 {
+			if out, err := exec.CommandContext(ctx, "iw", "dev", "wlan0", "scan").CombinedOutput(); err == nil {
+				nets = mergeWifiNets(nets, parseIwScan(string(out)))
+			}
+		}
+		cancel()
 		_ = connmanScan()
-		if out, err := exec.CommandContext(ctx, "connmanctl", "services").CombinedOutput(); err == nil {
-			nets = mergeWifiNets(nets, parseConnmanctl(string(out)))
-		}
 	}
+
+	if out, err := exec.Command("connmanctl", "services").CombinedOutput(); err == nil {
+		nets = mergeWifiNets(nets, parseConnmanctl(string(out)))
+	}
+	nets = mergeWifiNets(nets, loadWifiScanCache())
 	sort.Slice(nets, func(i, j int) bool { return nets[i].Signal > nets[j].Signal })
 	if len(nets) > 40 {
 		nets = nets[:40]
@@ -1153,17 +1156,23 @@ func (m *WifiSetup) scanNetworks() ([]wifiNet, error) {
 }
 
 func saveWifiScanCache(nets []wifiNet) {
+	if len(nets) == 0 {
+		return
+	}
 	b, err := json.Marshal(nets)
 	if err != nil {
 		return
 	}
-	_ = os.MkdirAll(wifiConnmanStateDir, 0755)
-	_ = os.WriteFile(wifiScanCache, b, 0644)
+	_ = os.MkdirAll("/data/wired", 0755)
+	if err := os.WriteFile(wifiScanCache, b, 0644); err != nil {
+		wifiLog("scan cache write %s: %v", wifiScanCache, err)
+	}
 	_ = os.WriteFile(wifiScanCacheRun, b, 0644)
+	_ = os.Remove(wifiScanCacheLegacy)
 }
 
 func loadWifiScanCache() []wifiNet {
-	for _, p := range []string{wifiScanCache, wifiScanCacheRun} {
+	for _, p := range []string{wifiScanCache, wifiScanCacheRun, wifiScanCacheLegacy} {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			continue
@@ -1199,23 +1208,20 @@ func mergeWifiNets(dst, src []wifiNet) []wifiNet {
 			by[n.SSID] = old
 		}
 	}
-	// "Huynh 2.4" parsed as "2.4" (connman flags / last token) — keep the longer name.
 	for short := range by {
 		for full, fn := range by {
-			if short == full {
+			if !wifiSSIDTruncatedOf(full, short) {
 				continue
 			}
-			if strings.HasSuffix(full, " "+short) {
-				if fn.Signal < by[short].Signal {
-					fn.Signal = by[short].Signal
-				}
-				if by[short].Secure {
-					fn.Secure = true
-				}
-				by[full] = fn
-				delete(by, short)
-				break
+			if fn.Signal < by[short].Signal {
+				fn.Signal = by[short].Signal
 			}
+			if by[short].Secure {
+				fn.Secure = true
+			}
+			by[full] = fn
+			delete(by, short)
+			break
 		}
 	}
 	out := make([]wifiNet, 0, len(by))
@@ -1223,6 +1229,17 @@ func mergeWifiNets(dst, src []wifiNet) []wifiNet {
 		out = append(out, n)
 	}
 	return out
+}
+
+func wifiSSIDTruncatedOf(full, short string) bool {
+	if short == "" || full == short || len(full) <= len(short) {
+		return false
+	}
+	if strings.HasSuffix(full, " "+short) {
+		return true
+	}
+	trim := strings.TrimPrefix(short, "_")
+	return trim != "" && strings.HasSuffix(full, "_"+trim)
 }
 
 func unescapeIwSSID(s string) string {
@@ -1358,16 +1375,26 @@ func stripConnmanServiceFlags(name string) string {
 	return s
 }
 
+// ssidFromConnmanPath decodes the hex SSID the same way Anki
+// GetHexSsidFromServicePath does: skip wifi_<12-char-mac>_, read until next _.
+// Do not strings.Split the whole path — that is fine for hex, but the display
+// name "Huynh 2.4" must never be used as the source of truth.
 func ssidFromConnmanPath(path string) string {
 	path = strings.TrimSpace(path)
-	if i := strings.Index(path, "wifi_"); i >= 0 {
-		path = path[i:]
-	}
-	parts := strings.Split(path, "_")
-	if len(parts) < 5 || parts[0] != "wifi" {
+	i := strings.Index(path, "wifi_")
+	if i < 0 {
 		return ""
 	}
-	raw, err := hex.DecodeString(parts[2])
+	path = path[i:]
+	const prefix = len("wifi_") + 12 + 1
+	if len(path) <= prefix {
+		return ""
+	}
+	hexSSID := path[prefix:]
+	if j := strings.IndexByte(hexSSID, '_'); j >= 0 {
+		hexSSID = hexSSID[:j]
+	}
+	raw, err := hex.DecodeString(hexSSID)
 	if err != nil || len(raw) == 0 {
 		return ""
 	}
@@ -1386,16 +1413,16 @@ func ssidFromConnmanPath(path string) string {
 func parseConnmanctl(out string) []wifiNet {
 	var nets []wifiNet
 	for _, line := range strings.Split(out, "\n") {
-		idx := strings.LastIndex(line, " wifi_")
-		if idx < 0 {
+		name, path := parseConnmanctlLine(line)
+		if path == "" {
 			continue
 		}
-		path := strings.TrimSpace(line[idx+1:])
-		name := stripConnmanServiceFlags(strings.TrimSpace(line[:idx]))
+		// Hex path is authoritative — connmanctl columns keep only the last word
+		// of "Huynh 2.4" / "MINH THIEN" / "Xuan An".
 		if decoded := ssidFromConnmanPath(path); decoded != "" {
-			if name == "" || strings.HasSuffix(decoded, " "+name) || len(decoded) > len(name) {
-				name = decoded
-			}
+			name = decoded
+		} else {
+			name = stripConnmanServiceFlags(name)
 		}
 		if name == "" {
 			continue

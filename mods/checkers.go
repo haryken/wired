@@ -25,10 +25,10 @@ func NewCheckers() *Checkers {
 		playUCI:       func(u string) (map[string]interface{}, error) { return getCheckers().playUCI(u) },
 		legalUCIs:     func() []string { return getCheckers().legalUCIs() },
 		newGameSpeak: func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván cờ đam mới. Bạn cầm trắng. Đến lượt bạn.", "Cờ đam. Ván mới."
-			}
-			return "New checkers game. You are white. Your move.", "Cờ đam. Ván mới."
+			return speakNew(
+				"New checkers game. You are white. Your move.",
+				"Ván cờ đam mới. Bạn cầm trắng. Đến lượt bạn.",
+			)
 		},
 	}
 	return m

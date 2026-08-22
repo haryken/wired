@@ -25,10 +25,10 @@ func NewConnect4() *Connect4 {
 		playUCI:       func(u string) (map[string]interface{}, error) { return getConnect4().playUCI(u) },
 		legalUCIs:     func() []string { return getConnect4().legalUCIs() },
 		newGameSpeak: func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván Connect Four mới. Bạn thả trước. Đến lượt bạn.", "Connect Four. Ván mới."
-			}
-			return "New Connect Four. You drop first. Your move.", "Connect Four. Ván mới."
+			return speakNew(
+				"New Connect Four. You drop first. Your move.",
+				"Ván Connect Four mới. Bạn thả trước. Đến lượt bạn.",
+			)
 		},
 	}
 	return m

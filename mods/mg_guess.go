@@ -62,9 +62,10 @@ func newGuessGame() *guessGame {
 	g.status = "playing"
 	g.humanTurn = true
 	g.difficulty = diffMedium
-	g.message, _ = viOrEN(
-		fmt.Sprintf("Tôi đã nghĩ ra một số từ %d đến %d. Hãy đoán xem!", guessMin, guessMax),
-		fmt.Sprintf("I picked a number from %d to %d. Guess it!", guessMin, guessMax),
+	g.message, _ = speakf(
+		"Tôi đã nghĩ ra một số từ %d đến %d. Hãy đoán xem!",
+		"I picked a number from %d to %d. Guess it!",
+		guessMin, guessMax,
 	)
 	return g
 }
@@ -116,17 +117,20 @@ func (g *guessGame) commentary(n int, higher bool, exact bool, outOfTries bool) 
 			"Correct! That was a sharp guess.",
 			"Awesome! The secret is out.",
 		})
-		msg, _ := viOrEN(
-			fmt.Sprintf("%s Số bí mật là %d — bạn thắng sau %d lượt.", vi, g.secret, g.attempts),
-			fmt.Sprintf("%s The number was %d — you won in %d guesses.", en, g.secret, g.attempts),
+		flavor := localizeSpeak(en, vi)
+		msg, _ := speakf(
+			"%s Số bí mật là %d — bạn thắng sau %d lượt.",
+			"%s The number was %d — you won in %d guesses.",
+			flavor, g.secret, g.attempts,
 		)
 		return msg
 	}
 
 	if outOfTries {
-		msg, _ := viOrEN(
-			fmt.Sprintf("Hết lượt rồi! Số bí mật là %d.", g.secret),
-			fmt.Sprintf("Out of guesses! The number was %d.", g.secret),
+		msg, _ := speakf(
+			"Hết lượt rồi! Số bí mật là %d.",
+			"Out of guesses! The number was %d.",
+			g.secret,
 		)
 		return msg
 	}
@@ -244,10 +248,7 @@ func (g *guessGame) snapshotLocked() map[string]interface{} {
 		rem = 0
 	}
 	dVI, dEN := guessDiffLabel(g.difficulty)
-	diffLabel := dEN
-	if chessPreferVIText() {
-		diffLabel = dVI
-	}
+	diffLabel := localizeSpeak(dEN, dVI)
 	extra := map[string]interface{}{
 		"low":           g.low,
 		"high":          g.high,
@@ -411,9 +412,10 @@ func NewGuessNum() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getGuessNum().playUCI(u) },
 		func() []string { return getGuessNum().legalUCIs() },
 		func() (string, string) {
-			say, _ := viOrEN(
-				fmt.Sprintf("Ván đoán số mới. Tôi đã nghĩ ra một số từ %d đến %d. Bạn có %d lượt. Chúc may mắn!", guessMin, guessMax, guessMaxAttempt),
-				fmt.Sprintf("New guess-the-number round. I picked a number from %d to %d. You have %d guesses. Good luck!", guessMin, guessMax, guessMaxAttempt),
+			say, _ := speakf(
+				"Ván đoán số mới. Tôi đã nghĩ ra một số từ %d đến %d. Bạn có %d lượt. Chúc may mắn!",
+				"New guess-the-number round. I picked a number from %d to %d. You have %d guesses. Good luck!",
+				guessMin, guessMax, guessMaxAttempt,
 			)
 			return say, "Đoán số. Ván mới."
 		},

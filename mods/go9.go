@@ -25,10 +25,10 @@ func NewGo9() *Go9 {
 		playUCI:       func(u string) (map[string]interface{}, error) { return getGo9().playUCI(u) },
 		legalUCIs:     func() []string { return getGo9().legalUCIs() },
 		newGameSpeak: func() (string, string) {
-			if chessPreferVIText() {
-				return "Ván cờ vây 9×9 mới. Bạn cầm đen. Đến lượt bạn.", "Cờ vây 9×9. Ván mới."
-			}
-			return "New 9 by 9 go game. You are black. Your move.", "Cờ vây 9×9. Ván mới."
+			return speakNew(
+				"New 9 by 9 go game. You are black. Your move.",
+				"Ván cờ vây 9×9 mới. Bạn cầm đen. Đến lượt bạn.",
+			)
 		},
 	}
 	return m

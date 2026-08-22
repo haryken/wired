@@ -107,11 +107,8 @@ func (m *Chess) HTTP(w http.ResponseWriter, r *http.Request) {
 		st["googleVIAvailable"] = chessGoogleVIAvailable()
 		st["difficulty"] = g.getDifficulty()
 		writeJSON(w, 200, st)
-		if chessPreferVIText() {
-			queueChessSpeak("Ván mới. Bạn cầm trắng. Đến lượt bạn.", getChess().summaryText())
-		} else {
-			queueChessSpeak("New game. You are white. Your move.", getChess().summaryText())
-		}
+		say, _ := speakNew("New game. You are white. Your move.", "Ván mới. Bạn cầm trắng. Đến lượt bạn.")
+		queueChessSpeak(say, getChess().summaryText())
 	case "move":
 		if r.Method != http.MethodPost {
 			vars.HTTPError(w, r, "POST required")

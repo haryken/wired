@@ -77,10 +77,8 @@ func (c *miniCommon) baseSnap(game, uiMode string, extra map[string]interface{})
 }
 
 func viOrEN(vi, en string) (string, string) {
-	if chessPreferVIText() {
-		return vi, vi
-	}
-	return en, en
+	s := localizeSpeak(en, vi)
+	return s, s
 }
 
 func miniSqName(file, rank int) string {

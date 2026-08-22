@@ -53,9 +53,10 @@ func newWordleGame() *wordleGame {
 	g.status = "playing"
 	g.humanTurn = true
 	g.difficulty = diffMedium
-	g.message, _ = viOrEN(
-		fmt.Sprintf("Ván Wordle mới. Đoán từ %d chữ cái tiếng Việt không dấu. Bạn có %d lượt.", wordleWordLen, wordleMaxGuesses),
-		fmt.Sprintf("New Wordle. Guess the %d-letter Vietnamese word (no diacritics). You have %d guesses.", wordleWordLen, wordleMaxGuesses),
+	g.message, _ = speakf(
+		"Ván Wordle mới. Đoán từ %d chữ cái tiếng Việt không dấu. Bạn có %d lượt.",
+		"New Wordle. Guess the %d-letter Vietnamese word (no diacritics). You have %d guesses.",
+		wordleWordLen, wordleMaxGuesses,
 	)
 	return g
 }
@@ -215,10 +216,10 @@ func (g *wordleGame) playUCI(uci string) (map[string]interface{}, error) {
 	} else if len(g.guesses) >= wordleMaxGuesses {
 		g.status = "lose"
 		g.winner = "bot"
-		g.message, _ = viOrEN(fmt.Sprintf("Hết lượt. Từ đúng là %s.", g.secret), fmt.Sprintf("Out of guesses. The word was %s.", g.secret))
+		g.message, _ = speakf("Hết lượt. Từ đúng là %s.", "Out of guesses. The word was %s.", g.secret)
 	} else {
 		remain := wordleMaxGuesses - len(g.guesses)
-		g.message, _ = viOrEN(fmt.Sprintf("Còn %d lượt đoán.", remain), fmt.Sprintf("%d guesses left.", remain))
+		g.message, _ = speakf("Còn %d lượt đoán.", "%d guesses left.", remain)
 	}
 
 	resp := g.snapshotLocked()
@@ -241,9 +242,10 @@ func NewWordle() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getWordle().playUCI(u) },
 		func() []string { return getWordle().legalUCIs() },
 		func() (string, string) {
-			say, _ := viOrEN(
-				fmt.Sprintf("Ván Wordle mới. Đoán từ tiếng Việt %d chữ cái, không dấu. Bạn có %d lượt.", wordleWordLen, wordleMaxGuesses),
-				fmt.Sprintf("New Wordle. Guess the %d-letter Vietnamese word, no diacritics. You have %d guesses.", wordleWordLen, wordleMaxGuesses),
+			say, _ := speakf(
+				"Ván Wordle mới. Đoán từ tiếng Việt %d chữ cái, không dấu. Bạn có %d lượt.",
+				"New Wordle. Guess the %d-letter Vietnamese word, no diacritics. You have %d guesses.",
+				wordleWordLen, wordleMaxGuesses,
 			)
 			return say, "Wordle. Ván mới."
 		},

@@ -77,7 +77,7 @@ func newTriviaGame() *triviaGame {
 	g.status = "playing"
 	g.humanTurn = true
 	g.difficulty = diffMedium
-	g.message, _ = viOrEN(fmt.Sprintf("Ván đố vui mới, %d câu hỏi. Trả lời bằng 0-3.", n), fmt.Sprintf("New trivia round, %d questions. Answer with 0-3.", n))
+	g.message, _ = speakf("Ván đố vui mới, %d câu hỏi. Trả lời bằng 0-3.", "New trivia round, %d questions. Answer with 0-3.", n)
 	return g
 }
 
@@ -186,7 +186,7 @@ func (g *triviaGame) playUCI(uci string) (map[string]interface{}, error) {
 		g.score++
 		msg, _ = viOrEN("Chính xác!", "Correct!")
 	} else {
-		msg, _ = viOrEN(fmt.Sprintf("Sai rồi! Đáp án đúng là: %s.", q.Choices[q.Correct]), fmt.Sprintf("Wrong! The correct answer was: %s.", q.Choices[q.Correct]))
+		msg, _ = speakf("Sai rồi! Đáp án đúng là: %s.", "Wrong! The correct answer was: %s.", q.Choices[q.Correct])
 	}
 	g.qIdx++
 
@@ -204,7 +204,7 @@ func (g *triviaGame) playUCI(uci string) (map[string]interface{}, error) {
 		} else if g.status == "lose" {
 			g.winner = "bot"
 		}
-		finalMsg, _ := viOrEN(fmt.Sprintf("Xong! Bạn được %d/%d điểm.", g.score, g.total), fmt.Sprintf("Done! You scored %d/%d.", g.score, g.total))
+		finalMsg, _ := speakf("Xong! Bạn được %d/%d điểm.", "Done! You scored %d/%d.", g.score, g.total)
 		msg = msg + " " + finalMsg
 	}
 	g.message = msg
@@ -229,8 +229,8 @@ func NewTrivia() *genericBoardMod {
 		func(u string) (map[string]interface{}, error) { return getTrivia().playUCI(u) },
 		func() []string { return getTrivia().legalUCIs() },
 		func() (string, string) {
-			say, _ := viOrEN(fmt.Sprintf("Ván đố vui mới, %d câu hỏi. Trả lời bằng 0, 1, 2 hoặc 3.", triviaQuestionsPerRound),
-				fmt.Sprintf("New trivia round, %d questions. Answer with 0, 1, 2 or 3.", triviaQuestionsPerRound))
+			say, _ := speakf("Ván đố vui mới, %d câu hỏi. Trả lời bằng 0, 1, 2 hoặc 3.",
+				"New trivia round, %d questions. Answer with 0, 1, 2 or 3.", triviaQuestionsPerRound)
 			return say, "Đố vui. Ván mới."
 		},
 	)
