@@ -49,7 +49,8 @@ const (
 	wifiTraceFile          = "/run/wireos-wifi-trace.log"
 	wifiJoinTimeout        = 28 * time.Second
 	wifiLanTryTimeout      = 22 * time.Second
-	wifiHotspotJoinTimeout = 30 * time.Second
+	// Assoc is usually quick; DHCP after open-AP teardown can take 45–75s.
+	wifiHotspotJoinTimeout = 75 * time.Second
 	wifiAckHold            = 300 * time.Millisecond
 	wifiSavedGrace         = 120 * time.Second
 	wifiAssocDhcpGrace     = 75 * time.Second
