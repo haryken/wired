@@ -26,37 +26,34 @@ func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc st
 	_ = os.WriteFile(wifiTryingFlag, []byte(creds.SSID+"\n"), 0644)
 	// Hold AP suppress for the whole join (mirrors BLE: wifiWatcher->Disable()).
 	hsSetHoldAP(true)
-	wifiLog("hotspot start (BLE-style agent) %s", hsSnapshot(creds.SSID))
+	wifiLog("hotspot start (fast BLE-style) %s", hsSnapshot(creds.SSID))
 
 	// Drop stale favorite for this SSID so Agent supplies the new passphrase
 	// (same idea as BLE reconnect after forget).
 	hsPurgeSSID(creds.SSID)
 	_ = os.Remove(wifiPreferBleFlag)
 
-	// Stock BLE scan path: tear down AP first, then scan + Connect+Agent.
+	// Open AP stole wlan0 (ConnMan/wpa stopped). BLE never does that — so after
+	// AP off we must restart the client stack once, then Connect+Agent like BLE.
 	wifiLog("hotspot disable AP %s", hsSnapshot(creds.SSID))
 	_ = hsDisableAP()
 	_ = os.Remove(wifiSetupAPFlag)
-	if !hsWaitWifiReady(20 * time.Second) {
+	hsBringUpClientStack()
+	if !hsWaitWifiReady(12 * time.Second) {
 		wifiLog("hotspot wifi not powered %s", hsSnapshot(creds.SSID))
 	}
 
-	_ = hsScan()
-	time.Sleep(2 * time.Second)
-	svc := hsWaitService(creds.SSID, 25*time.Second)
+	svc := hsWaitService(creds.SSID, 12*time.Second)
 	wifiLog("hotspot service after scan svc=%s %s", svc, hsSnapshot(creds.SSID))
 
 	connectErr := hsConnectLikeBLE(creds.SSID, creds.Pass, creds.Hidden)
 	if connectErr != nil {
 		wifiLog("hotspot agent connect err=%v %s", connectErr, hsSnapshot(creds.SSID))
-		// One retry after recover (matches stock RecoverNetworkServices on hard fail).
+		// Soft retry only (stack already restarted once). Avoid another
+		// wpa/connman restart — that was the old ~30s "first fail" tax.
 		if !strings.Contains(connectErr.Error(), "invalid-key") {
-			_ = exec.Command("systemctl", "restart", "wpa_supplicant").Run()
-			_ = exec.Command("systemctl", "restart", "connman").Run()
-			time.Sleep(3 * time.Second)
-			hsEnableWifi()
 			_ = hsScan()
-			time.Sleep(2 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 			connectErr = hsConnectLikeBLE(creds.SSID, creds.Pass, creds.Hidden)
 			wifiLog("hotspot agent retry err=%v %s", connectErr, hsSnapshot(creds.SSID))
 		}
@@ -67,29 +64,35 @@ func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc st
 			_ = hsDisableAP()
 			_ = os.Remove(wifiSetupAPFlag)
 		}
-		wifiLog("hotspot ok — stabilize before provision %s", hsSnapshot(creds.SSID))
+		wifiLog("hotspot ok — short settle %s", hsSnapshot(creds.SSID))
 
-		if !hsStabilizeHome(creds.SSID, 45*time.Second) {
+		// BLE returns as soon as Connect succeeds. Keep a brief settle so AP
+		// cannot resurrect, but skip the old 45s stabilize + 40s provision recover.
+		if !hsStabilizeHome(creds.SSID, 8*time.Second) {
 			wifiLog("hotspot ok then dropped — treat as fail %s", hsSnapshot(creds.SSID))
 			m.finishJoinHotspot(false, creds.SSID, "Kết nối WiFi nhà bị mất ngay sau khi bắt — thử lại.")
 			return
 		}
-		// Robot log: WriteProvision / p2p AutoConnect bounce put State=failure and
-		// dropped IP; grace then released AP suppress. Re-assert join after persist.
-		_ = hsWriteProvision(creds.SSID, creds.Pass, creds.Hidden)
 		hsDisableP2PTwin(creds.SSID)
 		hsPreferOnlySSID(creds.SSID)
-		if !hsRecoverAfterProvision(creds.SSID, 40*time.Second) {
-			wifiLog("hotspot provision bounce not recovered %s", hsSnapshot(creds.SSID))
-			m.finishJoinHotspot(false, creds.SSID, "Kết nối WiFi nhà bị mất sau khi lưu — thử lại.")
-			return
+		// Persist for reboot. ConnMan Favorite already holds the live passphrase;
+		// only wait to recover if writing wireos-wifi.config actually bounced us.
+		_ = hsWriteProvision(creds.SSID, creds.Pass, creds.Hidden)
+		if !hsJoined(creds.SSID) {
+			wifiLog("hotspot provision bounced — recovering %s", hsSnapshot(creds.SSID))
+			if !hsRecoverAfterProvision(creds.SSID, 20*time.Second) {
+				wifiLog("hotspot provision bounce not recovered %s", hsSnapshot(creds.SSID))
+				m.finishJoinHotspot(false, creds.SSID, "Kết nối WiFi nhà bị mất sau khi lưu — thử lại.")
+				return
+			}
 		}
+		wifiLog("hotspot stable %s", hsSnapshot(creds.SSID))
+		m.finishJoinHotspot(true, creds.SSID, "")
+		// NTP after UI success — wall-clock steps must not stretch grace.
 		go func() {
-			time.Sleep(2 * time.Second)
+			time.Sleep(3 * time.Second)
 			_ = exec.Command("systemctl", "restart", "chronyd").Run()
 		}()
-		wifiLog("hotspot stable after provision %s", hsSnapshot(creds.SSID))
-		m.finishJoinHotspot(true, creds.SSID, "")
 		return
 	}
 
@@ -113,28 +116,28 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 		_ = os.Remove(wifiForceAPFlag)
 		m.pulseWifiFace("ok", wifiFaceHold)
 		m.mu.Unlock()
-		wifiLog("hotspot finish ok — keep trying flag briefly (BLE-style watcher suppress)")
-		// Release AP-hold only after a short grace so ConnMan can reach ONLINE
-		// before wifiWatcher/maybeStartSetupAP are allowed to raise AP again.
+		wifiLog("hotspot finish ok — short watcher suppress (BLE-style)")
+		// Iteration-based grace (not wall clock): chronyd/NTP stepping used to
+		// stretch a 120s deadline into many minutes. Release once home stays up.
 		go func() {
-			deadline := time.Now().Add(120 * time.Second)
-			miss := 0
-			for time.Now().Before(deadline) {
+			const ticks = 12 // ~12s at 1s
+			okStreak := 0
+			for i := 0; i < ticks; i++ {
 				if hsAPOn() {
 					_ = hsDisableAP()
 					_ = os.Remove(wifiSetupAPFlag)
 				}
 				if hsJoined(ssid) {
-					miss = 0
-					time.Sleep(2 * time.Second)
-					continue
+					okStreak++
+					if okStreak >= 3 {
+						break
+					}
+				} else {
+					okStreak = 0
+					wifiLog("hotspot grace reconnect miss i=%d %s", i, hsSnapshot(ssid))
+					_ = hsConnectPreferred(ssid, "")
 				}
-				miss++
-				wifiLog("hotspot grace reconnect miss=%d %s", miss, hsSnapshot(ssid))
-				_ = hsConnectPreferred(ssid, "")
-				// Keep suppressing AP for the whole grace window — do not release
-				// early on a provision bounce (robot log: failure then AP at +15s).
-				time.Sleep(2 * time.Second)
+				time.Sleep(1 * time.Second)
 			}
 			if !hsJoined(ssid) {
 				wifiLog("hotspot grace ended still offline — AP may return %s", hsSnapshot(ssid))
@@ -175,7 +178,7 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 // until home WiFi stays associated+IP for a few seconds (or timeout).
 func hsStabilizeHome(ssid string, d time.Duration) bool {
 	deadline := time.Now().Add(d)
-	stableNeeded := 6 // ~3s at 500ms
+	stableNeeded := 4 // ~2s at 500ms
 	stable := 0
 	for time.Now().Before(deadline) {
 		if hsAPOn() {
@@ -201,6 +204,16 @@ func hsStabilizeHome(ssid string, d time.Duration) bool {
 	return hsJoined(ssid)
 }
 
+// hsBringUpClientStack restarts wpa_supplicant + ConnMan after open-AP tore
+// them down. Matches what used to happen only after the first Connect failure.
+func hsBringUpClientStack() {
+	wifiLog("hotspot bring-up client stack (restart wpa+connman)")
+	_ = exec.Command("systemctl", "restart", "wpa_supplicant").Run()
+	_ = exec.Command("systemctl", "restart", "connman").Run()
+	time.Sleep(1500 * time.Millisecond)
+	hsEnableWifi()
+}
+
 // hsRecoverAfterProvision waits for ConnMan to settle after rewriting
 // wireos-wifi.config (often briefly State=failure / no IP).
 func hsRecoverAfterProvision(ssid string, d time.Duration) bool {
@@ -213,7 +226,7 @@ func hsRecoverAfterProvision(ssid string, d time.Duration) bool {
 		if hsJoined(ssid) {
 			// Need a couple of stable ticks after the bounce.
 			ok := true
-			for i := 0; i < 6; i++ {
+			for i := 0; i < 4; i++ {
 				time.Sleep(500 * time.Millisecond)
 				if !hsJoined(ssid) {
 					ok = false
@@ -384,19 +397,23 @@ func hsWaitJoin(ssid string, d time.Duration) bool {
 
 func hsWaitWifiReady(d time.Duration) bool {
 	deadline := time.Now().Add(d)
+	n := 0
 	for time.Now().Before(deadline) {
 		if _, err := os.Stat(wifiSetupAPFlag); err == nil {
 			_ = hsDisableAP()
 			_ = os.Remove(wifiSetupAPFlag)
 		}
 		hsEnableWifi()
-		out, err := hsConnmanctl(5*time.Second, "services")
 		powered := hsWifiPowered()
-		wifiLog("hotspot wifi ready err=%v powered=%v services=%q", err, powered, strings.TrimSpace(string(out)))
+		if n%3 == 0 {
+			out, err := hsConnmanctl(3*time.Second, "services")
+			wifiLog("hotspot wifi ready err=%v powered=%v services=%q", err, powered, strings.TrimSpace(string(out)))
+		}
 		if powered {
 			return true
 		}
-		time.Sleep(800 * time.Millisecond)
+		n++
+		time.Sleep(400 * time.Millisecond)
 	}
 	return hsWifiPowered()
 }
@@ -416,7 +433,7 @@ func hsWaitService(ssid string, d time.Duration) string {
 			return id
 		}
 		_ = hsScan()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(600 * time.Millisecond)
 	}
 	return hsServiceID(ssid)
 }

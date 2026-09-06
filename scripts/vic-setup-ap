@@ -74,8 +74,10 @@ stop_ap() {
     kill "$(cat /run/wireos-ap-dns.pid)" 2>/dev/null || true
     rm -f /run/wireos-ap-dns.pid
   fi
-  # Best-effort: stop leftover DHCP helpers we may have started.
+  # Best-effort: stop leftover DHCP/DNS helpers we may have started.
   killall udhcpd 2>/dev/null || true
+  # Only our AP dnsmasq (pid file); also clear stragglers on this robot.
+  killall dnsmasq 2>/dev/null || true
   killall wpa_supplicant 2>/dev/null || true
   ip addr del "$AP_IP/24" dev "$IFACE" 2>/dev/null || true
   rm -f "$FLAG" "$CONF" "$DHCP_CONF" "$DHCP_LEASES"
@@ -85,7 +87,9 @@ start_dhcp() {
   : >"$DHCP_LEASES"
   mkdir -p /run
 
-  # Prefer dnsmasq when present (DHCP + captive DNS).
+  # Prefer dnsmasq when present (DHCP + captive DNS * → AP IP).
+  # If dnsmasq is missing, udhcpd handles DHCP and wired's captive-dns.go
+  # answers UDP :53 so phones still auto-open the portal.
   if command -v dnsmasq >/dev/null 2>&1; then
     dnsmasq --interface="$IFACE" --bind-interfaces --except-interface=lo \
       --dhcp-range="${AP_NET}.2,${AP_NET}.100,12h" \
@@ -99,7 +103,9 @@ start_dhcp() {
       log "dnsmasq DHCP+DNS running pid=$(cat /run/wireos-ap-dns.pid)"
       return 0
     fi
-    log "dnsmasq failed to stay up — falling back to udhcpd"
+    log "dnsmasq failed to stay up — falling back to udhcpd (+ wired captive DNS)"
+  else
+    log "dnsmasq not installed — udhcpd + wired captive DNS on :53"
   fi
 
   # busybox udhcpd requires a writable lease_file or it exits immediately.
@@ -146,9 +152,13 @@ case "$cmd" in
     exit 1
     ;;
   off)
+    # stop_ap killall's the open-AP wpa. systemctl start is often a no-op if
+    # systemd still thinks the unit is up → ConnMan stays Powered=false / empty
+    # services for 20s+ (hotspot join felt much slower than BLE). Always restart.
     stop_ap
-    systemctl start wpa_supplicant >/dev/null 2>&1 || true
-    systemctl start connman >/dev/null 2>&1 || true
+    systemctl restart wpa_supplicant >/dev/null 2>&1 || systemctl start wpa_supplicant >/dev/null 2>&1 || true
+    systemctl restart connman >/dev/null 2>&1 || systemctl start connman >/dev/null 2>&1 || true
+    sleep 1
     connman_wifi_powered true
     echo "vic-setup-ap off"
     ;;

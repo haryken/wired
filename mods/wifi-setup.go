@@ -49,9 +49,10 @@ const (
 	wifiTraceFile          = "/run/wireos-wifi-trace.log"
 	wifiJoinTimeout        = 28 * time.Second
 	wifiLanTryTimeout      = 22 * time.Second
-	wifiHotspotJoinTimeout = 40 * time.Second
-	wifiAckHold            = 1200 * time.Millisecond
-	wifiSavedGrace         = 90 * time.Second
+	wifiHotspotJoinTimeout = 30 * time.Second
+	wifiAckHold            = 300 * time.Millisecond
+	wifiSavedGrace         = 120 * time.Second
+	wifiAssocDhcpGrace     = 75 * time.Second
 	wifiFaceHold           = 8 * time.Second
 )
 
@@ -121,12 +122,20 @@ func (m *WifiSetup) Load() error {
 	http.HandleFunc("/connecttest.txt", m.captiveProbe)
 	http.HandleFunc("/success.txt", m.captiveProbe)
 	http.HandleFunc("/kindle-wifi/wifiredirect.html", m.captiveProbe)
+	// Extra Xiaozhi / OS captive paths
+	http.HandleFunc("/fwlink/", m.captiveProbe)
+	http.HandleFunc("/mobile/status.php", m.captiveProbe)
+	http.HandleFunc("/check_network_status.txt", m.captiveProbe)
+	http.HandleFunc("/connectivity-check.html", m.captiveProbe)
+	http.HandleFunc("/portal.html", m.captiveProbe)
+	go captiveDNSWatch()
 	go m.maybeStartSetupAP()
 	return nil
 }
 
 func (m *WifiSetup) maybeStartSetupAP() {
 	started := time.Now()
+	var dhcpWaitStart time.Time
 	time.Sleep(8 * time.Second)
 	for {
 		if wifiJoinInProgress() {
@@ -140,15 +149,35 @@ func (m *WifiSetup) maybeStartSetupAP() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		// On home WiFi: never raise AP. Clear stale force-ap from older builds.
+		// On home WiFi with a real LAN IP: never raise AP.
 		if onHomeWifi() {
 			if tetheringOn() {
 				_ = disableTethering()
 			}
 			_ = os.Remove(wifiForceAPFlag)
 			_ = os.Remove(wifiBootWaitFlag)
+			dhcpWaitStart = time.Time{}
 			time.Sleep(5 * time.Second)
 			continue
+		}
+		// Associated (SSID visible) but only link-local / no DHCP yet — face
+		// shows "Huynh 2.4" + 169.254.x. Raising AP here kills ConnMan mid-join.
+		if !tetheringOn() {
+			if ssid := clientSSID(); ssid != "" {
+				if dhcpWaitStart.IsZero() {
+					dhcpWaitStart = time.Now()
+					wifiLog("associated ssid=%q waiting for DHCP (skip AP)", ssid)
+				}
+				if time.Since(dhcpWaitStart) < wifiAssocDhcpGrace {
+					_ = os.WriteFile(wifiBootWaitFlag, []byte("1\n"), 0644)
+					time.Sleep(3 * time.Second)
+					continue
+				}
+				wifiLog("associated ssid=%q still no LAN IP after %s — allow setup AP",
+					ssid, wifiAssocDhcpGrace)
+			} else {
+				dhcpWaitStart = time.Time{}
+			}
 		}
 		if forceSetupAP() {
 			_ = os.Remove(wifiBootWaitFlag)
@@ -348,6 +377,7 @@ func startSetupAP(ssid string) error {
 	if err == nil {
 		wifiLog("vic-setup-ap on ssid=%s ok %s", ssid, msg)
 		ensureAPReachable()
+		ensureCaptiveDNS()
 		return nil
 	}
 	out2, err2 := exec.Command("/anki/bin/vic-setup-ap", "on", ssid).CombinedOutput()
@@ -355,6 +385,7 @@ func startSetupAP(ssid string) error {
 	if err2 == nil {
 		wifiLog("vic-setup-ap on (anki) ssid=%s ok %s", ssid, msg2)
 		ensureAPReachable()
+		ensureCaptiveDNS()
 		return nil
 	}
 	return fmt.Errorf("usr=%v %s; anki=%v %s", err, msg, err2, msg2)
@@ -366,6 +397,10 @@ func ensureAPReachable() {
 	if err := exec.Command("iptables", "-C", "INPUT", "-p", "udp", "--dport", "67", "-j", "ACCEPT").Run(); err != nil {
 		_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "67", "-j", "ACCEPT").Run()
 		_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "68", "-j", "ACCEPT").Run()
+	}
+	if err := exec.Command("iptables", "-C", "INPUT", "-p", "udp", "--dport", "53", "-j", "ACCEPT").Run(); err != nil {
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "53", "-j", "ACCEPT").Run()
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", "53", "-j", "ACCEPT").Run()
 	}
 	if err := exec.Command("iptables", "-C", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT").Run(); err != nil {
 		_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT").Run()
@@ -1047,16 +1082,66 @@ func (m *WifiSetup) servePage(w http.ResponseWriter, r *http.Request) {
 
 func (m *WifiSetup) captiveProbe(w http.ResponseWriter, r *http.Request) {
 	if tetheringOn() {
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, "http://"+wifiOpenAPIP+"/", http.StatusFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// WrapCaptive is a no-op pass-through. Do not HTTP-redirect "/" to a hash URL:
-// Safari requests "/" again and reports "too many redirects".
+func captivePortalURL() string {
+	return "http://" + wifiOpenAPIP + "/"
+}
+
+func isCaptiveProbePath(p string) bool {
+	switch {
+	case p == "/generate_204", p == "/gen_204",
+		p == "/hotspot-detect.html",
+		p == "/library/test/success.html",
+		p == "/canonical.html",
+		p == "/ncsi.txt", p == "/connecttest.txt", p == "/success.txt",
+		p == "/kindle-wifi/wifiredirect.html",
+		p == "/mobile/status.php",
+		p == "/check_network_status.txt",
+		p == "/connectivity-check.html",
+		p == "/portal.html":
+		return true
+	case strings.HasPrefix(p, "/generate_204"),
+		strings.HasPrefix(p, "/fwlink/"):
+		return true
+	default:
+		return false
+	}
+}
+
+// WrapCaptive auto-opens the portal like Xiaozhi: OS captive probes and
+// DNS-hijacked hostnames get 302 → http://192.168.4.1/ while the open AP is up.
+// Do not redirect "/" on our own IP (Safari "too many redirects").
 func WrapCaptive(next http.Handler) http.Handler {
-	return next
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if tetheringOn() {
+			if isCaptiveProbePath(r.URL.Path) {
+				http.Redirect(w, r, captivePortalURL(), http.StatusFound)
+				return
+			}
+			host := r.Host
+			if h, _, err := net.SplitHostPort(host); err == nil {
+				host = h
+			}
+			host = strings.Trim(host, "[]")
+			if host != "" && host != wifiOpenAPIP && host != "localhost" &&
+				!strings.HasPrefix(host, "127.") &&
+				!strings.HasPrefix(r.URL.Path, "/api/") &&
+				r.URL.Path != "/" &&
+				!strings.HasPrefix(r.URL.Path, "/static") &&
+				!strings.HasPrefix(r.URL.Path, "/js") &&
+				!strings.HasPrefix(r.URL.Path, "/css") &&
+				!strings.HasPrefix(r.URL.Path, "/assets") {
+				http.Redirect(w, r, captivePortalURL(), http.StatusFound)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func tetheringOn() bool {
@@ -1074,6 +1159,7 @@ func tetheringOn() bool {
 func disableTethering() error {
 	_ = exec.Command(wifiSetupAPBin, "off").Run()
 	_ = exec.Command("/anki/bin/vic-setup-ap", "off").Run()
+	stopCaptiveDNS()
 	return nil
 }
 
