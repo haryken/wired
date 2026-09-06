@@ -1,6 +1,6 @@
 package mods
 
-// Hotspot / 10.3.141.1 WiFi join. Do not call functions from wifi-join-lan.go.
+// Hotspot / 192.168.4.1 WiFi join. Do not call functions from wifi-join-lan.go.
 // Helpers here are hs*-prefixed copies so :8080 edits cannot change this path.
 
 import (
@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/godbus/dbus/v5"
 )
 
 func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc string) {
@@ -22,6 +24,8 @@ func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc st
 	m.mu.Unlock()
 	hsSetBusy(true)
 	_ = os.WriteFile(wifiTryingFlag, []byte(creds.SSID+"\n"), 0644)
+	// Hold AP suppress for the whole join (mirrors BLE: wifiWatcher->Disable()).
+	hsSetHoldAP(true)
 	wifiLog("hotspot start (BLE-style agent) %s", hsSnapshot(creds.SSID))
 
 	// Drop stale favorite for this SSID so Agent supplies the new passphrase
@@ -63,11 +67,28 @@ func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc st
 			_ = hsDisableAP()
 			_ = os.Remove(wifiSetupAPFlag)
 		}
-		// Persist for reboot (ConnMan favorites); Agent already did live join.
+		wifiLog("hotspot ok — stabilize before provision %s", hsSnapshot(creds.SSID))
+
+		if !hsStabilizeHome(creds.SSID, 45*time.Second) {
+			wifiLog("hotspot ok then dropped — treat as fail %s", hsSnapshot(creds.SSID))
+			m.finishJoinHotspot(false, creds.SSID, "Kết nối WiFi nhà bị mất ngay sau khi bắt — thử lại.")
+			return
+		}
+		// Robot log: WriteProvision / p2p AutoConnect bounce put State=failure and
+		// dropped IP; grace then released AP suppress. Re-assert join after persist.
 		_ = hsWriteProvision(creds.SSID, creds.Pass, creds.Hidden)
-		_ = exec.Command("systemctl", "restart", "chronyd").Run()
-		wifiLog("hotspot ok %s", hsSnapshot(creds.SSID))
-		go hsStabilize(creds.SSID)
+		hsDisableP2PTwin(creds.SSID)
+		hsPreferOnlySSID(creds.SSID)
+		if !hsRecoverAfterProvision(creds.SSID, 40*time.Second) {
+			wifiLog("hotspot provision bounce not recovered %s", hsSnapshot(creds.SSID))
+			m.finishJoinHotspot(false, creds.SSID, "Kết nối WiFi nhà bị mất sau khi lưu — thử lại.")
+			return
+		}
+		go func() {
+			time.Sleep(2 * time.Second)
+			_ = exec.Command("systemctl", "restart", "chronyd").Run()
+		}()
+		wifiLog("hotspot stable after provision %s", hsSnapshot(creds.SSID))
 		m.finishJoinHotspot(true, creds.SSID, "")
 		return
 	}
@@ -84,8 +105,6 @@ func (m *WifiSetup) tryHomeWifiFromHotspot(creds wifiCreds, prevSSID, prevSvc st
 
 func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 	_ = os.Remove(wifiPendingFile)
-	_ = os.Remove(wifiTryingFlag)
-	hsSetBusy(false)
 	m.mu.Lock()
 	if ok {
 		m.phase = wifiPhaseOK
@@ -94,8 +113,37 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 		_ = os.Remove(wifiForceAPFlag)
 		m.pulseWifiFace("ok", wifiFaceHold)
 		m.mu.Unlock()
-		hsSetHoldAP(false)
-		wifiLog("hotspot finish ok")
+		wifiLog("hotspot finish ok — keep trying flag briefly (BLE-style watcher suppress)")
+		// Release AP-hold only after a short grace so ConnMan can reach ONLINE
+		// before wifiWatcher/maybeStartSetupAP are allowed to raise AP again.
+		go func() {
+			deadline := time.Now().Add(120 * time.Second)
+			miss := 0
+			for time.Now().Before(deadline) {
+				if hsAPOn() {
+					_ = hsDisableAP()
+					_ = os.Remove(wifiSetupAPFlag)
+				}
+				if hsJoined(ssid) {
+					miss = 0
+					time.Sleep(2 * time.Second)
+					continue
+				}
+				miss++
+				wifiLog("hotspot grace reconnect miss=%d %s", miss, hsSnapshot(ssid))
+				_ = hsConnectPreferred(ssid, "")
+				// Keep suppressing AP for the whole grace window — do not release
+				// early on a provision bounce (robot log: failure then AP at +15s).
+				time.Sleep(2 * time.Second)
+			}
+			if !hsJoined(ssid) {
+				wifiLog("hotspot grace ended still offline — AP may return %s", hsSnapshot(ssid))
+			}
+			_ = os.Remove(wifiTryingFlag)
+			hsSetBusy(false)
+			hsSetHoldAP(false)
+			wifiLog("hotspot grace done ap=%v %s", hsAPOn(), hsSnapshot(ssid))
+		}()
 		return
 	}
 	m.phase = wifiPhaseFail
@@ -103,6 +151,8 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 	_ = os.WriteFile(wifiLastErrorFile, []byte(errMsg+"\n"), 0644)
 	m.pulseWifiFace("fail", wifiFaceHold)
 	m.mu.Unlock()
+	_ = os.Remove(wifiTryingFlag)
+	hsSetBusy(false)
 	wifiLog("hotspot restore AP failed=%q", ssid)
 	hsSetHoldAP(true)
 	hsCleanupFailedJoin(ssid)
@@ -119,6 +169,65 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 	}
 	hsSetHoldAP(false)
 	wifiLog("hotspot AP restored ap=%v force=1 %s", hsAPOn(), hsSnapshot(""))
+}
+
+// hsStabilizeHome keeps killing any AP resurrection and re-asserting Connect
+// until home WiFi stays associated+IP for a few seconds (or timeout).
+func hsStabilizeHome(ssid string, d time.Duration) bool {
+	deadline := time.Now().Add(d)
+	stableNeeded := 6 // ~3s at 500ms
+	stable := 0
+	for time.Now().Before(deadline) {
+		if hsAPOn() {
+			wifiLog("hotspot stabilize: kill AP during home join")
+			_ = hsDisableAP()
+			_ = os.Remove(wifiSetupAPFlag)
+			stable = 0
+		}
+		if hsJoined(ssid) {
+			stable++
+			if stable >= stableNeeded {
+				return true
+			}
+		} else {
+			stable = 0
+			if hsServiceID(ssid) == "" {
+				_ = hsScan()
+			}
+			_ = hsConnectPreferred(ssid, "")
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return hsJoined(ssid)
+}
+
+// hsRecoverAfterProvision waits for ConnMan to settle after rewriting
+// wireos-wifi.config (often briefly State=failure / no IP).
+func hsRecoverAfterProvision(ssid string, d time.Duration) bool {
+	deadline := time.Now().Add(d)
+	for time.Now().Before(deadline) {
+		if hsAPOn() {
+			_ = hsDisableAP()
+			_ = os.Remove(wifiSetupAPFlag)
+		}
+		if hsJoined(ssid) {
+			// Need a couple of stable ticks after the bounce.
+			ok := true
+			for i := 0; i < 6; i++ {
+				time.Sleep(500 * time.Millisecond)
+				if !hsJoined(ssid) {
+					ok = false
+					break
+				}
+			}
+			if ok {
+				return true
+			}
+		}
+		_ = hsConnectPreferred(ssid, "")
+		time.Sleep(500 * time.Millisecond)
+	}
+	return hsJoined(ssid)
 }
 
 func hsPurgeSSID(ssid string) {
@@ -226,6 +335,12 @@ func hsJoined(ssid string) bool {
 	if hsClientSSID() != ssid {
 		return false
 	}
+	// BLE treats CONNECTED/ONLINE as success; ConnMan ready/online is enough
+	// even if DHCP is a beat late (IP check alone raced with AP resurrect).
+	st := hsServiceState(ssid)
+	if st == "online" || st == "ready" {
+		return true
+	}
 	for _, ip := range hsAddrs() {
 		if ip == wifiOpenAPIP || strings.HasPrefix(ip, "169.254.") {
 			continue
@@ -275,7 +390,7 @@ func hsWaitWifiReady(d time.Duration) bool {
 			_ = os.Remove(wifiSetupAPFlag)
 		}
 		hsEnableWifi()
-		out, err := exec.Command("connmanctl", "services").CombinedOutput()
+		out, err := hsConnmanctl(5*time.Second, "services")
 		powered := hsWifiPowered()
 		wifiLog("hotspot wifi ready err=%v powered=%v services=%q", err, powered, strings.TrimSpace(string(out)))
 		if powered {
@@ -284,6 +399,12 @@ func hsWaitWifiReady(d time.Duration) bool {
 		time.Sleep(800 * time.Millisecond)
 	}
 	return hsWifiPowered()
+}
+
+func hsConnmanctl(d time.Duration, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), d)
+	defer cancel()
+	return exec.CommandContext(ctx, "connmanctl", args...).CombinedOutput()
 }
 
 func hsWaitService(ssid string, d time.Duration) string {
@@ -311,7 +432,7 @@ func hsEnableWifi() {
 }
 
 func hsWifiPowered() bool {
-	out, err := exec.Command("connmanctl", "technologies").CombinedOutput()
+	out, err := hsConnmanctl(5*time.Second, "technologies")
 	if err != nil {
 		return false
 	}
@@ -426,16 +547,56 @@ func hsClientSSID() string {
 			}
 		}
 	}
-	out, err := exec.Command("connmanctl", "services").CombinedOutput()
+	// D-Bus Name on wlan0 only — never trust p2p0 / broken connmanctl flag parse.
+	if name := hsDBusClientSSID(); name != "" {
+		return name
+	}
+	out, err := hsConnmanctl(5*time.Second, "services")
 	if err != nil {
 		return ""
 	}
 	for _, line := range strings.Split(string(out), "\n") {
-		if !strings.Contains(line, "*A") {
+		// Online (*AO) before associated-only (*A ) — avoids p2p twin listed first.
+		if !strings.Contains(line, "*AO") && !strings.Contains(line, "*A ") {
 			continue
 		}
 		name, _ := hsParseCtl(line)
 		if name != "" {
+			return name
+		}
+	}
+	return ""
+}
+
+func hsDBusClientSSID() string {
+	bus, err := dbus.SystemBus()
+	if err != nil {
+		return ""
+	}
+	manager := bus.Object("net.connman", "/")
+	var services [][]interface{}
+	if err := manager.Call("net.connman.Manager.GetServices", 0).Store(&services); err != nil {
+		return ""
+	}
+	for _, pair := range services {
+		if len(pair) < 2 {
+			continue
+		}
+		props, ok := pair[1].(map[string]dbus.Variant)
+		if !ok {
+			continue
+		}
+		if typ, _ := props["Type"].Value().(string); typ != "wifi" {
+			continue
+		}
+		if hsEthernetIface(props) != "wlan0" {
+			continue
+		}
+		st, _ := props["State"].Value().(string)
+		if st != "online" && st != "ready" && st != "association" && st != "configuration" {
+			continue
+		}
+		if name, _ := props["Name"].Value().(string); name != "" {
 			return name
 		}
 	}
@@ -469,19 +630,13 @@ func hsParseCtl(line string) (name, svc string) {
 	}
 	svc = strings.TrimSpace(line[idx+1:])
 	left := strings.TrimSpace(line[:idx])
+	// ConnMan pads flags: "*AO Name", "*A  Name", and log once showed "*Aa Name".
+	// strings.Fields splits the flag token from the SSID reliably.
 	if strings.HasPrefix(left, "*") {
-		rest := left[1:]
-		i := 0
-		for i < len(rest) && i < 3 {
-			c := rest[i]
-			if c != 'A' && c != 'O' && c != 'I' && c != 'R' && c != 'P' && c != 'C' {
-				break
-			}
-			i++
-		}
-		if i < len(rest) && rest[i] == ' ' {
-			left = strings.TrimSpace(rest[i+1:])
-		} else if i == len(rest) {
+		fields := strings.Fields(left)
+		if len(fields) >= 2 {
+			left = strings.Join(fields[1:], " ")
+		} else {
 			left = ""
 		}
 	}
@@ -492,7 +647,13 @@ func hsServiceID(ssid string) string {
 	if ssid == "" {
 		return ""
 	}
-	out, err := exec.Command("connmanctl", "services").CombinedOutput()
+	bus, err := dbus.SystemBus()
+	if err == nil {
+		if path, err := hsFindWifiServicePath(bus, ssid, false); err == nil {
+			return strings.TrimPrefix(string(path), "/net/connman/service/")
+		}
+	}
+	out, err := hsConnmanctl(5*time.Second, "services")
 	if err != nil {
 		return ""
 	}

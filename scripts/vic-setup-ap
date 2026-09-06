@@ -4,11 +4,13 @@
 # Usage: vic-setup-ap on [ssid] | off | status
 set -eu
 IFACE="${WIREOS_WLAN:-wlan0}"
-AP_IP="10.3.141.1"
+AP_IP="192.168.4.1"
+AP_NET="192.168.4"
 CONF="/run/wireos-ap.conf"
 PID="/run/wireos-ap-wpa.pid"
 DHCP_PID="/run/wireos-ap-dhcp.pid"
 DHCP_CONF="/run/wireos-ap-dhcp.conf"
+DHCP_LEASES="/run/wireos-ap-dhcp.leases"
 FLAG="/run/wireos-setup-ap"
 LOG="/run/vic-setup-ap.log"
 
@@ -32,6 +34,33 @@ connman_tether_off() {
     net.connman.Technology SetProperty sv Tethering b false >/dev/null 2>&1 || true
 }
 
+ipt_allow() {
+  # Never abort the script if iptables is missing/busy.
+  iptables -C "$@" 2>/dev/null || iptables -I "$@" 2>/dev/null || true
+}
+
+# Stock Vector firewall: INPUT DROP, DHCP only on "tether", web only :8080.
+# WireOS open AP is on wlan0 + captive on :80 — must open before DHCP starts.
+open_ap_firewall() {
+  ipt_allow INPUT -p udp --dport 67 -i "$IFACE" -j ACCEPT
+  ipt_allow INPUT -p udp --dport 68 -i "$IFACE" -j ACCEPT
+  # Also allow without iface match (some kernels rename / bridge briefly).
+  ipt_allow INPUT -p udp --dport 67 -j ACCEPT
+  ipt_allow INPUT -p udp --dport 68 -j ACCEPT
+  ipt_allow INPUT -p udp --dport 53 -i "$IFACE" -j ACCEPT
+  ipt_allow INPUT -p tcp --dport 53 -i "$IFACE" -j ACCEPT
+  ipt_allow INPUT -p tcp --dport 80 -j ACCEPT
+  ipt_allow INPUT -p tcp --dport 8080 -j ACCEPT
+  log "firewall opened for AP (dhcp/dns/80/8080)"
+}
+
+ensure_ap_ip() {
+  ip link set "$IFACE" up 2>/dev/null || true
+  if ! ip -4 addr show dev "$IFACE" 2>/dev/null | grep -q "inet $AP_IP/"; then
+    ip addr add "$AP_IP/24" broadcast "${AP_NET}.255" dev "$IFACE" 2>/dev/null || true
+  fi
+}
+
 stop_ap() {
   if [ -f "$PID" ]; then
     kill "$(cat "$PID")" 2>/dev/null || true
@@ -41,39 +70,69 @@ stop_ap() {
     kill "$(cat "$DHCP_PID")" 2>/dev/null || true
     rm -f "$DHCP_PID"
   fi
+  if [ -f /run/wireos-ap-dns.pid ]; then
+    kill "$(cat /run/wireos-ap-dns.pid)" 2>/dev/null || true
+    rm -f /run/wireos-ap-dns.pid
+  fi
+  # Best-effort: stop leftover DHCP helpers we may have started.
+  killall udhcpd 2>/dev/null || true
   killall wpa_supplicant 2>/dev/null || true
   ip addr del "$AP_IP/24" dev "$IFACE" 2>/dev/null || true
-  rm -f "$FLAG" "$CONF" "$DHCP_CONF"
+  rm -f "$FLAG" "$CONF" "$DHCP_CONF" "$DHCP_LEASES"
 }
 
 start_dhcp() {
-  cat >"$DHCP_CONF" <<EOF
-start 10.3.141.50
-end 10.3.141.150
-interface $IFACE
-option subnet 255.255.255.0
-option router $AP_IP
-option dns $AP_IP
-lease 43200
-EOF
-  if command -v udhcpd >/dev/null 2>&1; then
-    udhcpd -f "$DHCP_CONF" >/dev/null 2>&1 &
-    echo $! >"$DHCP_PID"
-    return 0
-  fi
-  if command -v busybox >/dev/null 2>&1 && busybox --list 2>/dev/null | grep -q udhcpd; then
-    busybox udhcpd -f "$DHCP_CONF" >/dev/null 2>&1 &
-    echo $! >"$DHCP_PID"
-    return 0
-  fi
+  : >"$DHCP_LEASES"
+  mkdir -p /run
+
+  # Prefer dnsmasq when present (DHCP + captive DNS).
   if command -v dnsmasq >/dev/null 2>&1; then
-    dnsmasq --interface="$IFACE" --bind-interfaces \
-      --dhcp-range=10.3.141.50,10.3.141.150,12h \
-      --address=/#/$AP_IP --no-resolv --port=53 \
-      --pid-file="$DHCP_PID" >/dev/null 2>&1 || true
+    dnsmasq --interface="$IFACE" --bind-interfaces --except-interface=lo \
+      --dhcp-range="${AP_NET}.2,${AP_NET}.100,12h" \
+      --dhcp-option=3,"$AP_IP" --dhcp-option=6,"$AP_IP" \
+      --address=/#/"$AP_IP" --no-resolv --port=53 \
+      --pid-file=/run/wireos-ap-dns.pid \
+      --log-facility="$LOG" >/dev/null 2>&1 || true
+    sleep 0.3
+    if [ -f /run/wireos-ap-dns.pid ] && kill -0 "$(cat /run/wireos-ap-dns.pid)" 2>/dev/null; then
+      cp -f /run/wireos-ap-dns.pid "$DHCP_PID" 2>/dev/null || true
+      log "dnsmasq DHCP+DNS running pid=$(cat /run/wireos-ap-dns.pid)"
+      return 0
+    fi
+    log "dnsmasq failed to stay up — falling back to udhcpd"
+  fi
+
+  # busybox udhcpd requires a writable lease_file or it exits immediately.
+  cat >"$DHCP_CONF" <<EOF
+start		${AP_NET}.2
+end		${AP_NET}.100
+interface	$IFACE
+lease_file	$DHCP_LEASES
+pidfile		$DHCP_PID
+option	subnet	255.255.255.0
+option	router	$AP_IP
+option	dns	$AP_IP
+option	lease	43200
+EOF
+
+  if command -v udhcpd >/dev/null 2>&1; then
+    udhcpd -f "$DHCP_CONF" >>"$LOG" 2>&1 &
+    echo $! >"$DHCP_PID"
+  elif command -v busybox >/dev/null 2>&1 && busybox --list 2>/dev/null | grep -q udhcpd; then
+    busybox udhcpd -f "$DHCP_CONF" >>"$LOG" 2>&1 &
+    echo $! >"$DHCP_PID"
+  else
+    log "ERROR: no udhcpd/dnsmasq — phone will not get an IP"
+    return 1
+  fi
+
+  sleep 0.4
+  if [ -f "$DHCP_PID" ] && kill -0 "$(cat "$DHCP_PID")" 2>/dev/null; then
+    log "udhcpd running pid=$(cat "$DHCP_PID") iface=$IFACE range=${AP_NET}.2-${AP_NET}.100"
     return 0
   fi
-  log "no udhcpd/dnsmasq — phone may need static IP $AP_IP"
+  log "ERROR: udhcpd exited — check $LOG / $DHCP_CONF"
+  return 1
 }
 
 cmd="${1:-status}"
@@ -144,7 +203,11 @@ case "$cmd" in
     ip link set "$IFACE" down 2>/dev/null || true
     ip addr flush dev "$IFACE" 2>/dev/null || true
     ip link set "$IFACE" up
-    ip addr add "$AP_IP/24" broadcast 10.3.141.255 dev "$IFACE" 2>/dev/null || true
+    ensure_ap_ip
+
+    # Open firewall BEFORE DHCP so Discover packets are not DROPped.
+    open_ap_firewall
+
     cat >"$CONF" <<EOF
 ctrl_interface=/var/run/wpa_supplicant
 update_config=0
@@ -172,9 +235,21 @@ EOF
       connman_wifi_powered true
       exit 1
     fi
-    start_dhcp
+
+    # wpa may briefly flap the iface — re-apply IP and firewall, then DHCP.
+    sleep 0.5
+    ensure_ap_ip
+    open_ap_firewall
+    if ! start_dhcp; then
+      log "DHCP failed — retry once"
+      sleep 1
+      ensure_ap_ip
+      open_ap_firewall
+      start_dhcp || log "DHCP still failed"
+    fi
+
     printf '%s\nopen\n' "$SSID" >"$FLAG"
-    log "on ssid=$SSID ip=$AP_IP (open, no password)"
+    log "on ssid=$SSID ip=$AP_IP (open, no password) iface=$(ip -4 -o addr show dev "$IFACE" 2>/dev/null | awk '{print $4}')"
     echo "vic-setup-ap on ssid=$SSID ip=$AP_IP (open)"
     ;;
   *)

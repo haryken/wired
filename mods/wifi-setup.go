@@ -27,7 +27,7 @@ const (
 	wifiConnmanConfig      = "/data/lib/connman/wireos-wifi.config"
 	wifiSetupAPFlag        = "/run/wireos-setup-ap"
 	wifiConnmanStateDir    = "/data/lib/connman"
-	wifiOpenAPIP           = "10.3.141.1"
+	wifiOpenAPIP           = "192.168.4.1"
 	wifiSetupAPBin         = "/usr/bin/vic-setup-ap"
 	wifiScanCache          = "/data/wired/wifi-scan.json"
 	wifiScanCacheLegacy    = "/data/lib/connman/wireos-wifi-scan.json"
@@ -40,6 +40,11 @@ const (
 	wifiLastErrorFile      = "/run/wireos-wifi-last-error"
 	wifiForceAPFlag        = "/run/wireos-force-ap"
 	wifiBootWaitFlag       = "/run/wireos-wifi-boot-wait"
+	wifiSetupModeFile      = "/data/wired/wifi-setup-mode"
+	// Survives Clear User Data (/data wipe). /persist lives on rootfs — often RO
+	// unless remounted; prefer /run then /data for live reads.
+	wifiSetupModePersist   = "/persist/wired/wifi-setup-mode"
+	wifiSetupModeRun       = "/run/wireos-wifi-setup-mode"
 	wifiFaceFile           = "/run/wireos-wifi-face"
 	wifiTraceFile          = "/run/wireos-wifi-trace.log"
 	wifiJoinTimeout        = 28 * time.Second
@@ -98,6 +103,7 @@ func (m *WifiSetup) Load() error {
 		m.lastErr = strings.TrimSpace(string(b))
 	}
 	_ = os.Remove(wifiFaceFile)
+	syncRuntimeWifiModeFlags()
 	go func() {
 		time.Sleep(2 * time.Second)
 		clearStaleWifiJoinFlags()
@@ -134,14 +140,8 @@ func (m *WifiSetup) maybeStartSetupAP() {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		hasOtherIP := false
-		for _, ip := range lanIPs() {
-			if ip != wifiOpenAPIP {
-				hasOtherIP = true
-				break
-			}
-		}
-		if clientSSID() != "" || hasOtherIP {
+		// On home WiFi: never raise AP. Clear stale force-ap from older builds.
+		if onHomeWifi() {
 			if tetheringOn() {
 				_ = disableTethering()
 			}
@@ -157,7 +157,13 @@ func (m *WifiSetup) maybeStartSetupAP() {
 				continue
 			}
 			ssid := robotName()
-			_ = exec.Command(wifiSetupAPBin, "on", ssid).Run()
+			if persistedWifiSetupMode() == "" {
+				persistWifiSetupMode("hotspot")
+			}
+			wifiLog("force AP (offline)")
+			if err := startSetupAP(ssid); err != nil {
+				wifiLog("force AP start failed: %v", err)
+			}
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -180,19 +186,241 @@ func (m *WifiSetup) maybeStartSetupAP() {
 			saveWifiScanCache(nets)
 		}
 		ssid := robotName()
-		_ = exec.Command(wifiSetupAPBin, "on", ssid).Run()
+		// Default setup method is Bluetooth when never chosen.
+		if persistedWifiSetupMode() == "" {
+			persistWifiSetupMode("ble")
+			syncRuntimeWifiModeFlags()
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		if err := startSetupAP(ssid); err != nil {
+			wifiLog("setup AP start failed: %v", err)
+		}
 		time.Sleep(5 * time.Second)
 	}
 }
 
 func preferBleWifi() bool {
-	_, err := os.Stat(wifiPreferBleFlag)
-	return err == nil
+	// Default BLE when unset. Do not let a stale prefer-ble flag override
+	// an explicit hotspot in /run or /data.
+	return persistedWifiSetupMode() != "hotspot"
+}
+
+func readWifiSetupModeFile(path string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	s := strings.TrimSpace(string(b))
+	if s == "ble" || s == "hotspot" {
+		return s
+	}
+	return ""
+}
+
+// persistedWifiSetupMode returns "ble", "hotspot", or "" if never set.
+// Order: /run (face/web immediate) → /data (always writable) → /persist
+// (survives Clear; may be stale while rootfs is RO).
+func persistedWifiSetupMode() string {
+	for _, p := range []string{wifiSetupModeRun, wifiSetupModeFile, wifiSetupModePersist} {
+		if s := readWifiSetupModeFile(p); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func remountRootRw() {
+	_ = exec.Command("mount", "-o", "rw,remount", "/").Run()
+}
+
+func remountRootRo() {
+	_ = exec.Command("mount", "-o", "ro,remount", "/").Run()
+}
+
+func persistWifiSetupMode(mode string) {
+	if mode != "ble" && mode != "hotspot" {
+		mode = "ble"
+	}
+	body := []byte(mode + "\n")
+	// World-writable so vic-anim (engine) can stamp /run before curl returns.
+	_ = os.WriteFile(wifiSetupModeRun, body, 0666)
+	_ = os.Chmod(wifiSetupModeRun, 0666)
+	_ = os.MkdirAll("/data/wired", 0755)
+	_ = os.WriteFile(wifiSetupModeFile, body, 0644)
+	// /persist is on rootfs; remount rw so mode survives Clear User Data.
+	remountRootRw()
+	_ = os.MkdirAll("/persist/wired", 0755)
+	if err := os.WriteFile(wifiSetupModePersist, body, 0644); err != nil {
+		wifiLog("warn: persist wifi mode write failed: %v", err)
+	}
+	remountRootRo()
+}
+
+// applyWifiSetupMode persists ble/hotspot. Hotspot AP is only raised when
+// offline — while on home WiFi this is preference-only (no client WiFi kill).
+func applyWifiSetupMode(mode string) error {
+	mode = strings.TrimSpace(strings.ToLower(mode))
+	if mode != "ble" && mode != "hotspot" {
+		return fmt.Errorf("mode phải là ble hoặc hotspot")
+	}
+	persistWifiSetupMode(mode)
+	if mode == "ble" {
+		_ = os.WriteFile(wifiPreferBleFlag, []byte("1\n"), 0644)
+		_ = os.Remove(wifiForceAPFlag)
+		_ = os.Remove(wifiBootWaitFlag)
+		if tetheringOn() {
+			_ = disableTethering()
+		}
+		wifiLog("wifi setup mode → ble (online=%v)", onHomeWifi())
+		return nil
+	}
+	_ = os.Remove(wifiPreferBleFlag)
+	_ = os.Remove(wifiBootWaitFlag)
+	// Belt-and-suspenders: never raise AP if wlan0 is associated or has a
+	// non-AP LAN IP, even if onHomeWifi() mis-detects.
+	ssid := clientSSID()
+	hasLan := false
+	if ifaces, err := net.Interfaces(); err == nil {
+		for _, iface := range ifaces {
+			if iface.Name != "wlan0" {
+				continue
+			}
+			addrs, _ := iface.Addrs()
+			for _, a := range addrs {
+				ip, _, err := net.ParseCIDR(a.String())
+				if err != nil || ip == nil || ip.To4() == nil {
+					continue
+				}
+				if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.String() == wifiOpenAPIP {
+					continue
+				}
+				hasLan = true
+			}
+		}
+	}
+	if onHomeWifi() || ssid != "" || hasLan {
+		_ = os.Remove(wifiForceAPFlag)
+		wifiLog("wifi setup mode → hotspot (saved; AP deferred until offline; online=%v ssid=%q hasLan=%v)",
+			onHomeWifi(), ssid, hasLan)
+		return nil
+	}
+	_ = os.WriteFile(wifiForceAPFlag, []byte("1\n"), 0644)
+	wifiLog("wifi setup mode → hotspot (start AP now, offline)")
+	if err := startSetupAP(robotName()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func syncRuntimeWifiModeFlags() {
+	mode := persistedWifiSetupMode()
+	if mode == "" {
+		// Migrate legacy /data-only file into persist on first boot of this build.
+		if b, err := os.ReadFile(wifiSetupModeFile); err == nil {
+			s := strings.TrimSpace(string(b))
+			if s == "ble" || s == "hotspot" {
+				persistWifiSetupMode(s)
+				mode = s
+			}
+		}
+	} else {
+		// Keep /data mirror in sync after Clear User Data remakes empty /data.
+		_ = os.MkdirAll("/data/wired", 0755)
+		_ = os.WriteFile(wifiSetupModeFile, []byte(mode+"\n"), 0644)
+	}
+	if mode == "ble" {
+		_ = os.WriteFile(wifiPreferBleFlag, []byte("1\n"), 0644)
+		_ = os.Remove(wifiForceAPFlag)
+		return
+	}
+	_ = os.Remove(wifiPreferBleFlag)
 }
 
 func forceSetupAP() bool {
 	_, err := os.Stat(wifiForceAPFlag)
 	return err == nil
+}
+
+func startSetupAP(ssid string) error {
+	out, err := exec.Command(wifiSetupAPBin, "on", ssid).CombinedOutput()
+	msg := bytesTrim(out)
+	if err == nil {
+		wifiLog("vic-setup-ap on ssid=%s ok %s", ssid, msg)
+		ensureAPReachable()
+		return nil
+	}
+	out2, err2 := exec.Command("/anki/bin/vic-setup-ap", "on", ssid).CombinedOutput()
+	msg2 := bytesTrim(out2)
+	if err2 == nil {
+		wifiLog("vic-setup-ap on (anki) ssid=%s ok %s", ssid, msg2)
+		ensureAPReachable()
+		return nil
+	}
+	return fmt.Errorf("usr=%v %s; anki=%v %s", err, msg, err2, msg2)
+}
+
+// ensureAPReachable re-opens DHCP/:80 holes if iptables was reloaded after
+// vic-setup-ap, and logs when the AP flag/IP are missing.
+func ensureAPReachable() {
+	if err := exec.Command("iptables", "-C", "INPUT", "-p", "udp", "--dport", "67", "-j", "ACCEPT").Run(); err != nil {
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "67", "-j", "ACCEPT").Run()
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "udp", "--dport", "68", "-j", "ACCEPT").Run()
+	}
+	if err := exec.Command("iptables", "-C", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT").Run(); err != nil {
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT").Run()
+	}
+	if err := exec.Command("iptables", "-C", "INPUT", "-p", "tcp", "--dport", "8080", "-j", "ACCEPT").Run(); err != nil {
+		_ = exec.Command("iptables", "-I", "INPUT", "-p", "tcp", "--dport", "8080", "-j", "ACCEPT").Run()
+	}
+	if !tetheringOn() {
+		wifiLog("warn: AP flag/IP missing after vic-setup-ap on")
+	}
+}
+
+func bytesTrim(b []byte) string {
+	return strings.TrimSpace(string(b))
+}
+
+// onHomeWifi is true only when wlan0 is associated to a home SSID and has a
+// real IPv4 (not AP, not link-local). USB rndis / leftover 169.254 must not
+// block the setup hotspot.
+//
+// Do NOT use iwgetid — it is missing on VicOS (robot log: always online=false
+// while associated), which made applyWifiSetupMode("hotspot") raise AP and
+// kill home WiFi during deploy verify / web mode changes.
+func onHomeWifi() bool {
+	if tetheringOn() {
+		return false
+	}
+	ssid := clientSSID()
+	if ssid == "" {
+		return false
+	}
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return false
+	}
+	for _, iface := range ifaces {
+		if iface.Name != "wlan0" {
+			continue
+		}
+		addrs, _ := iface.Addrs()
+		for _, a := range addrs {
+			ip, _, err := net.ParseCIDR(a.String())
+			if err != nil || ip == nil || ip.To4() == nil {
+				continue
+			}
+			if ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+				continue
+			}
+			if ip.String() == wifiOpenAPIP {
+				continue
+			}
+			return true
+		}
+	}
+	return false
 }
 
 func hasSavedWifi() bool {
@@ -276,6 +504,46 @@ func (m *WifiSetup) HTTP(w http.ResponseWriter, r *http.Request) {
 			"ssid":    ssid,
 			"saved":   listSavedWifi(clientSSID()),
 		})
+	case vars.IsEndpoint(r, "mode"):
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet || r.Method == http.MethodHead {
+			mode := persistedWifiSetupMode()
+			if mode == "" {
+				mode = "ble"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"status":      "success",
+				"mode":        mode,
+				"ap":          tetheringOn(),
+				"prefer_ble":  preferBleWifi(),
+				"client_ssid": clientSSID(),
+				"online":      onHomeWifi(),
+			})
+			return
+		}
+		if r.Method != http.MethodPost {
+			vars.HTTPError(w, r, "GET or POST required")
+			return
+		}
+		mode := strings.TrimSpace(r.FormValue("mode"))
+		if err := applyWifiSetupMode(mode); err != nil {
+			vars.HTTPError(w, r, err.Error())
+			return
+		}
+		outMode := persistedWifiSetupMode()
+		if outMode == "" {
+			outMode = mode
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":      "success",
+			"mode":        outMode,
+			"ap":          tetheringOn(),
+			"prefer_ble":  preferBleWifi(),
+			"client_ssid": clientSSID(),
+			"online":      onHomeWifi(),
+			"message":     "mode applied",
+			"ap_deferred": outMode == "hotspot" && onHomeWifi(),
+		})
 	default:
 		vars.HTTPError(w, r, "404 not found")
 	}
@@ -303,6 +571,10 @@ func (m *WifiSetup) status() map[string]interface{} {
 		ui = uiSourceName(fromHotspot || ap)
 	}
 	cur := clientSSID()
+	mode := persistedWifiSetupMode()
+	if mode == "" {
+		mode = "ble"
+	}
 	return map[string]interface{}{
 		"ap":           ap,
 		"ap_ssid":      ssid,
@@ -317,6 +589,8 @@ func (m *WifiSetup) status() map[string]interface{} {
 		"pending_ssid": attempt,
 		"ui":           ui,
 		"from_hotspot": fromHotspot || ap,
+		"mode":         mode,
+		"prefer_ble":   preferBleWifi(),
 	}
 }
 
@@ -344,12 +618,12 @@ func (m *WifiSetup) acceptConnect(ssid, pass string, hidden bool, fromHotspot bo
 	if err := validateWifiCreds(ssid, pass); err != nil {
 		return err
 	}
-	// Trial: hotspot join only (captive / 10.3.141.1). No LAN/:8080 join path.
+	// Hotspot join only (captive / 192.168.4.1). No LAN/:8080 join path.
 	if !fromHotspot {
-		return fmt.Errorf("chỉ bắt WiFi qua hotspot: nối WiFi robot (mở, không mật khẩu) rồi mở http://10.3.141.1/wifi")
+		return fmt.Errorf("chỉ bắt WiFi qua hotspot: nối WiFi robot (mở, không mật khẩu) rồi mở http://192.168.4.1/wifi")
 	}
 	if !tetheringOn() {
-		return fmt.Errorf("hotspot chưa bật — nối WiFi robot rồi mở http://10.3.141.1/wifi")
+		return fmt.Errorf("hotspot chưa bật — nối WiFi robot rồi mở http://192.168.4.1/wifi")
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -826,18 +1100,10 @@ func parseConnmanctlLine(line string) (name, svc string) {
 	svc = strings.TrimSpace(line[idx+1:])
 	left := strings.TrimSpace(line[:idx])
 	if strings.HasPrefix(left, "*") {
-		rest := left[1:]
-		i := 0
-		for i < len(rest) && i < 3 {
-			c := rest[i]
-			if c != 'A' && c != 'O' && c != 'I' && c != 'R' && c != 'P' && c != 'C' {
-				break
-			}
-			i++
-		}
-		if i < len(rest) && rest[i] == ' ' {
-			left = strings.TrimSpace(rest[i+1:])
-		} else if i == len(rest) {
+		fields := strings.Fields(left)
+		if len(fields) >= 2 {
+			left = strings.Join(fields[1:], " ")
+		} else {
 			left = ""
 		}
 	}
@@ -1063,17 +1329,18 @@ func setupAPIP() string {
 }
 
 func clientSSID() string {
-	if out, err := exec.Command("iwgetid", "-r").Output(); err == nil {
-		if s := strings.TrimSpace(string(out)); s != "" {
-			return s
-		}
-	}
+	// Prefer iw — iwgetid is not installed on VicOS.
 	if out, err := exec.Command("iw", "dev", "wlan0", "link").Output(); err == nil {
 		for _, line := range strings.Split(string(out), "\n") {
 			line = strings.TrimSpace(line)
 			if strings.HasPrefix(line, "SSID:") {
 				return strings.TrimSpace(strings.TrimPrefix(line, "SSID:"))
 			}
+		}
+	}
+	if out, err := exec.Command("iwgetid", "-r").Output(); err == nil {
+		if s := strings.TrimSpace(string(out)); s != "" {
+			return s
 		}
 	}
 	out, err := exec.Command("connmanctl", "services").CombinedOutput()

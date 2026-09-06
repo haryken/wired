@@ -163,6 +163,10 @@
                 <span class="bot-ico" aria-hidden="true">📊</span>
                 <span data-i18n="bot.stats">Thống kê</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-wifi-setup')">
+                <span class="bot-ico" aria-hidden="true">📶</span>
+                <span data-i18n="bot.wifi_setup">Bắt WiFi</span>
+            </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-alexa')">
                 <span class="bot-ico" aria-hidden="true">🔊</span>
                 <span data-i18n="bot.alexa">Alexa</span>
@@ -564,6 +568,42 @@
             <div id="statsSection" class="stats-list"></div>
         </div>
 
+        <div id="bot-wifi-setup" class="bot-section" style="display:none;">
+            <h3>📶 <span data-i18n="sec.wifi_setup">Bắt WiFi</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="wmode.help1">Chọn cách bắt WiFi khi robot mất mạng nhà. Mặc định: Bluetooth.</li>
+                    <li data-i18n="wmode.help2">Đang có mạng: chỉ lưu lựa chọn — không tắt WiFi / không bật hotspot ngay. Mất mạng mới phát hotspot (nếu chọn Hotspot).</li>
+                    <li data-i18n="wmode.help3">Ấn lưng 2 lần = BLE pairing. Đổi chế độ trên mặt: menu (thay SELF TEST) WIFI BY BLUE / WIFI HOTSPOT.</li>
+                </ol>
+            </div>
+            <div id="wifiModeStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="wifiSetupMode" value="ble" onchange="setWifiSetupMode('ble')"> <span data-i18n="wmode.ble">Bluetooth (BLE)</span></label>
+                <label><input type="radio" name="wifiSetupMode" value="hotspot" onchange="setWifiSetupMode('hotspot')"> <span data-i18n="wmode.hotspot">Hotspot mở (portal)</span></label>
+            </div>
+            <hr class="smallhr">
+            <div id="wifiModeGuideBle" class="help-box" style="display:none;">
+                <strong data-i18n="wmode.ble_title">Hướng dẫn Bluetooth</strong>
+                <ol>
+                    <li data-i18n="wmode.ble1">Trên mặt robot chọn WIFI BY BLUE (CONFIRM), hoặc ấn lưng 2 lần để vào pairing.</li>
+                    <li data-i18n="wmode.ble2" data-i18n-html="1">Mở trang: <a href="https://wpsetup.keriganc.com/html/main.html" target="_blank" rel="noopener">https://wpsetup.keriganc.com/html/main.html</a></li>
+                    <li data-i18n="wmode.ble3">Dùng <b>laptop Windows</b> hoặc <b>điện thoại Android</b> (Chrome). <b>iPhone không dùng được</b>.</li>
+                    <li data-i18n="wmode.ble4">Bật Bluetooth máy → kết nối Vector → chọn WiFi nhà 2.4 GHz → nhập mật khẩu.</li>
+                </ol>
+            </div>
+            <div id="wifiModeGuideHotspot" class="help-box" style="display:none;">
+                <strong data-i18n="wmode.hs_title">Hướng dẫn Hotspot</strong>
+                <ol>
+                    <li data-i18n="wmode.hs1">Robot phát WiFi mở = tên robot (không mật khẩu).</li>
+                    <li data-i18n="wmode.hs2" data-i18n-html="1">Nối phone/laptop vào hotspot → mở <code>http://192.168.4.1/</code> hoặc <code>http://192.168.4.1:8080/</code>.</li>
+                    <li data-i18n="wmode.hs3">Quét / chọn WiFi nhà 2.4 GHz → nhập mật khẩu → gửi.</li>
+                    <li data-i18n="wmode.hs4">Thành công: hotspot tắt, robot vào mạng nhà. Sai mật khẩu: hotspot bật lại để thử.</li>
+                </ol>
+            </div>
+        </div>
+
         <div id="bot-alexa" class="bot-section" style="display:none;">
             <h3>🔊 <span data-i18n="sec.alexa">Amazon Alexa</span></h3>
             <div class="help-box">
@@ -596,7 +636,7 @@
             <strong data-i18n="common.howto">Cách dùng</strong>
             <ol>
                 <li data-i18n="wifi.help1">Khi mất mạng, robot phát hotspot mở (tên Vector, không mật khẩu).</li>
-                <li data-i18n="wifi.help2">Nối hotspot → mở http://10.3.141.1/wifi → Quét/chọn WiFi nhà → nhập mật khẩu → Áp dụng.</li>
+                <li data-i18n="wifi.help2">Nối hotspot → mở http://192.168.4.1/wifi → Quét/chọn WiFi nhà → nhập mật khẩu → Áp dụng.</li>
                 <li data-i18n="wifi.help3">Chỉ WiFi 2.4 GHz. Mật khẩu nhà ≥ 8 ký tự (mạng mở thì để trống). Sai mật khẩu → hotspot bật lại.</li>
             </ol>
         </div>
@@ -1331,6 +1371,7 @@
     <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
     <script src="js/wifi-setup.js"></script>
+    <script src="js/wifi-mode.js"></script>
 </body>
 
 </html>

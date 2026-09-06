@@ -175,7 +175,7 @@ if (legacyBotHash[location.hash]) {
     activateSection(location.hash);
 } else {
     const wifiPath = (location.pathname || '').replace(/\/+$/, '');
-    if (wifiPath === '/wifi' || location.hostname === '10.3.141.1') {
+    if (wifiPath === '/wifi' || location.hostname === '192.168.4.1') {
         activateSection('#wifi');
     } else {
         activateSection('#botsettings');

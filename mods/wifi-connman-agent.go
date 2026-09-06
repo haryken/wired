@@ -125,13 +125,43 @@ func hsConnectLikeBLE(ssid, pass string, hidden bool) error {
 	return nil
 }
 
+// hsEthernetIface returns ConnMan Ethernet.Interface (wlan0 / p2p0).
+// Vector always has a p2p0 twin for each scanned SSID — stock BLE only
+// connects the wlan0 service (anki-wifi ConnectWiFiBySsid).
+func hsEthernetIface(props map[string]dbus.Variant) string {
+	v, ok := props["Ethernet"]
+	if !ok {
+		return ""
+	}
+	switch eth := v.Value().(type) {
+	case map[string]dbus.Variant:
+		if iface, ok := eth["Interface"].Value().(string); ok {
+			return iface
+		}
+	case map[string]interface{}:
+		switch iface := eth["Interface"].(type) {
+		case string:
+			return iface
+		case dbus.Variant:
+			if s, ok := iface.Value().(string); ok {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
 func hsFindWifiServicePath(bus *dbus.Conn, ssid string, hidden bool) (dbus.ObjectPath, error) {
 	manager := bus.Object("net.connman", "/")
 	var services [][]interface{}
 	if err := manager.Call("net.connman.Manager.GetServices", 0).Store(&services); err != nil {
 		return "", fmt.Errorf("GetServices: %w", err)
 	}
-	var hiddenPath dbus.ObjectPath
+	var (
+		hiddenPath dbus.ObjectPath
+		best       dbus.ObjectPath
+		bestState  string
+	)
 	for _, pair := range services {
 		if len(pair) < 2 {
 			continue
@@ -152,17 +182,9 @@ func hsFindWifiServicePath(bus *dbus.Conn, ssid string, hidden bool) (dbus.Objec
 		if typ != "wifi" {
 			continue
 		}
-		ifaceOK := false
-		if eth, ok := props["Ethernet"].Value().(map[string]dbus.Variant); ok {
-			if iface, ok := eth["Interface"].Value().(string); ok && iface == "wlan0" {
-				ifaceOK = true
-			}
-		}
-		// Some ConnMan builds nest Ethernet differently; fall back to path check.
-		if !ifaceOK && strings.Contains(string(path), "wifi_") {
-			ifaceOK = true
-		}
-		if !ifaceOK {
+		// CRITICAL (robot log 192.168.100.45): falling back to any wifi_* path
+		// picked p2p0 (…1ea1) → ReportError connect-failed. wlan0 (…1ea0) works.
+		if hsEthernetIface(props) != "wlan0" {
 			continue
 		}
 		name, hasName := "", false
@@ -171,20 +193,80 @@ func hsFindWifiServicePath(bus *dbus.Conn, ssid string, hidden bool) (dbus.Objec
 				name, hasName = s, true
 			}
 		}
+		st, _ := props["State"].Value().(string)
 		if hasName && name == ssid {
-			if st, _ := props["State"].Value().(string); st == "online" || st == "ready" {
+			if st == "online" || st == "ready" {
 				return path, nil
 			}
-			return path, nil
+			// Prefer idle/association over failure (p2p twin left failure sticky).
+			if best == "" || bestState == "failure" || st == "association" || st == "configuration" {
+				best, bestState = path, st
+			}
+			continue
 		}
 		if hidden && !hasName && hiddenPath == "" {
 			hiddenPath = path
 		}
 	}
+	if best != "" {
+		return best, nil
+	}
 	if hidden && hiddenPath != "" {
 		return hiddenPath, nil
 	}
-	return "", fmt.Errorf("không thấy service WiFi %q — quét lại", ssid)
+	return "", fmt.Errorf("không thấy service WiFi %q trên wlan0 — quét lại", ssid)
+}
+
+// hsDisableP2PTwin turns off AutoConnect on p2p0 copies of ssid. wireos-wifi.config
+// provisions both wlan0 and p2p0; p2p0 then fights / fails and can knock client WiFi.
+func hsDisableP2PTwin(ssid string) {
+	if ssid == "" {
+		return
+	}
+	bus, err := dbus.SystemBus()
+	if err != nil {
+		return
+	}
+	manager := bus.Object("net.connman", "/")
+	var services [][]interface{}
+	if err := manager.Call("net.connman.Manager.GetServices", 0).Store(&services); err != nil {
+		return
+	}
+	for _, pair := range services {
+		if len(pair) < 2 {
+			continue
+		}
+		path, ok := pair[0].(dbus.ObjectPath)
+		if !ok {
+			if s, ok2 := pair[0].(string); ok2 {
+				path = dbus.ObjectPath(s)
+			} else {
+				continue
+			}
+		}
+		props, ok := pair[1].(map[string]dbus.Variant)
+		if !ok {
+			continue
+		}
+		if typ, _ := props["Type"].Value().(string); typ != "wifi" {
+			continue
+		}
+		if hsEthernetIface(props) != "p2p0" {
+			continue
+		}
+		name, _ := props["Name"].Value().(string)
+		if name != ssid {
+			continue
+		}
+		svc := bus.Object("net.connman", path)
+		if call := svc.Call("net.connman.Service.SetProperty", 0, "AutoConnect", dbus.MakeVariant(false)); call.Err != nil {
+			wifiLog("hotspot p2p twin AutoConnect=false path=%s err=%v", path, call.Err)
+		} else {
+			wifiLog("hotspot p2p twin AutoConnect=false path=%s", path)
+		}
+		// Do not Disconnect p2p here — robot log showed wlan0 State=failure
+		// right after twin tweaks; leave p2p idle with AutoConnect off.
+	}
 }
 
 // listConnmanWifiNets uses Manager.GetServices Name (same D-Bus path as
