@@ -595,13 +595,14 @@ func setWifiFaceState(state string) {
 	_ = os.WriteFile(wifiFaceFile, []byte(state+"\n"), 0644)
 }
 
-// pulseWifiFace writes /run/wireos-wifi-face for vic-anim overlay (trying/ok/fail).
-// hold==0 keeps state until the next call; otherwise clears after hold.
+// pulseWifiFace only publishes state to tmpfs. The matching vic-anim watcher
+// performs file I/O on a background thread and the render loop reads an atomic
+// byte, so this does not acquire SDK behavior control or block face rendering.
 func (m *WifiSetup) pulseWifiFace(state string, hold time.Duration) {
 	m.faceSeq++
 	seq := m.faceSeq
 	setWifiFaceState(state)
-	PlayWifiStatusAnimation(state)
+	wifiLog("status face overlay %s (hold=%s)", state, hold)
 	if hold <= 0 {
 		return
 	}
@@ -1360,14 +1361,19 @@ func (m *WifiSetup) scanNetworks() ([]wifiNet, error) {
 
 	if !ap {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		var scanned []wifiNet
 		if out, err := exec.CommandContext(ctx, "iwlist", "wlan0", "scan").CombinedOutput(); err == nil {
-			nets = mergeWifiNets(nets, parseIwlist(string(out)))
+			scanned = parseIwlist(string(out))
 		}
-		if len(nets) == 0 {
+		// Decide the fallback from this scan's result, not from pre-existing
+		// ConnMan services. Otherwise one stale service prevents `iw` from
+		// discovering the rest of the nearby networks.
+		if len(scanned) == 0 {
 			if out, err := exec.CommandContext(ctx, "iw", "dev", "wlan0", "scan").CombinedOutput(); err == nil {
-				nets = mergeWifiNets(nets, parseIwScan(string(out)))
+				scanned = parseIwScan(string(out))
 			}
 		}
+		nets = mergeWifiNets(nets, scanned)
 		cancel()
 		_ = connmanScan()
 	}
@@ -1681,6 +1687,47 @@ func dbmToPct(dbm int) int {
 	return n
 }
 
+const wifiPortalCSS = `
+:root{color-scheme:dark;font-family:Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;padding:18px 12px 32px;background:#050505;color:#fff}
+.container{width:100%;max-width:620px;margin:0 auto;padding:18px;border:1px solid #3a3a3a;border-radius:14px;background:#1f1f1f}
+h1{margin:0 0 8px;color:#67e8f9;font-size:24px;text-align:center}
+.subtitle{margin:0 0 16px;color:#b3b3b3;text-align:center;font-size:14px}
+.portal-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}.portal-tabs button.active{color:#67e8f9;border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.14)}
+.portal-panel[hidden]{display:none}
+.help-box{margin:0 0 16px;padding:12px 14px;border:1px solid #444;border-radius:10px;background:#2a2a2a;font-size:14px;line-height:1.5}
+.help-box p{margin:4px 0}.help-warn{color:#f5c77c}
+.wifi-card{padding:16px;border:1px solid #3a3a3a;border-radius:12px;background:#151515}
+.wifi-status{margin:0 0 12px;color:#d4d4d4;font-size:14px;line-height:1.45}
+.wifi-hint{margin:0 0 10px;color:#b3b3b3;font-size:14px;line-height:1.45}
+button{min-height:44px;padding:10px 16px;border:1px solid #3a3a3a;border-radius:10px;background:#272727;color:#fff;font-size:15px;cursor:pointer}
+button:hover:not(:disabled),button:focus-visible{border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.16);outline:none}
+button:disabled{opacity:.55;cursor:wait}
+.wifi-btn-primary{color:#67e8f9;border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.1)}
+.wifi-actions{display:flex;margin:0 0 12px}.wifi-actions button{width:100%}
+.wifi-net-list{display:flex;flex-direction:column;gap:8px;max-height:min(42vh,340px);margin:0 0 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.wifi-net{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:50px;padding:10px 12px;text-align:left;background:#202020}
+.wifi-net.selected{border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.12);color:#67e8f9}
+.wifi-net-name{flex:1 1 auto;min-width:0;font-weight:600;white-space:normal;overflow-wrap:anywhere}
+.wifi-net-meta{display:flex;align-items:center;gap:7px;flex:0 0 auto;color:#9ca3af;font-size:12px;white-space:nowrap}
+.wifi-bars{display:inline-flex;align-items:flex-end;gap:2px;height:14px}
+.wifi-bars i{display:block;width:3px;border-radius:1px;background:#444}.wifi-bars i:nth-child(1){height:4px}.wifi-bars i:nth-child(2){height:7px}.wifi-bars i:nth-child(3){height:10px}.wifi-bars i:nth-child(4){height:14px}.wifi-bars i.on{background:#67e8f9}
+.wifi-fields{display:grid;gap:8px}.wifi-fields label{margin-top:4px;color:#ddd;font-size:14px}
+.wifi-fields input{width:100%;min-height:46px;padding:10px 12px;border:1px solid #3a3a3a;border-radius:8px;background:#0d0d0d;color:#fff;font-size:16px}
+.wifi-fields input:focus{border-color:rgba(34,211,238,.65);outline:none}
+.wifi-pass-wrap{position:relative;display:block;width:100%}.wifi-pass-wrap input{padding-right:48px}
+.wifi-pass-eye{position:absolute;top:50%;right:5px;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:38px;min-height:38px;padding:0;border:0;background:transparent;color:#9ca3af}
+.wifi-pass-eye svg{display:none}.wifi-pass-eye .wifi-eye-on{display:block}.wifi-pass-eye[aria-pressed="true"] .wifi-eye-on{display:none}.wifi-pass-eye[aria-pressed="true"] .wifi-eye-off{display:block}
+.wifi-banner{margin:12px 0;padding:10px 12px;border-radius:8px;background:rgba(34,211,238,.1);color:#a5f3fc}
+.mode-list{display:grid;gap:10px}.mode-option{display:block;width:100%;padding:14px;text-align:left}.mode-option strong{display:block;margin-bottom:5px;font-size:16px}.mode-option span{display:block;color:#aaa;font-size:13px;line-height:1.4}.mode-option.active{color:#67e8f9;border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.12)}.mode-option.active span{color:#c4f6fc}
+.mode-status{margin:12px 0 0;padding:10px 12px;border-radius:8px;background:#202020;color:#b3b3b3;font-size:14px;line-height:1.45}
+.mode-guide{margin-top:12px;padding:12px 14px;border:1px solid #3a3a3a;border-radius:10px;background:#202020;font-size:14px;line-height:1.5}.mode-guide h2{margin:0 0 8px;color:#67e8f9;font-size:17px}.mode-guide ol{margin:6px 0 10px;padding-left:22px}.mode-guide li{margin:5px 0}.mode-guide p{margin:6px 0}.mode-guide a{color:#67e8f9;overflow-wrap:anywhere}
+.technical{margin-top:14px;color:#aaa;font-size:13px}.technical summary{cursor:pointer}.technical p{line-height:1.45}
+code{color:#a5f3fc;overflow-wrap:anywhere}
+@media(max-width:480px){body{padding:10px 8px 24px}.container{padding:14px}.wifi-card{padding:12px}h1{font-size:21px}}
+`
+
 func wifiWaitHTML() string {
 	ap, _ := setupAPCreds()
 	if ap == "" {
@@ -1690,13 +1737,13 @@ func wifiWaitHTML() string {
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="2;url=/#wifi">
 <title>Vector · Đã gửi WiFi</title>
-<link rel="stylesheet" href="/style.css">
+<style>` + wifiPortalCSS + `</style>
 </head><body>
 <div id="wifiToast" class="wifi-toast wifi-toast-ok" role="status">
 <span class="wifi-toast-mark">✓</span>
 <span>Đã gửi thành công!</span>
 </div>
-<div class="container" style="padding:24px">
+<div class="container">
 <h2>Đã gửi thành công</h2>
 <p>Robot đã nhận WiFi nhà. Đợi khoảng <b>30 giây</b>: hotspot tắt để thử vào mạng nhà.</p>
 <p>• Thành công: mở <code>http://&lt;IP-robot&gt;:8080/</code></p>
@@ -1727,40 +1774,128 @@ func wifiPageHTML(st map[string]interface{}, errMsg string, _ bool) string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vector · WiFi</title>
-<link rel="stylesheet" href="/style.css">
+<style>` + wifiPortalCSS + `</style>
 </head><body>
-<div class="container" style="padding:20px;max-width:520px;margin:0 auto">
-<h2>Vector · WiFi nhà</h2>
-<p>` + html.EscapeString(mode) + ` · chỉ <b>2.4 GHz</b></p>
+<main class="container">
+<h1>📶 Vector · WiFi nhà</h1>
+<p class="subtitle">` + html.EscapeString(mode) + ` · chỉ WiFi <b>2.4 GHz</b></p>
+<nav class="portal-tabs">
+<button type="button" id="tabWifi" class="active" onclick="showPortalTab('wifi')">Bắt WiFi</button>
+<button type="button" id="tabMode" onclick="showPortalTab('mode')">Chế độ kết nối</button>
+</nav>
+<section id="wifiPanel" class="portal-panel">
 ` + banner + `
 <div class="help-box">
-<p><b>Hotspot robot</b></p>
-<p>SSID: <code>` + html.EscapeString(apSSID) + `</code><br>
-Mật khẩu hotspot: <b>không — mạng mở, bấm Kết nối</b><br>
-Trang này: <code>http://` + html.EscapeString(apIP) + `/wifi</code></p>
-<p>WiFi hiện tại: <code>` + curEsc + `</code></p>
+<p><b>Hotspot robot:</b> <code>` + html.EscapeString(apSSID) + `</code> · mạng mở, không mật khẩu</p>
+<p><b>Trang cấu hình:</b> <code>http://` + html.EscapeString(apIP) + `/wifi</code></p>
+<p><b>WiFi hiện tại:</b> <code>` + curEsc + `</code></p>
 </div>
-<p id="wifiScanHint">Bấm quét, chọn mạng, rồi nhập mật khẩu.</p>
-<p><button type="button" id="wifiScanBtn" onclick="wifiScanPortal()">Quét mạng</button></p>
+<section class="wifi-card">
+<p class="wifi-status">Chọn mạng WiFi nhà rồi nhập mật khẩu.</p>
+<p id="wifiScanHint" class="wifi-hint">Danh sách được quét đầy đủ trước khi robot mở hotspot.</p>
+<div class="wifi-actions"><button type="button" id="wifiScanBtn" class="wifi-btn-primary" onclick="wifiScanPortal()">Quét lại danh sách</button></div>
 <div id="wifiNetworkList" class="wifi-net-list"></div>
 <form method="post" action="/wifi" onsubmit="return checkWifi()">
-<p><label>Tên WiFi nhà (SSID) — hoặc gõ tay nếu mạng ẩn<br>
-<input name="ssid" id="ssid" required autocomplete="off" autocapitalize="off" spellcheck="false" style="width:100%;min-height:44px"></label></p>
-<p><label>Mật khẩu WiFi nhà<br>
-<span class="wifi-pass-wrap" style="position:relative;display:block;width:100%">
-<input name="pass" id="pass" type="password" minlength="8" style="width:100%;min-height:44px;box-sizing:border-box;padding:10px 44px 10px 12px">
+<div class="wifi-fields">
+<label for="ssid">Tên WiFi nhà (SSID) — hoặc gõ tay nếu mạng ẩn</label>
+<input name="ssid" id="ssid" required autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Chọn trong danh sách hoặc gõ tay">
+<label for="pass">Mật khẩu WiFi nhà</label>
+<span class="wifi-pass-wrap">
+<input name="pass" id="pass" type="password" minlength="8" autocomplete="current-password" placeholder="Mật khẩu WiFi nhà">
 <button type="button" id="passEye" class="wifi-pass-eye" aria-label="Hiện mật khẩu" aria-pressed="false" onclick="(function(b){var i=document.getElementById('pass');if(!i||!b)return;var s=i.type==='password';i.type=s?'text':'password';b.setAttribute('aria-pressed',s?'true':'false');b.setAttribute('aria-label',s?'Ẩn mật khẩu':'Hiện mật khẩu');})(this)">
 <svg class="wifi-eye-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>
 <svg class="wifi-eye-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M2.1 3.51 3.51 2.1l18.39 18.39-1.41 1.41-3.13-3.13A12.3 12.3 0 0 1 12 19c-5 0-9.27-3.11-11-7a13.5 13.5 0 0 1 4.2-5.05L2.1 3.51zM12 7a5 5 0 0 1 4.9 4.02l-1.57-1.57A2.5 2.5 0 0 0 12.55 8.1L12 7zm0-2c5 0 9.27 3.11 11 7a13.6 13.6 0 0 1-3.35 4.36l-1.45-1.45A11.5 11.5 0 0 0 21.05 12C19.5 8.8 16 7 12 7c-.7 0-1.38.08-2.03.23L8.4 5.66C9.52 5.23 10.73 5 12 5z"/></svg>
 </button>
-</span></label></p>
-<p id="wifiFormMsg" class="wifi-banner wifi-banner-ok" style="display:none"></p>
-<p><button type="submit">Áp dụng mạng</button></p>
-</form>
-<p style="font-size:13px;color:#888">ConnMan tethering: một radio — đang hotspot thì quét có thể trống, hãy gõ tay SSID. Sau khi áp dụng, hotspot tắt.</p>
+</span>
 </div>
+<p id="wifiFormMsg" class="wifi-banner wifi-banner-ok" style="display:none"></p>
+<div class="wifi-actions"><button type="submit" class="wifi-btn-primary">Áp dụng mạng</button></div>
+</form>
+<details class="technical"><summary>Chi tiết kỹ thuật</summary><p>Robot dùng một radio WiFi. Danh sách được lưu ngay trước khi chuyển radio sang hotspot; sau khi áp dụng, hotspot sẽ tắt để nối mạng đã chọn.</p></details>
+</section>
+</section>
+<section id="modePanel" class="portal-panel" hidden>
+<div class="help-box">
+<p><b>Chọn cách cấu hình WiFi khi robot bị mất mạng.</b></p>
+<p>Lựa chọn này được lưu qua cả Clear User Data.</p>
+</div>
+<div class="wifi-card">
+<div class="mode-list">
+<button type="button" id="modeHotspot" class="mode-option" onclick="setPortalMode('hotspot')">
+<strong>📡 Hotspot mở</strong>
+<span>Robot phát WiFi riêng và tự mở trang 192.168.4.1 để nhập mạng nhà.</span>
+</button>
+<button type="button" id="modeBle" class="mode-option" onclick="setPortalMode('ble')">
+<strong>Bluetooth (BLE)</strong>
+<span>Tắt hotspot và quay về luồng ghép nối Bluetooth gốc của Vector.</span>
+</button>
+</div>
+<p id="modeStatus" class="mode-status">Đang đọc chế độ hiện tại…</p>
+<section id="modeGuideHotspot" class="mode-guide">
+<h2>📡 Bắt WiFi bằng Hotspot</h2>
+<p>Khi robot mất WiFi, kết nối điện thoại hoặc máy tính vào hotspot mang tên robot. Mở <code>http://192.168.4.1/</code>, chọn WiFi nhà rồi nhập mật khẩu.</p>
+</section>
+<section id="modeGuideBle" class="mode-guide" hidden>
+<h2>Bluetooth (BLE) — hướng dẫn chi tiết</h2>
+<ol>
+<li>Mở <a href="https://wpsetup.keriganc.com/html/main.html" target="_blank" rel="noopener noreferrer">Vector Web Setup</a> bằng Chrome hoặc Edge.</li>
+<li>Đặt robot lên đế sạc.</li>
+<li>Nhấn nút lưng 2 lần nhanh; chờ mặt robot hiện mã ghép nối gồm 6 ký tự.</li>
+<li>Trên Web Setup, bấm <b>Pair</b>, chọn robot rồi nhập đúng 6 ký tự đang hiện trên mặt.</li>
+<li>Chọn WiFi nhà, nhập mật khẩu và chờ robot kết nối hoàn tất.</li>
+</ol>
+<p class="help-warn">Nếu bị lỗi: tắt robot, mở lại, đặt lên đế sạc rồi nhấn nút lưng 2 lần và thực hiện lại từ đầu.</p>
+</section>
+</div>
+</section>
+</main>
 <script>
 var wifiOpen=false;
+function showPortalTab(name){
+  var wifi=name==='wifi';
+  document.getElementById('wifiPanel').hidden=!wifi;
+  document.getElementById('modePanel').hidden=wifi;
+  document.getElementById('tabWifi').classList.toggle('active',wifi);
+  document.getElementById('tabMode').classList.toggle('active',!wifi);
+  if(!wifi)loadPortalMode();
+}
+function renderPortalMode(mode){
+  document.getElementById('modeHotspot').classList.toggle('active',mode==='hotspot');
+  document.getElementById('modeBle').classList.toggle('active',mode==='ble');
+  document.getElementById('modeGuideHotspot').hidden=mode!=='hotspot';
+  document.getElementById('modeGuideBle').hidden=mode!=='ble';
+}
+function loadPortalMode(){
+  var out=document.getElementById('modeStatus');
+  fetch('/api/mods/WifiSetup/mode',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+    var mode=j.mode==='ble'?'ble':'hotspot';
+    renderPortalMode(mode);
+    out.textContent='Đang dùng: '+(mode==='ble'?'Bluetooth (BLE)':'Hotspot')+(j.ap?' · hotspot đang bật':'');
+  }).catch(function(){out.textContent='Không đọc được chế độ hiện tại.';});
+}
+function setPortalMode(mode){
+  var out=document.getElementById('modeStatus');
+  renderPortalMode(mode);
+  out.textContent='Đang chuyển sang '+(mode==='ble'?'Bluetooth…':'Hotspot…');
+  fetch('/api/mods/WifiSetup/mode',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'mode='+encodeURIComponent(mode)
+  }).then(function(r){return r.json()}).then(function(j){
+    if(j.status==='error')throw new Error(j.message||'Không lưu được');
+    renderPortalMode(j.mode);
+    if(mode==='ble'){
+      out.textContent='Đã chọn Bluetooth. Hotspot sẽ tắt trong vài giây; hãy mở luồng ghép nối BLE.';
+    }else{
+      out.textContent='Đã chọn Hotspot. Robot sẽ dùng hotspot vào lần mất WiFi tiếp theo.';
+    }
+  }).catch(function(e){out.textContent='Lỗi đổi chế độ: '+e.message;loadPortalMode();});
+}
+function wifiBars(pct){
+  var n=pct>=75?4:pct>=50?3:pct>=25?2:1,h='<span class="wifi-bars" aria-hidden="true">';
+  for(var i=1;i<=4;i++)h+='<i class="'+(i<=n?'on':'')+'"></i>';
+  return h+'</span>';
+}
 function wifiScanPortal(){
   var list=document.getElementById('wifiNetworkList');
   var hint=document.getElementById('wifiScanHint');
@@ -1779,7 +1914,8 @@ function wifiScanPortal(){
       var b=document.createElement('button');
       b.type='button';
       b.className='wifi-net';
-      b.innerHTML='<span class="wifi-net-name">'+escapeHtml(n.ssid)+'</span><span class="wifi-net-meta">'+(n.secure?'🔒 ':'mở ')+(n.signal||0)+'%</span>';
+      b.dataset.ssid=n.ssid;
+      b.innerHTML='<span class="wifi-net-name">'+escapeHtml(n.ssid)+'</span><span class="wifi-net-meta">'+wifiBars(n.signal||0)+(n.secure?' 🔒':' mở')+'</span>';
       b.onclick=function(){
         document.querySelectorAll('.wifi-net').forEach(function(x){x.classList.remove('selected')});
         b.classList.add('selected');

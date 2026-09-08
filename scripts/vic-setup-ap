@@ -181,36 +181,49 @@ case "$cmd" in
     : >"$LOG"
     log "starting open AP ssid=$SSID"
 
-    # Scan + cache BEFORE killing client radio.
-    CACHE_DATA="/data/lib/connman/wireos-wifi-scan.json"
+    # Scan + cache BEFORE killing client radio. Prefer the portal's Go scanner:
+    # it decodes the full SSID from ConnMan's hex service path and merges D-Bus,
+    # iwlist and the previous cache. The shell fallback must preserve every
+    # display-name word; the old awk expression ate the first word of unflagged
+    # names ("MINH THIEN" -> "THIEN", "Xuan An" -> "An").
+    CACHE_DATA="/data/wired/wifi-scan.json"
     CACHE_RUN="/run/wireos-wifi-scan.json"
-    mkdir -p /data/lib/connman /run
+    CACHE_LEGACY="/data/lib/connman/wireos-wifi-scan.json"
+    mkdir -p /data/wired /data/lib/connman /run
     connman_wifi_powered true
-    connmanctl scan wifi >/dev/null 2>&1 || \
-      busctl --system call net.connman /net/connman/technology/wifi \
-        net.connman.Technology Scan >/dev/null 2>&1 || true
-    sleep 2
-    TMP_JSON="$(mktemp /run/wireos-scan.XXXXXX 2>/dev/null || echo /run/wireos-scan.tmp)"
-    connmanctl services 2>/dev/null | awk '
-      BEGIN { print "["; n=0 }
-      {
-        svc=$NF
-        if (svc !~ /^wifi_/) next
-        line=$0
-        sub(/^[\* ]+[A-Za-z]*[ ]*/, "", line)
-        sub(/[ \t]+wifi_[^ \t]+$/, "", line)
-        gsub(/^[ \t]+|[ \t]+$/, "", line)
-        if (line == "" || line ~ /^wifi_/) next
-        gsub(/\\/, "\\\\", line); gsub(/"/, "\\\"", line)
-        secure = (svc ~ /_none$/) ? "false" : "true"
-        if (n++) printf ","
-        printf "{\"ssid\":\"%s\",\"signal\":60,\"secure\":%s}", line, secure
-      }
-      END { print "]" }
-    ' >"$TMP_JSON" 2>/dev/null || echo '[]' >"$TMP_JSON"
-    cp -f "$TMP_JSON" "$CACHE_DATA" 2>/dev/null || true
-    cp -f "$TMP_JSON" "$CACHE_RUN" 2>/dev/null || true
-    rm -f "$TMP_JSON"
+    if wget -q -O /dev/null -T 25 \
+        http://127.0.0.1:8081/api/mods/WifiSetup/scan 2>/dev/null; then
+      rm -f "$CACHE_LEGACY"
+      log "prescan cached by portal scanner"
+    else
+      connmanctl scan wifi >/dev/null 2>&1 || \
+        busctl --system call net.connman /net/connman/technology/wifi \
+          net.connman.Technology Scan >/dev/null 2>&1 || true
+      sleep 2
+      TMP_JSON="$(mktemp /run/wireos-scan.XXXXXX 2>/dev/null || echo /run/wireos-scan.tmp)"
+      connmanctl services 2>/dev/null | awk '
+        BEGIN { print "["; n=0 }
+        {
+          svc=$NF
+          if (svc !~ /^wifi_/) next
+          line=$0
+          sub(/[ \t]+wifi_[^ \t]+$/, "", line)
+          sub(/^[ \t]+/, "", line)
+          if (line ~ /^\*/) sub(/^\*[A-Za-z]*[ \t]+/, "", line)
+          gsub(/^[ \t]+|[ \t]+$/, "", line)
+          if (line == "" || line ~ /^wifi_/) next
+          gsub(/\\/, "\\\\", line); gsub(/"/, "\\\"", line)
+          secure = (svc ~ /_none$/) ? "false" : "true"
+          if (n++) printf ","
+          printf "{\"ssid\":\"%s\",\"signal\":60,\"secure\":%s}", line, secure
+        }
+        END { print "]" }
+      ' >"$TMP_JSON" 2>/dev/null || echo '[]' >"$TMP_JSON"
+      cp -f "$TMP_JSON" "$CACHE_DATA" 2>/dev/null || true
+      cp -f "$TMP_JSON" "$CACHE_RUN" 2>/dev/null || true
+      rm -f "$TMP_JSON"
+      log "prescan cached by shell fallback"
+    fi
     log "prescan cached $(wc -c <"$CACHE_DATA" 2>/dev/null || echo 0) bytes"
 
     stop_ap

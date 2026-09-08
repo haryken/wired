@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 
 	"github.com/os-vector/wired/mods"
 )
@@ -14,27 +15,24 @@ func main() {
 		panic(err)
 	}
 
+	wiredURL, err := url.Parse("http://127.0.0.1:8080")
+	if err != nil {
+		panic(err)
+	}
+	wiredUI := httputil.NewSingleHostReverseProxy(wiredURL)
+	wiredUI.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		http.Error(w, "Giao diện chính chưa sẵn sàng. Hãy thử lại sau.", http.StatusBadGateway)
+	}
+
 	http.HandleFunc("/api/mods/WifiSetup/", wifi.HTTP)
-	http.HandleFunc("/api/hotspot/test-animation", func(w http.ResponseWriter, r *http.Request) {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		ip := net.ParseIP(host)
-		if err != nil || ip == nil || !ip.IsLoopback() {
-			http.Error(w, "localhost only", http.StatusForbidden)
-			return
-		}
-		state := r.FormValue("state")
-		if state != "trying" && state != "ok" && state != "fail" {
-			http.Error(w, "state must be trying, ok, or fail", http.StatusBadRequest)
-			return
-		}
-		mods.PlayWifiStatusAnimation(state)
-		w.WriteHeader(http.StatusAccepted)
-	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/wifi", http.StatusFound)
+		// Keep the complete wired UI (menus, icons, controls and Bot Settings)
+		// available on the hotspot's standard HTTP address. WifiSetup owns its
+		// explicit /wifi and API routes; every other path is proxied to :8080.
+		wiredUI.ServeHTTP(w, r)
 	})
 
-	fmt.Println("wireos-hotspot-portal listening on :8081")
+	fmt.Println("wireos-hotspot-portal listening on :8081 (full UI proxy → :8080)")
 	cors := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
