@@ -601,6 +601,7 @@ func (m *WifiSetup) pulseWifiFace(state string, hold time.Duration) {
 	m.faceSeq++
 	seq := m.faceSeq
 	setWifiFaceState(state)
+	PlayWifiStatusAnimation(state)
 	if hold <= 0 {
 		return
 	}

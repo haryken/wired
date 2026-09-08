@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/os-vector/wired/mods"
@@ -14,6 +15,21 @@ func main() {
 	}
 
 	http.HandleFunc("/api/mods/WifiSetup/", wifi.HTTP)
+	http.HandleFunc("/api/hotspot/test-animation", func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		ip := net.ParseIP(host)
+		if err != nil || ip == nil || !ip.IsLoopback() {
+			http.Error(w, "localhost only", http.StatusForbidden)
+			return
+		}
+		state := r.FormValue("state")
+		if state != "trying" && state != "ok" && state != "fail" {
+			http.Error(w, "state must be trying, ok, or fail", http.StatusBadRequest)
+			return
+		}
+		mods.PlayWifiStatusAnimation(state)
+		w.WriteHeader(http.StatusAccepted)
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/wifi", http.StatusFound)
 	})
