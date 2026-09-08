@@ -24,31 +24,31 @@ import (
 )
 
 const (
-	wifiConnmanConfig      = "/data/lib/connman/wireos-wifi.config"
-	wifiSetupAPFlag        = "/run/wireos-setup-ap"
-	wifiConnmanStateDir    = "/data/lib/connman"
-	wifiOpenAPIP           = "192.168.4.1"
-	wifiSetupAPBin         = "/usr/bin/vic-setup-ap"
-	wifiScanCache          = "/data/wired/wifi-scan.json"
-	wifiScanCacheLegacy    = "/data/lib/connman/wireos-wifi-scan.json"
-	wifiScanCacheRun       = "/run/wireos-wifi-scan.json"
-	wifiPreferBleFlag      = "/run/wireos-prefer-ble"
-	wifiPendingFile        = "/run/wireos-wifi-pending.json"
-	wifiTryingFlag         = "/run/wireos-wifi-trying"
-	wifiBusyFile           = "/run/wireos-wifi-busy"
-	wifiHoldAPFlag         = "/run/wireos-wifi-hold-ap"
-	wifiLastErrorFile      = "/run/wireos-wifi-last-error"
-	wifiForceAPFlag        = "/run/wireos-force-ap"
-	wifiBootWaitFlag       = "/run/wireos-wifi-boot-wait"
-	wifiSetupModeFile      = "/data/wired/wifi-setup-mode"
+	wifiConnmanConfig   = "/data/lib/connman/wireos-wifi.config"
+	wifiSetupAPFlag     = "/run/wireos-setup-ap"
+	wifiConnmanStateDir = "/data/lib/connman"
+	wifiOpenAPIP        = "192.168.4.1"
+	wifiSetupAPBin      = "/usr/bin/vic-setup-ap"
+	wifiScanCache       = "/data/wired/wifi-scan.json"
+	wifiScanCacheLegacy = "/data/lib/connman/wireos-wifi-scan.json"
+	wifiScanCacheRun    = "/run/wireos-wifi-scan.json"
+	wifiPreferBleFlag   = "/run/wireos-prefer-ble"
+	wifiPendingFile     = "/run/wireos-wifi-pending.json"
+	wifiTryingFlag      = "/run/wireos-wifi-trying"
+	wifiBusyFile        = "/run/wireos-wifi-busy"
+	wifiHoldAPFlag      = "/run/wireos-wifi-hold-ap"
+	wifiLastErrorFile   = "/run/wireos-wifi-last-error"
+	wifiForceAPFlag     = "/run/wireos-force-ap"
+	wifiBootWaitFlag    = "/run/wireos-wifi-boot-wait"
+	wifiSetupModeFile   = "/data/wired/wifi-setup-mode"
 	// Survives Clear User Data (/data wipe). /persist lives on rootfs — often RO
 	// unless remounted; prefer /run then /data for live reads.
-	wifiSetupModePersist   = "/persist/wired/wifi-setup-mode"
-	wifiSetupModeRun       = "/run/wireos-wifi-setup-mode"
-	wifiFaceFile           = "/run/wireos-wifi-face"
-	wifiTraceFile          = "/run/wireos-wifi-trace.log"
-	wifiJoinTimeout        = 28 * time.Second
-	wifiLanTryTimeout      = 22 * time.Second
+	wifiSetupModePersist = "/persist/wired/wifi-setup-mode"
+	wifiSetupModeRun     = "/run/wireos-wifi-setup-mode"
+	wifiFaceFile         = "/run/wireos-wifi-face"
+	wifiTraceFile        = "/run/wireos-wifi-trace.log"
+	wifiJoinTimeout      = 28 * time.Second
+	wifiLanTryTimeout    = 22 * time.Second
 	// Assoc is usually quick; DHCP after open-AP teardown can take 45–75s.
 	wifiHotspotJoinTimeout = 75 * time.Second
 	wifiAckHold            = 300 * time.Millisecond
@@ -358,6 +358,12 @@ func syncRuntimeWifiModeFlags() {
 		// Keep /data mirror in sync after Clear User Data remakes empty /data.
 		_ = os.MkdirAll("/data/wired", 0755)
 		_ = os.WriteFile(wifiSetupModeFile, []byte(mode+"\n"), 0644)
+	}
+	if mode == "ble" || mode == "hotspot" {
+		// vic-anim is a realtime process: give it a tmpfs mirror so it never
+		// needs to read flash-backed /data or /persist while rendering.
+		_ = os.WriteFile(wifiSetupModeRun, []byte(mode+"\n"), 0666)
+		_ = os.Chmod(wifiSetupModeRun, 0666)
 	}
 	if mode == "ble" {
 		_ = os.WriteFile(wifiPreferBleFlag, []byte("1\n"), 0644)
