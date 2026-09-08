@@ -289,8 +289,8 @@ func (g *pokerGame) commentAfterDeal() string {
 		return msg
 	default:
 		vi, en := pokerPick(
-			[]string{"Wow — "+name+" ngay từ đầu!", "Bộ bài đang rất đẹp: "+name+".", "Tôi sẽ giữ nguyên nếu là bạn."},
-			[]string{"Wow — "+name+" right away!", "Beautiful hand: "+name+".", "I'd stand pat if I were you."},
+			[]string{"Wow — " + name + " ngay từ đầu!", "Bộ bài đang rất đẹp: " + name + ".", "Tôi sẽ giữ nguyên nếu là bạn."},
+			[]string{"Wow — " + name + " right away!", "Beautiful hand: " + name + ".", "I'd stand pat if I were you."},
 		)
 		msg, _ := viOrEN(vi, en)
 		return msg
@@ -309,15 +309,15 @@ func (g *pokerGame) commentAfterDraw() string {
 		return msg
 	case 1, 2:
 		vi, en := pokerPick(
-			[]string{"Tốt hơn rồi. Bạn vừa có "+g.playerName+".", "Bộ bài đang mạnh dần.", "Có tiềm năng chiến thắng."},
-			[]string{"Better! You've got "+g.playerName+".", "The hand is getting stronger.", "There's a chance to win."},
+			[]string{"Tốt hơn rồi. Bạn vừa có " + g.playerName + ".", "Bộ bài đang mạnh dần.", "Có tiềm năng chiến thắng."},
+			[]string{"Better! You've got " + g.playerName + ".", "The hand is getting stronger.", "There's a chance to win."},
 		)
 		msg, _ := viOrEN(vi, en)
 		return msg
 	default:
 		vi, en := pokerPick(
-			[]string{"Rất đẹp! "+g.playerName+"!", "Bộ bài cực mạnh sau khi đổi.", "Khả năng thắng rất cao."},
-			[]string{"Gorgeous! "+g.playerName+"!", "Huge hand after the redraw.", "You're looking like a favorite."},
+			[]string{"Rất đẹp! " + g.playerName + "!", "Bộ bài cực mạnh sau khi đổi.", "Khả năng thắng rất cao."},
+			[]string{"Gorgeous! " + g.playerName + "!", "Huge hand after the redraw.", "You're looking like a favorite."},
 		)
 		msg, _ := viOrEN(vi, en)
 		return msg
@@ -332,23 +332,23 @@ func (g *pokerGame) commentShow(result int) string {
 	switch {
 	case result > 0 && g.playerCat >= 6:
 		extraVI, extraEN = pokerPick(
-			[]string{"Xuất sắc! Bạn đã chiến thắng.", "Tuyệt vời! Bộ bài thật ấn tượng.", "Tôi biết bạn sẽ làm được.", "Chúc mừng! Bạn vừa tạo được "+g.playerName+".", "Bạn thật sự rất may mắn hôm nay."},
-			[]string{"Brilliant! You win.", "Amazing hand!", "I knew you could do it.", "Congrats on that "+g.playerName+"!", "Luck is really on your side."},
+			[]string{"Xuất sắc! Bạn đã chiến thắng.", "Tuyệt vời! Bộ bài thật ấn tượng.", "Tôi biết bạn sẽ làm được.", "Chúc mừng! Bạn vừa tạo được " + g.playerName + ".", "Bạn thật sự rất may mắn hôm nay."},
+			[]string{"Brilliant! You win.", "Amazing hand!", "I knew you could do it.", "Congrats on that " + g.playerName + "!", "Luck is really on your side."},
 		)
 	case result > 0:
 		extraVI, extraEN = pokerPick(
-			[]string{"Bạn thắng với "+g.playerName+".", "Chúc mừng chiến thắng!", "Kết quả rất đẹp.", "Chơi thêm một ván nữa nhé."},
-			[]string{"You win with "+g.playerName+".", "Congratulations!", "Nice result.", "Let's play another."},
+			[]string{"Bạn thắng với " + g.playerName + ".", "Chúc mừng chiến thắng!", "Kết quả rất đẹp.", "Chơi thêm một ván nữa nhé."},
+			[]string{"You win with " + g.playerName + ".", "Congratulations!", "Nice result.", "Let's play another."},
 		)
 	case result < 0:
 		extraVI, extraEN = pokerPick(
-			[]string{"Không sao. Lần sau chúng ta sẽ thắng.", "Chỉ thiếu một chút may mắn.", "Robot thắng với "+g.botName+".", "Tôi tin bạn sẽ có bộ bài đẹp hơn."},
-			[]string{"No worries — next time.", "Just a bit of luck short.", "I win with "+g.botName+".", "You'll get a better hand."},
+			[]string{"Không sao. Lần sau chúng ta sẽ thắng.", "Chỉ thiếu một chút may mắn.", "Robot thắng với " + g.botName + ".", "Tôi tin bạn sẽ có bộ bài đẹp hơn."},
+			[]string{"No worries — next time.", "Just a bit of luck short.", "I win with " + g.botName + ".", "You'll get a better hand."},
 		)
 	default:
 		extraVI, extraEN = pokerPick(
-			[]string{"Hoà! Cả hai đều có "+g.playerName+".", "Push — cân sức."},
-			[]string{"Push! Both have "+g.playerName+".", "It's a tie."},
+			[]string{"Hoà! Cả hai đều có " + g.playerName + ".", "Push — cân sức."},
+			[]string{"Push! Both have " + g.playerName + ".", "It's a tie."},
 		)
 	}
 	msg, _ := viOrEN(handLineVI+" "+extraVI, handLineEN+" "+extraEN)

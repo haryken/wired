@@ -894,13 +894,13 @@ var (
 		"y": {"en": "yellow", "vi": "vàng", "zh-CN": "黄", "it": "giallo", "ru": "жёлтый", "fr": "jaune", "de": "gelb", "es": "amarillo", "pt": "amarelo"},
 	}
 	unoSpecialL = map[string]L{
-		"wild":     {"en": "wild", "vi": "đổi màu", "zh-CN": "变色", "it": "jolly", "ru": "цвет", "fr": "joker", "de": "Farbwahl", "es": "comodín", "pt": "coringas"},
-		"wild4":    {"en": "draw four", "vi": "cộng bốn", "zh-CN": "加四", "it": "pesca quattro", "ru": "плюс четыре", "fr": "plus quatre", "de": "plus vier", "es": "roba cuatro", "pt": "compra quatro"},
-		"skip":     {"en": "skip %s", "vi": "bỏ lượt %s", "zh-CN": "禁手%s", "it": "salta %s", "ru": "пропуск %s", "fr": "passe %s", "de": "Aussetzen %s", "es": "salta %s", "pt": "pula %s"},
-		"draw2":    {"en": "draw two %s", "vi": "cộng hai %s", "zh-CN": "加二%s", "it": "pesca due %s", "ru": "плюс два %s", "fr": "plus deux %s", "de": "plus zwei %s", "es": "roba dos %s", "pt": "compra dois %s"},
-		"reverse":  {"en": "reverse %s", "vi": "đảo chiều %s", "zh-CN": "反转%s", "it": "inverti %s", "ru": "реверс %s", "fr": "sens inverse %s", "de": "Richtungswechsel %s", "es": "reversa %s", "pt": "inverte %s"},
-		"chose":    {"en": ", chose %s", "vi": ", chọn %s", "zh-CN": "，选%s", "it": ", colore %s", "ru": ", цвет %s", "fr": ", couleur %s", "de": ", Farbe %s", "es": ", color %s", "pt": ", cor %s"},
-		"num":      {"en": "%s %s", "vi": "%s %s", "zh-CN": "%s%s", "it": "%s %s", "ru": "%s %s", "fr": "%s %s", "de": "%s %s", "es": "%s %s", "pt": "%s %s"},
+		"wild":    {"en": "wild", "vi": "đổi màu", "zh-CN": "变色", "it": "jolly", "ru": "цвет", "fr": "joker", "de": "Farbwahl", "es": "comodín", "pt": "coringas"},
+		"wild4":   {"en": "draw four", "vi": "cộng bốn", "zh-CN": "加四", "it": "pesca quattro", "ru": "плюс четыре", "fr": "plus quatre", "de": "plus vier", "es": "roba cuatro", "pt": "compra quatro"},
+		"skip":    {"en": "skip %s", "vi": "bỏ lượt %s", "zh-CN": "禁手%s", "it": "salta %s", "ru": "пропуск %s", "fr": "passe %s", "de": "Aussetzen %s", "es": "salta %s", "pt": "pula %s"},
+		"draw2":   {"en": "draw two %s", "vi": "cộng hai %s", "zh-CN": "加二%s", "it": "pesca due %s", "ru": "плюс два %s", "fr": "plus deux %s", "de": "plus zwei %s", "es": "roba dos %s", "pt": "compra dois %s"},
+		"reverse": {"en": "reverse %s", "vi": "đảo chiều %s", "zh-CN": "反转%s", "it": "inverti %s", "ru": "реверс %s", "fr": "sens inverse %s", "de": "Richtungswechsel %s", "es": "reversa %s", "pt": "inverte %s"},
+		"chose":   {"en": ", chose %s", "vi": ", chọn %s", "zh-CN": "，选%s", "it": ", colore %s", "ru": ", цвет %s", "fr": ", couleur %s", "de": ", Farbe %s", "es": ", color %s", "pt": ", cor %s"},
+		"num":     {"en": "%s %s", "vi": "%s %s", "zh-CN": "%s%s", "it": "%s %s", "ru": "%s %s", "fr": "%s %s", "de": "%s %s", "es": "%s %s", "pt": "%s %s"},
 	}
 	bjRankL = map[string]L{
 		"A": {"en": "Ace", "vi": "Át", "zh-CN": "A", "it": "Asso", "ru": "Туз", "fr": "As", "de": "Ass", "es": "As", "pt": "Ás"},

@@ -250,17 +250,17 @@ func (g *guessGame) snapshotLocked() map[string]interface{} {
 	dVI, dEN := guessDiffLabel(g.difficulty)
 	diffLabel := localizeSpeak(dEN, dVI)
 	extra := map[string]interface{}{
-		"low":           g.low,
-		"high":          g.high,
-		"min":           guessMin,
-		"max":           guessMax,
-		"attempts":      g.attempts,
-		"maxAttempts":   guessMaxAttempt,
-		"remaining":     rem,
-		"lastGuess":     g.lastGuess,
-		"lastHint":      g.lastHint,
-		"lastClose":     g.lastClose,
-		"guessHistory":  hist,
+		"low":             g.low,
+		"high":            g.high,
+		"min":             guessMin,
+		"max":             guessMax,
+		"attempts":        g.attempts,
+		"maxAttempts":     guessMaxAttempt,
+		"remaining":       rem,
+		"lastGuess":       g.lastGuess,
+		"lastHint":        g.lastHint,
+		"lastClose":       g.lastClose,
+		"guessHistory":    hist,
 		"difficultyLabel": diffLabel,
 	}
 	if g.status != "playing" {

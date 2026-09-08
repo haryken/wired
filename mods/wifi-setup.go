@@ -130,104 +130,7 @@ func (m *WifiSetup) Load() error {
 	http.HandleFunc("/connectivity-check.html", m.captiveProbe)
 	http.HandleFunc("/portal.html", m.captiveProbe)
 	go captiveDNSWatch()
-	go m.maybeStartSetupAP()
 	return nil
-}
-
-func (m *WifiSetup) maybeStartSetupAP() {
-	started := time.Now()
-	var dhcpWaitStart time.Time
-	time.Sleep(8 * time.Second)
-	for {
-		if wifiJoinInProgress() {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		if preferBleWifi() {
-			if tetheringOn() {
-				_ = disableTethering()
-			}
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		// On home WiFi with a real LAN IP: never raise AP.
-		if onHomeWifi() {
-			if tetheringOn() {
-				_ = disableTethering()
-			}
-			_ = os.Remove(wifiForceAPFlag)
-			_ = os.Remove(wifiBootWaitFlag)
-			dhcpWaitStart = time.Time{}
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		// Associated (SSID visible) but only link-local / no DHCP yet — face
-		// shows "Huynh 2.4" + 169.254.x. Raising AP here kills ConnMan mid-join.
-		if !tetheringOn() {
-			if ssid := clientSSID(); ssid != "" {
-				if dhcpWaitStart.IsZero() {
-					dhcpWaitStart = time.Now()
-					wifiLog("associated ssid=%q waiting for DHCP (skip AP)", ssid)
-				}
-				if time.Since(dhcpWaitStart) < wifiAssocDhcpGrace {
-					_ = os.WriteFile(wifiBootWaitFlag, []byte("1\n"), 0644)
-					time.Sleep(3 * time.Second)
-					continue
-				}
-				wifiLog("associated ssid=%q still no LAN IP after %s — allow setup AP",
-					ssid, wifiAssocDhcpGrace)
-			} else {
-				dhcpWaitStart = time.Time{}
-			}
-		}
-		if forceSetupAP() {
-			_ = os.Remove(wifiBootWaitFlag)
-			if tetheringOn() {
-				time.Sleep(2 * time.Second)
-				continue
-			}
-			ssid := robotName()
-			if persistedWifiSetupMode() == "" {
-				persistWifiSetupMode("hotspot")
-			}
-			wifiLog("force AP (offline)")
-			if err := startSetupAP(ssid); err != nil {
-				wifiLog("force AP start failed: %v", err)
-			}
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		// Saved home WiFi: wait for ConnMan to join. Raising the hotspot
-		// kills wpa_supplicant, so a reboot would never reconnect.
-		if hasSavedWifi() && time.Since(started) < wifiSavedGrace {
-			_ = os.WriteFile(wifiBootWaitFlag, []byte("1\n"), 0644)
-			if tetheringOn() {
-				_ = disableTethering()
-			}
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		_ = os.Remove(wifiBootWaitFlag)
-		if tetheringOn() {
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		if nets, err := m.scanNetworks(); err == nil && len(nets) > 0 {
-			saveWifiScanCache(nets)
-		}
-		ssid := robotName()
-		// Default setup method is Bluetooth when never chosen.
-		if persistedWifiSetupMode() == "" {
-			persistWifiSetupMode("ble")
-			syncRuntimeWifiModeFlags()
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		if err := startSetupAP(ssid); err != nil {
-			wifiLog("setup AP start failed: %v", err)
-		}
-		time.Sleep(5 * time.Second)
-	}
 }
 
 func preferBleWifi() bool {
@@ -287,8 +190,9 @@ func persistWifiSetupMode(mode string) {
 	remountRootRo()
 }
 
-// applyWifiSetupMode persists ble/hotspot. Hotspot AP is only raised when
-// offline — while on home WiFi this is preference-only (no client WiFi kill).
+// applyWifiSetupMode only persists the requested policy. The isolated
+// wireos-hotspot-manager service owns AP start/stop decisions, so normal wired
+// request handling never tears down client WiFi or controls ConnMan.
 func applyWifiSetupMode(mode string) error {
 	mode = strings.TrimSpace(strings.ToLower(mode))
 	if mode != "ble" && mode != "hotspot" {
@@ -299,47 +203,13 @@ func applyWifiSetupMode(mode string) error {
 		_ = os.WriteFile(wifiPreferBleFlag, []byte("1\n"), 0644)
 		_ = os.Remove(wifiForceAPFlag)
 		_ = os.Remove(wifiBootWaitFlag)
-		if tetheringOn() {
-			_ = disableTethering()
-		}
-		wifiLog("wifi setup mode → ble (online=%v)", onHomeWifi())
+		wifiLog("wifi setup mode → ble (delegated to hotspot manager)")
 		return nil
 	}
 	_ = os.Remove(wifiPreferBleFlag)
 	_ = os.Remove(wifiBootWaitFlag)
-	// Belt-and-suspenders: never raise AP if wlan0 is associated or has a
-	// non-AP LAN IP, even if onHomeWifi() mis-detects.
-	ssid := clientSSID()
-	hasLan := false
-	if ifaces, err := net.Interfaces(); err == nil {
-		for _, iface := range ifaces {
-			if iface.Name != "wlan0" {
-				continue
-			}
-			addrs, _ := iface.Addrs()
-			for _, a := range addrs {
-				ip, _, err := net.ParseCIDR(a.String())
-				if err != nil || ip == nil || ip.To4() == nil {
-					continue
-				}
-				if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.String() == wifiOpenAPIP {
-					continue
-				}
-				hasLan = true
-			}
-		}
-	}
-	if onHomeWifi() || ssid != "" || hasLan {
-		_ = os.Remove(wifiForceAPFlag)
-		wifiLog("wifi setup mode → hotspot (saved; AP deferred until offline; online=%v ssid=%q hasLan=%v)",
-			onHomeWifi(), ssid, hasLan)
-		return nil
-	}
 	_ = os.WriteFile(wifiForceAPFlag, []byte("1\n"), 0644)
-	wifiLog("wifi setup mode → hotspot (start AP now, offline)")
-	if err := startSetupAP(robotName()); err != nil {
-		return err
-	}
+	wifiLog("wifi setup mode → hotspot (delegated to hotspot manager)")
 	return nil
 }
 
@@ -1083,8 +953,8 @@ func (m *WifiSetup) servePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	// Serve the SPA. Do not 302 to /#wifi — browsers omit the hash, so that loops.
-	http.ServeFile(w, r, "/etc/wired/webroot/index.html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(wifiPageHTML(m.status(), "", false)))
 }
 
 func (m *WifiSetup) captiveProbe(w http.ResponseWriter, r *http.Request) {

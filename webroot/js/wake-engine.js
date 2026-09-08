@@ -31,17 +31,6 @@ function setWakeLocaleStatus(msg) {
     if (el) el.innerHTML = `<p>${msg}</p>`;
 }
 
-function wakeLocaleLabel(locale) {
-    switch (locale) {
-        case 'en-AU': return 'Tiếng Việt (người Việt)';
-        case 'en-US': return 'Tiếng Anh Mỹ';
-        case 'en-GB': return 'Tiếng Anh Anh';
-        case 'fr-FR': return 'Tiếng Pháp';
-        case 'de-DE': return 'Tiếng Đức';
-        default: return locale;
-    }
-}
-
 async function loadWakeLocale() {
     wakeLocaleLoading = true;
     try {
@@ -56,11 +45,10 @@ async function loadWakeLocale() {
             el.checked = el.value === locale;
             if (el.checked) matched = true;
         });
-        const label = wakeLocaleLabel(locale);
         if (!matched) {
-            setWakeLocaleStatus('Độ nhạy hiện tại: ' + label + ' (không có trong list)');
+            setWakeLocaleStatus('Model giọng hiện tại: ' + locale + ' (không có trong list)');
         } else {
-            setWakeLocaleStatus('Độ nhạy hiện tại: ' + label);
+            setWakeLocaleStatus('Model giọng hiện tại: ' + locale);
         }
     } catch (e) {
         setWakeLocaleStatus('Không đọc được locale: ' + e.message);
@@ -76,7 +64,7 @@ async function onWakeLocaleChange(locale) {
         await loadWakeLocale();
         return;
     }
-    setWakeLocaleStatus('Đang lưu ' + wakeLocaleLabel(locale) + '...');
+    setWakeLocaleStatus('Đang lưu ' + locale + '...');
     try {
         const res = await fetch('/api/mods/JdocSettings/setLocale?locale=' + encodeURIComponent(locale));
         if (!res.ok) {
@@ -89,8 +77,7 @@ async function onWakeLocaleChange(locale) {
             await loadWakeLocale();
             return;
         }
-        setWakeLocaleStatus('Đã lưu: ' + wakeLocaleLabel(locale));
-
+        setWakeLocaleStatus('Đã lưu: ' + locale);
     } catch (e) {
         setWakeLocaleStatus('Lỗi: ' + e.message);
         await loadWakeLocale();

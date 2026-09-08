@@ -268,7 +268,7 @@ function showBotSection(id) {
     }
     if (id === 'bot-locale' && typeof isWakeThf === 'function' && !isWakeThf()) {
         if (typeof setJdocStatus === 'function') {
-            setJdocStatus('Độ nhạy từ đánh thức chỉ dùng khi engine = Hey Vector (THF).');
+            setJdocStatus('Giọng THF chỉ dùng khi engine = Hey Vector (THF).');
         }
         return;
     }
@@ -291,12 +291,11 @@ function showBotSection(id) {
     if (id === 'bot-eyes') getEyePreset();
     if (id === 'bot-sens' && typeof setSensitivity === 'function') setSensitivity();
     if (id === 'bot-locale' && typeof loadWakeLocale === 'function') loadWakeLocale();
-    if (id === 'bot-battery' && typeof syncBatteryUiRadios === 'function') syncBatteryUiRadios();
     if (id === 'bot-stim' && typeof stimStart === 'function') stimStart();
     else if (typeof stimStop === 'function') stimStop();
     if (id === 'bot-stats' && typeof statsRefresh === 'function') statsRefresh();
-    if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
     if (id === 'bot-wifi-setup' && typeof loadWifiSetupMode === 'function') loadWifiSetupMode();
+    if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {
         GetCurrent('FreqChange').then((data) => {
             document.getElementsByName('frequency').forEach((rb) => {

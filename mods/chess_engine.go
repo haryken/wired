@@ -571,7 +571,7 @@ func (g *chessGame) apply(m chessMove) {
 	// ep target
 	g.ep = -1
 	if toLower(p) == 'p' && abs(m.To/8-m.From/8) == 2 {
-		g.ep = (m.From+m.To)/2
+		g.ep = (m.From + m.To) / 2
 	}
 	// castling rights
 	strip := func(ch string) {

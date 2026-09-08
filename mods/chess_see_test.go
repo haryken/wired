@@ -10,9 +10,9 @@ func TestChessSEEEqualQueenTradeNegative(t *testing.T) {
 	for i := range g.board {
 		g.board[i] = empty
 	}
-	g.board[0] = 'K' // a1 white king away? Wait put king e1=4
-	g.board[4] = 'K' // e1
-	g.board[3] = 'Q' // d1
+	g.board[0] = 'K'  // a1 white king away? Wait put king e1=4
+	g.board[4] = 'K'  // e1
+	g.board[3] = 'Q'  // d1
 	g.board[59] = 'q' // d8 black queen
 	g.board[60] = 'k' // e8
 	g.white = false

@@ -17,7 +17,7 @@
         <div class="header-brand-row">
             <div class="brand">
                 <img class="brand-logo" src="vector-logo.png" width="44" height="44" alt="Vector" decoding="async">
-                <div id="headerBattery" class="hbatt" aria-live="polite" title="Pin" hidden>
+                <div id="headerBattery" class="hbatt" aria-live="polite" title="Pin">
                     <span class="hbatt-tip"></span>
                     <div class="hbatt-shell">
                         <span class="hbatt-bolt" aria-hidden="true">⚡</span>
@@ -69,7 +69,6 @@
             <span class="nav-select-label" data-i18n="nav.menu">Menu</span>
             <select id="navSelect">
                 <option value="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</option>
-                <option value="#wifi" data-i18n="nav.wifi">WiFi</option>
                 <option value="#aud" data-i18n="nav.aud">Cập nhật OS</option>
                 <option value="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</option>
                 <option value="#voice" data-i18n="nav.voice">Lệnh thoại</option>
@@ -82,7 +81,6 @@
         </label>
         <div class="tabs" role="tablist">
             <button type="button" class="active" data-target="#botsettings" data-i18n="nav.botsettings">Cài đặt bot</button>
-            <button type="button" data-target="#wifi" data-i18n="nav.wifi">WiFi</button>
             <button type="button" data-target="#aud" data-i18n="nav.aud">Cập nhật OS</button>
             <button type="button" data-target="#xiaozhi" data-i18n="nav.xiaozhi">Xiaozhi</button>
             <button type="button" data-target="#voice" data-i18n="nav.voice">Lệnh thoại</button>
@@ -145,11 +143,7 @@
             </button>
             <button type="button" class="bot-nav-item" id="navLocale" onclick="showBotSection('bot-locale')">
                 <span class="bot-ico" aria-hidden="true">🗣</span>
-                <span data-i18n="bot.thf">Độ nhạy từ đánh thức</span>
-            </button>
-            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-battery')">
-                <span class="bot-ico" aria-hidden="true">🔋</span>
-                <span data-i18n="bot.battery">Hiện pin</span>
+                <span data-i18n="bot.thf">Giọng THF</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
                 <span class="bot-ico" aria-hidden="true">😊</span>
@@ -165,7 +159,7 @@
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-wifi-setup')">
                 <span class="bot-ico" aria-hidden="true">📶</span>
-                <span data-i18n="bot.wifi_setup">Bắt WiFi</span>
+                <span>Chế độ bắt WiFi</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-alexa')">
                 <span class="bot-ico" aria-hidden="true">🔊</span>
@@ -406,7 +400,7 @@
                 <strong data-i18n="wake.choose">Chọn engine</strong>
                 <ul>
                     <li><b>Picovoice</b> — mở khóa <b>Từ đánh thức</b> + <b>Độ nhạy</b>.</li>
-                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Độ nhạy từ đánh thức</b> (model / độ nhạy wake).</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Giọng THF</b> (model giọng / độ nhạy wake).</li>
                 </ul>
                 <p class="help-warn">Chọn radio rồi bấm <b>Lưu engine + restart</b> để áp dụng. Tile khóa/mở phía trên chỉ đổi sau khi lưu (đổi radio chưa lưu không ảnh hưởng).</p>
             </div>
@@ -419,8 +413,8 @@
                 <button type="button" onclick="saveWakeEngine()" data-i18n="wake.save">Lưu engine + restart</button>
             </div>
             <div id="wakeThfHint" class="help-box" style="display:none;">
-                <p>THF đang bật — chỉnh model / độ nhạy wake ở mục <b>Độ nhạy từ đánh thức</b> (không phải đổi ngôn ngữ robot).</p>
-                <p><em>Use wake-word sensitivity for accent/wake — not UI language.</em></p>
+                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Giọng THF</b> (không phải đổi ngôn ngữ robot).</p>
+                <p><em>Use Giọng THF for accent/wake sensitivity — not UI language.</em></p>
             </div>
         </div>
 
@@ -450,7 +444,7 @@
         </div>
 
         <div id="bot-sens" class="bot-section" style="display:none;">
-            <h3>📶 <span data-i18n="sec.sens">Độ nhạy</span></h3>
+            <h3>📶 <span data-i18n="sec.sens">Độ nhạy từ đánh thức</span></h3>
             <div id="sensEngineLock" class="help-box" style="display:none;">
                 <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
             </div>
@@ -476,41 +470,25 @@
         </div>
 
         <div id="bot-locale" class="bot-section" style="display:none;">
-            <h3>🗣 <span data-i18n="sec.thf">Độ nhạy từ đánh thức</span></h3>
+            <h3>🗣 <span data-i18n="sec.thf">Giọng THF</span></h3>
             <div id="localeEngineLock" class="help-box" style="display:none;">
                 <p class="help-warn">Chỉ dùng với engine <b>Hey Vector (THF)</b>. Đang Picovoice — mục này bị khóa.</p>
             </div>
             <div id="localeControls">
             <div class="help-box">
-                <p><b>Không phải đổi ngôn ngữ robot.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
-                <p>★ <b>Tiếng Việt (người Việt)</b> thường <b>nhạy nhất</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
-                <p><em>Wake-word sensitivity profile — not robot language. ★ Vietnamese speakers: recommended.</em></p>
+                <p><b>Không phải đổi ngôn ngữ.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
+                <p>★ <b>en-AU</b> thường <b>nhạy nhất với người Việt</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
+                <p><em>Accent profile for wake detection — not robot language. ★ en-AU recommended for Vietnamese speakers.</em></p>
             </div>
             <div id="wakeLocaleStatus"></div>
             <div class="bot-opt-list">
-                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ Tiếng Việt (người Việt) <small>(khuyến nghị — nhạy nhất)</small></label>
-                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> Tiếng Anh Mỹ <small>(cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> Tiếng Anh Anh <small>(cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> Tiếng Pháp <small>(cần phát âm chuẩn hơn)</small></label>
-                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> Tiếng Đức <small>(cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ en-AU <small>(Úc — khuyến nghị cho người Việt / most sensitive)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> en-US <small>(Mỹ — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> en-GB <small>(Anh — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> fr-FR <small>(Pháp — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> de-DE <small>(Đức — cần phát âm chuẩn hơn)</small></label>
             </div>
             </div>
-        </div>
-
-        <div id="bot-battery" class="bot-section" style="display:none;">
-            <h3>🔋 <span data-i18n="sec.battery">Hiện pin trên UI</span></h3>
-            <div class="help-box">
-                <strong data-i18n="common.howto">Cách dùng</strong>
-                <ol>
-                    <li data-i18n="batt.help1">Bật để hiện thanh pin trên header (poll mỗi vài giây).</li>
-                    <li data-i18n="batt.help2">Tắt (mặc định) để giảm lag khi web gọi API pin liên tục.</li>
-                </ol>
-            </div>
-            <div class="bot-opt-list">
-                <label><input type="radio" name="showBatteryUi" value="on" onchange="setShowBatteryUi(true)"> <span data-i18n="batt.on">Bật hiện pin</span></label>
-                <label><input type="radio" name="showBatteryUi" value="off" onchange="setShowBatteryUi(false)" checked> <span data-i18n="batt.off">Tắt hiện pin</span></label>
-            </div>
-            <div id="batteryUiStatus" class="faces-status" style="display:none;"></div>
         </div>
 
         <div id="bot-stim" class="bot-section" style="display:none;">
@@ -569,38 +547,26 @@
         </div>
 
         <div id="bot-wifi-setup" class="bot-section" style="display:none;">
-            <h3>📶 <span data-i18n="sec.wifi_setup">Bắt WiFi</span></h3>
+            <h3>📶 Chế độ bắt WiFi khi mất mạng</h3>
             <div class="help-box">
-                <strong data-i18n="common.howto">Cách dùng</strong>
                 <ol>
-                    <li data-i18n="wmode.help1">Chọn cách bắt WiFi khi robot mất mạng nhà. Mặc định: Bluetooth.</li>
-                    <li data-i18n="wmode.help2">Đang có mạng: chỉ lưu lựa chọn — không tắt WiFi / không bật hotspot ngay. Mất mạng mới phát hotspot (nếu chọn Hotspot).</li>
-                    <li data-i18n="wmode.help3">Ấn lưng 2 lần = BLE pairing. Đổi chế độ trên mặt: menu (thay SELF TEST) WIFI BY BLUE / WIFI HOTSPOT.</li>
+                    <li>Đang có WiFi: chỉ lưu lựa chọn, không ngắt kết nối hiện tại.</li>
+                    <li>Mất WiFi: robot dùng Bluetooth hoặc phát hotspot tùy lựa chọn bên dưới.</li>
                 </ol>
             </div>
             <div id="wifiModeStatus" class="faces-status" style="display:none;"></div>
             <div class="bot-opt-list">
-                <label><input type="radio" name="wifiSetupMode" value="ble" onchange="setWifiSetupMode('ble')"> <span data-i18n="wmode.ble">Bluetooth (BLE)</span></label>
-                <label><input type="radio" name="wifiSetupMode" value="hotspot" onchange="setWifiSetupMode('hotspot')"> <span data-i18n="wmode.hotspot">Hotspot mở (portal)</span></label>
+                <label><input type="radio" name="wifiSetupMode" value="ble" onchange="setWifiSetupMode('ble')"> Bluetooth (BLE)</label>
+                <label><input type="radio" name="wifiSetupMode" value="hotspot" onchange="setWifiSetupMode('hotspot')"> Hotspot mở (không mật khẩu)</label>
             </div>
             <hr class="smallhr">
             <div id="wifiModeGuideBle" class="help-box" style="display:none;">
-                <strong data-i18n="wmode.ble_title">Hướng dẫn Bluetooth</strong>
-                <ol>
-                    <li data-i18n="wmode.ble1">Trên mặt robot chọn WIFI BY BLUE (CONFIRM), hoặc ấn lưng 2 lần để vào pairing.</li>
-                    <li data-i18n="wmode.ble2" data-i18n-html="1">Mở trang: <a href="https://wpsetup.keriganc.com/html/main.html" target="_blank" rel="noopener">https://wpsetup.keriganc.com/html/main.html</a></li>
-                    <li data-i18n="wmode.ble3">Dùng <b>laptop Windows</b> hoặc <b>điện thoại Android</b> (Chrome). <b>iPhone không dùng được</b>.</li>
-                    <li data-i18n="wmode.ble4">Bật Bluetooth máy → kết nối Vector → chọn WiFi nhà 2.4 GHz → nhập mật khẩu.</li>
-                </ol>
+                <strong>Bluetooth</strong>
+                <p>Khi mất WiFi, dùng luồng ghép nối BLE/Web Bluetooth để nhập mạng mới.</p>
             </div>
             <div id="wifiModeGuideHotspot" class="help-box" style="display:none;">
-                <strong data-i18n="wmode.hs_title">Hướng dẫn Hotspot</strong>
-                <ol>
-                    <li data-i18n="wmode.hs1">Robot phát WiFi mở = tên robot (không mật khẩu).</li>
-                    <li data-i18n="wmode.hs2" data-i18n-html="1">Nối phone/laptop vào hotspot → mở <code>http://192.168.4.1/</code> hoặc <code>http://192.168.4.1:8080/</code>.</li>
-                    <li data-i18n="wmode.hs3">Quét / chọn WiFi nhà 2.4 GHz → nhập mật khẩu → gửi.</li>
-                    <li data-i18n="wmode.hs4">Thành công: hotspot tắt, robot vào mạng nhà. Sai mật khẩu: hotspot bật lại để thử.</li>
-                </ol>
+                <strong>Hotspot</strong>
+                <p>Khi mất WiFi, nối vào WiFi mang tên robot rồi mở <code>http://192.168.4.1/wifi</code>.</p>
             </div>
         </div>
 
@@ -626,62 +592,6 @@
             <div class="bot-opt-list">
                 <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
                 <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
-            </div>
-        </div>
-    </div>
-
-    <div id="wifi" class="container mod-section tab-content">
-        <h2 data-i18n="wifi.h3">WiFi nhà (hotspot)</h2>
-        <div class="help-box">
-            <strong data-i18n="common.howto">Cách dùng</strong>
-            <ol>
-                <li data-i18n="wifi.help1">Khi mất mạng, robot phát hotspot mở (tên Vector, không mật khẩu).</li>
-                <li data-i18n="wifi.help2">Nối hotspot → mở http://192.168.4.1/wifi → Quét/chọn WiFi nhà → nhập mật khẩu → Áp dụng.</li>
-                <li data-i18n="wifi.help3">Chỉ WiFi 2.4 GHz. Mật khẩu nhà ≥ 8 ký tự (mạng mở thì để trống). Sai mật khẩu → hotspot bật lại.</li>
-            </ol>
-        </div>
-        <div class="xz-config-block">
-            <div class="xz-config-card wifi-card">
-                <div id="wifiStatusLine" class="xz-status wifi-status"></div>
-
-                <div id="wifiConnectedPanel" class="wifi-connected-panel" hidden>
-                    <p id="wifiConnectedHint" class="wifi-hint" data-i18n="wifi.connected_only">
-                        Robot đang nối WiFi nhà. Chỉ xem trạng thái — đổi mạng khi mất kết nối (hotspot).
-                    </p>
-                    <div id="wifiConnectedNet" class="wifi-net selected" role="status"></div>
-                </div>
-
-                <div id="wifiJoinPanel">
-                    <p id="wifiScanHint" class="wifi-hint" data-i18n="wifi.pick">Chọn mạng rồi nhập mật khẩu.</p>
-                    <div class="xz-config-actions wifi-actions">
-                        <button type="button" id="wifiScanBtn" class="wifi-btn-primary" onclick="wifiScan()" data-i18n="wifi.scan">Quét mạng</button>
-                    </div>
-                    <div id="wifiNetworkList" class="wifi-net-list"></div>
-                    <div class="xz-config-fields">
-                        <label data-i18n="wifi.ssid">Tên WiFi nhà (hoặc gõ tay nếu ẩn):</label>
-                        <input type="text" id="wifiSsid" autocomplete="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="wifi.ssid_ph">
-                        <label data-i18n="wifi.pass">Mật khẩu WiFi nhà:</label>
-                        <div class="wifi-pass-wrap">
-                            <input type="password" id="wifiPass" minlength="8" autocomplete="current-password" data-i18n-placeholder="wifi.pass_ph" placeholder="">
-                            <button type="button" id="wifiPassToggle" class="wifi-pass-eye" onclick="wifiTogglePass()" aria-pressed="false" aria-label="Hiện mật khẩu" title="Hiện/ẩn mật khẩu">
-                                <svg class="wifi-eye-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-                                    <path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7 1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
-                                </svg>
-                                <svg class="wifi-eye-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-                                    <path fill="currentColor" d="M2.1 3.51 3.51 2.1l18.39 18.39-1.41 1.41-3.13-3.13A12.3 12.3 0 0 1 12 19c-5 0-9.27-3.11-11-7a13.5 13.5 0 0 1 4.2-5.05L2.1 3.51zM12 7a5 5 0 0 1 4.9 4.02l-1.57-1.57A2.5 2.5 0 0 0 12.55 8.1L12 7zm0-2c5 0 9.27 3.11 11 7a13.6 13.6 0 0 1-3.35 4.36l-1.45-1.45A11.5 11.5 0 0 0 21.05 12C19.5 8.8 16 7 12 7c-.7 0-1.38.08-2.03.23L8.4 5.66C9.52 5.23 10.73 5 12 5z"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="xz-config-actions wifi-actions">
-                        <button type="button" class="wifi-btn-primary" onclick="wifiApply()" data-i18n="wifi.apply">Áp dụng mạng</button>
-                    </div>
-                </div>
-
-                <details class="wifi-advanced">
-                    <summary data-i18n="wifi.details">Chi tiết kỹ thuật</summary>
-                    <pre id="wifiLog" class="ota-log">Trạng thái WiFi hiện ở đây.</pre>
-                </details>
             </div>
         </div>
     </div>
@@ -756,11 +666,11 @@
                 <div class="bot-opt-list xz-mode-radios" style="margin:0 0 12px;">
                     <label>
                         <input type="radio" name="xzPreset" value="vi_pool" id="xzPresetVi" checked onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình tiếng Việt có sẵn</b></span>
+                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
                     </label>
                     <label>
                         <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tự cấu hình</b></span>
+                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
                     </label>
                 </div>
 
@@ -768,8 +678,9 @@
                     <p data-i18n="xz.pool_help" data-i18n-html="1">Chọn cái này rồi <b>đánh thức robot</b> (Hey Vector) là nói chuyện được luôn — không cần mã 6 số.</p>
                     <p id="xzPoolUsing" class="wifi-hint" style="margin:8px 0;"></p>
                     <div class="xz-config-actions" style="margin-top:10px;">
-                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới cấu hình</button>
+                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới MAC</button>
                     </div>
+                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
                     <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
                 </div>
 
@@ -832,6 +743,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 
     <div id="voice" class="container mod-section tab-content">
@@ -1350,7 +1262,6 @@
     </div>
     <script src="js/share-auth.js"></script>
     <script src="js/i18n.js"></script>
-    <script src="js/ui-confirm.js"></script>
     <script src="js/main.js"></script>
     <script src="js/battery.js"></script>
     <script src="js/freq.js"></script>
@@ -1370,7 +1281,6 @@
     <script src="js/stim-stats.js"></script>
     <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
-    <script src="js/wifi-setup.js"></script>
     <script src="js/wifi-mode.js"></script>
 </body>
 

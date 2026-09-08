@@ -18,11 +18,11 @@ import (
 
 const (
 	userInhibitPath      = "/data/data/user-do-not-auto-update"
-	selfMadeBuildPath     = "/etc/do-not-auto-update"
-	updateEngineEnvPath   = "/run/vic-switchboard/update-engine.env"
-	updateEngineStateDir  = "/run/update-engine"
-	disableUpdateEngine   = "/run/vic-switchboard/disable-update-engine"
-	otaLogPath            = "/data/wired/mods/AutoUpdate/ota.log"
+	selfMadeBuildPath    = "/etc/do-not-auto-update"
+	updateEngineEnvPath  = "/run/vic-switchboard/update-engine.env"
+	updateEngineStateDir = "/run/update-engine"
+	disableUpdateEngine  = "/run/vic-switchboard/disable-update-engine"
+	otaLogPath           = "/data/wired/mods/AutoUpdate/ota.log"
 )
 
 // AutoUpdate handles URL-based OS OTA (and legacy auto-update inhibit toggles).
@@ -202,31 +202,31 @@ func probeOtaURL(raw string) error {
 }
 
 type otaStatus struct {
-	Phase                 string `json:"phase"`
-	Percent               int    `json:"percent"`
-	UpdateVersion         string `json:"update_version,omitempty"`
-	CurrentVersion        string `json:"current_version,omitempty"`
-	UnitActive            string `json:"unit_active,omitempty"`
-	Progress              int64  `json:"progress,omitempty"`
-	Expected              int64  `json:"expected,omitempty"`
-	ExpectedDownloadSize  int64  `json:"expected_download_size,omitempty"`
-	Error                 string `json:"error,omitempty"`
-	Done                  bool   `json:"done"`
-	Journal               string `json:"journal,omitempty"`
+	Phase                string `json:"phase"`
+	Percent              int    `json:"percent"`
+	UpdateVersion        string `json:"update_version,omitempty"`
+	CurrentVersion       string `json:"current_version,omitempty"`
+	UnitActive           string `json:"unit_active,omitempty"`
+	Progress             int64  `json:"progress,omitempty"`
+	Expected             int64  `json:"expected,omitempty"`
+	ExpectedDownloadSize int64  `json:"expected_download_size,omitempty"`
+	Error                string `json:"error,omitempty"`
+	Done                 bool   `json:"done"`
+	Journal              string `json:"journal,omitempty"`
 }
 
 func (m *AutoUpdate) writeStatus(w http.ResponseWriter) {
 	st := otaStatus{
-		Phase:          readTrim(filepath.Join(updateEngineStateDir, "phase")),
-		CurrentVersion: currentAnkiVersion(),
-		UnitActive:     unitActive("update-engine.service"),
-		Done:           fileNonEmpty(filepath.Join(updateEngineStateDir, "done")),
-		Progress:       readInt64(filepath.Join(updateEngineStateDir, "progress")),
-		Expected:       readInt64(filepath.Join(updateEngineStateDir, "expected-size")),
+		Phase:                readTrim(filepath.Join(updateEngineStateDir, "phase")),
+		CurrentVersion:       currentAnkiVersion(),
+		UnitActive:           unitActive("update-engine.service"),
+		Done:                 fileNonEmpty(filepath.Join(updateEngineStateDir, "done")),
+		Progress:             readInt64(filepath.Join(updateEngineStateDir, "progress")),
+		Expected:             readInt64(filepath.Join(updateEngineStateDir, "expected-size")),
 		ExpectedDownloadSize: readInt64(filepath.Join(updateEngineStateDir, "expected-download-size")),
-		UpdateVersion:  readManifestVersion(filepath.Join(updateEngineStateDir, "manifest.ini")),
-		Error:          readTrim(filepath.Join(updateEngineStateDir, "error")),
-		Journal:        journalTail("update-engine.service", 40),
+		UpdateVersion:        readManifestVersion(filepath.Join(updateEngineStateDir, "manifest.ini")),
+		Error:                readTrim(filepath.Join(updateEngineStateDir, "error")),
+		Journal:              journalTail("update-engine.service", 40),
 	}
 	if st.Phase == "" {
 		st.Phase = "waiting"

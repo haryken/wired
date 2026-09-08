@@ -148,11 +148,11 @@ func genUUIDv4() string {
 }
 
 const (
-	xiaozhiIdentityViPool  = "vi_pool"
-	xiaozhiIdentityCustom  = "custom"
-	xiaozhiTenclassOTA     = "https://api.tenclass.net/"
-	xiaozhiTenclassWSS     = "wss://api.tenclass.net/xiaozhi/v1/"
-	xiaozhiSkipRotatePath  = "/run/xiaozhi-skip-rotate"
+	xiaozhiIdentityViPool = "vi_pool"
+	xiaozhiIdentityCustom = "custom"
+	xiaozhiTenclassOTA    = "https://api.tenclass.net/"
+	xiaozhiTenclassWSS    = "wss://api.tenclass.net/xiaozhi/v1/"
+	xiaozhiSkipRotatePath = "/run/xiaozhi-skip-rotate"
 )
 
 var xiaozhiViPoolMACs = []string{
@@ -391,9 +391,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if v := r.FormValue("conversation_mode"); v != "" {
 			cfg.ConversationMode = strings.TrimSpace(v)
 		}
-		if v := r.FormValue("game_google_tts_vi"); v != "" {
-			cfg.GameGoogleTTSVI = v == "true" || v == "1" || v == "on"
-		}
+		cfg.GameGoogleTTSVI = true
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

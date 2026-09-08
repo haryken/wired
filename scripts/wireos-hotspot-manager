@@ -1,0 +1,151 @@
+#!/bin/sh
+# Own the automatic WireOS setup-AP lifecycle outside the Anki processes and
+# wired. The web portal may request a mode through files in /run, but only this
+# service decides whether it is safe to replace client WiFi with the AP.
+set -u
+
+AP_BIN="/usr/bin/vic-setup-ap"
+AP_FLAG="/run/wireos-setup-ap"
+MODE_RUN="/run/wireos-wifi-setup-mode"
+MODE_DATA="/data/wired/wifi-setup-mode"
+MODE_PERSIST="/persist/wired/wifi-setup-mode"
+FORCE_FLAG="/run/wireos-force-ap"
+BOOT_WAIT_FLAG="/run/wireos-wifi-boot-wait"
+TRACE="/run/wireos-hotspot-manager.log"
+STARTED="$(date +%s)"
+OFFLINE_STREAK=0
+
+log() {
+  msg="wireos-hotspot-manager: $*"
+  echo "$msg" >>"$TRACE"
+  echo "$msg" >/dev/kmsg 2>/dev/null || true
+}
+
+read_mode() {
+  for path in "$MODE_RUN" "$MODE_DATA" "$MODE_PERSIST"; do
+    if [ -r "$path" ]; then
+      mode="$(tr -d ' \t\r\n' <"$path" 2>/dev/null || true)"
+      case "$mode" in
+        ble|hotspot)
+          echo "$mode"
+          return
+          ;;
+      esac
+    fi
+  done
+  # With the Anki/Wired UI restored to the stable baseline, no realtime
+  # process selects a setup mode. Default to the isolated hotspot policy;
+  # saved/associated home WiFi still gets the full boot grace below.
+  echo "hotspot"
+}
+
+ap_on() {
+  [ -f "$AP_FLAG" ]
+}
+
+join_in_progress() {
+  [ -f /run/wireos-wifi-pending.json ] ||
+    [ -f /run/wireos-wifi-trying ] ||
+    [ -f /run/wireos-wifi-busy ] ||
+    [ -f /run/wireos-wifi-hold-ap ]
+}
+
+has_saved_wifi() {
+  [ -f /data/lib/connman/wireos-wifi.config ] && return 0
+  for path in /data/lib/connman/wifi*; do
+    [ -d "$path" ] && return 0
+  done
+  return 1
+}
+
+wifi_associated() {
+  connmanctl services 2>/dev/null |
+    awk '$NF ~ /^wifi_/ && $1 ~ /^\*A/ { found=1 } END { exit !found }'
+}
+
+home_wifi_ready() {
+  ap_on && return 1
+  ip -4 -o addr show dev wlan0 2>/dev/null |
+    awk '$4 !~ /^192\.168\.4\.1\// && $4 !~ /^169\.254\./ { found=1 } END { exit !found }'
+}
+
+robot_name() {
+  name="$(getprop anki.robot.name 2>/dev/null || true)"
+  [ -n "$name" ] || name="Vector"
+  printf '%s\n' "$name"
+}
+
+stop_ap() {
+  if ap_on; then
+    log "stopping AP"
+    "$AP_BIN" off >>"$TRACE" 2>&1 || log "AP stop failed"
+  fi
+}
+
+trap 'stop_ap; exit 0' TERM INT
+mkdir -p /run
+: >"$TRACE"
+log "started; automatic AP ownership isolated from Anki services"
+
+while :; do
+  mode="$(read_mode)"
+  printf '%s\n' "$mode" >"$MODE_RUN" 2>/dev/null || true
+
+  if [ "$mode" != "hotspot" ]; then
+    OFFLINE_STREAK=0
+    rm -f "$FORCE_FLAG" "$BOOT_WAIT_FLAG"
+    stop_ap
+    sleep 5
+    continue
+  fi
+
+  if join_in_progress; then
+    OFFLINE_STREAK=0
+    sleep 2
+    continue
+  fi
+
+  if home_wifi_ready; then
+    OFFLINE_STREAK=0
+    rm -f "$FORCE_FLAG" "$BOOT_WAIT_FLAG"
+    sleep 5
+    continue
+  fi
+
+  if ! ap_on && wifi_associated; then
+    OFFLINE_STREAK=0
+    : >"$BOOT_WAIT_FLAG"
+    sleep 3
+    continue
+  fi
+
+  if ap_on; then
+    OFFLINE_STREAK=0
+    rm -f "$BOOT_WAIT_FLAG"
+    sleep 5
+    continue
+  fi
+
+  now="$(date +%s)"
+  elapsed=$((now - STARTED))
+  if has_saved_wifi && [ "$elapsed" -lt 120 ] && [ ! -f "$FORCE_FLAG" ]; then
+    OFFLINE_STREAK=0
+    : >"$BOOT_WAIT_FLAG"
+    sleep 5
+    continue
+  fi
+
+  rm -f "$BOOT_WAIT_FLAG"
+  OFFLINE_STREAK=$((OFFLINE_STREAK + 1))
+  if [ -f "$FORCE_FLAG" ]; then
+    OFFLINE_STREAK=3
+  fi
+  if [ "$OFFLINE_STREAK" -ge 3 ]; then
+    rm -f "$FORCE_FLAG"
+    OFFLINE_STREAK=0
+    ssid="$(robot_name)"
+    log "offline confirmed; starting AP ssid=$ssid"
+    "$AP_BIN" on "$ssid" >>"$TRACE" 2>&1 || log "AP start failed"
+  fi
+  sleep 5
+done

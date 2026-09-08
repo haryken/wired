@@ -52,15 +52,10 @@ async function alexaRefresh() {
 }
 
 async function alexaOptIn(enable) {
-    const ok = await wireosConfirm({
-        title: enable ? 'Liên kết Alexa' : 'Hủy Alexa',
-        message: enable
-            ? 'Bắt đầu liên kết Alexa? Robot sẽ hiện mã trên mặt.'
-            : 'Hủy liên kết Alexa?',
-        ok: enable ? 'Bắt đầu' : 'Hủy liên kết',
-        cancel: 'Đóng',
-    });
-    if (!ok) return;
+    const msg = enable
+        ? 'Bắt đầu liên kết Alexa? Robot sẽ hiện mã trên mặt.\n\nStart Alexa linking?'
+        : 'Hủy liên kết Alexa?\n\nSign out of Alexa?';
+    if (!confirm(msg)) return;
 
     alexaSetStatus(enable
         ? 'Đang bắt đầu liên kết... (Starting...)'
