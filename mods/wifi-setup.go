@@ -1694,6 +1694,7 @@ body{margin:0;padding:18px 12px 32px;background:#050505;color:#fff}
 .container{width:100%;max-width:620px;margin:0 auto;padding:18px;border:1px solid #3a3a3a;border-radius:14px;background:#1f1f1f}
 h1{margin:0 0 8px;color:#67e8f9;font-size:24px;text-align:center}
 .subtitle{margin:0 0 16px;color:#b3b3b3;text-align:center;font-size:14px}
+.hotspot-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 14px}.hotspot-logo{width:44px;height:44px;border-radius:10px}.hotspot-menu{position:relative}.hotspot-menu summary{display:flex;align-items:center;justify-content:center;width:46px;height:44px;border:1px solid #444;border-radius:10px;background:#272727;font-size:24px;cursor:pointer;list-style:none}.hotspot-menu summary::-webkit-details-marker{display:none}.hotspot-menu nav{position:absolute;z-index:20;top:50px;right:0;display:grid;width:min(280px,82vw);padding:8px;border:1px solid #444;border-radius:12px;background:#171717;box-shadow:0 14px 30px rgba(0,0,0,.45)}.hotspot-menu a{padding:12px 14px;border-radius:8px;color:#fff;text-decoration:none;font-size:15px}.hotspot-menu a:hover,.hotspot-menu a:focus{background:rgba(34,211,238,.14);color:#67e8f9}
 .portal-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 16px}.portal-tabs button.active{color:#67e8f9;border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.14)}
 .portal-panel[hidden]{display:none}
 .help-box{margin:0 0 16px;padding:12px 14px;border:1px solid #444;border-radius:10px;background:#2a2a2a;font-size:14px;line-height:1.5}
@@ -1777,6 +1778,18 @@ func wifiPageHTML(st map[string]interface{}, errMsg string, _ bool) string {
 <style>` + wifiPortalCSS + `</style>
 </head><body>
 <main class="container">
+<header class="hotspot-head">
+<img class="hotspot-logo" src="/portal-assets/vector-logo.png" alt="Vector">
+<details class="hotspot-menu">
+<summary aria-label="Mở menu">☰</summary>
+<nav>
+<a href="/wifi">📶 Bắt WiFi</a>
+<a href="/portal/#botsettings">⚙️ Cài đặt bot</a>
+<a href="/portal/#xiaozhi">💜 Xiaozhi</a>
+<a href="/portal/#control">🎮 Điều khiển</a>
+</nav>
+</details>
+</header>
 <h1>📶 Vector · WiFi nhà</h1>
 <p class="subtitle">` + html.EscapeString(mode) + ` · chỉ WiFi <b>2.4 GHz</b></p>
 <nav class="portal-tabs">

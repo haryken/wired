@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Vector · Hotspot</title>
+    <link rel="icon" type="image/png" href="/portal-assets/vector-logo-32.png">
+    <link rel="stylesheet" href="/portal-assets/style.css">
+    <link rel="stylesheet" href="/hotspot/portal.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-brand-row">
+            <div class="brand">
+                <img class="brand-logo" src="/portal-assets/vector-logo.png" width="44" height="44" alt="Vector">
+            </div>
+            <button type="button" id="portalBurger" class="nav-burger" aria-label="Mở menu">
+                <span class="nav-burger-line"></span><span class="nav-burger-line"></span><span class="nav-burger-line"></span>
+            </button>
+        </div>
+        <div class="header-title-row"><h1>Vector · Hotspot</h1></div>
+    </header>
+    <div id="portalBackdrop" class="nav-backdrop" hidden></div>
+    <aside id="portalDrawer" class="nav-drawer" aria-hidden="true">
+        <div class="nav-drawer-head">
+            <div class="nav-drawer-brand">
+                <img class="brand-logo" src="/portal-assets/vector-logo.png" width="40" height="40" alt="Vector">
+                <div class="nav-drawer-hello"><span class="nav-drawer-hello-sub">Xin chào!</span><span class="nav-drawer-hello-name">Vector</span></div>
+            </div>
+            <button type="button" id="portalClose" class="nav-drawer-close" aria-label="Đóng menu">&times;</button>
+        </div>
+        <nav class="nav-drawer-list">
+            <a href="/wifi">📶 Bắt WiFi</a>
+            <button type="button" data-target="#botsettings">⚙️ Cài đặt bot</button>
+            <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+            <button type="button" data-target="#control">🎮 Điều khiển</button>
+        </nav>
+    </aside>
+    <nav class="site-nav portal-tabs" aria-label="Chức năng hotspot">
+        <a href="/wifi">📶 Bắt WiFi</a>
+        <button type="button" class="active" data-target="#botsettings">⚙️ Cài đặt bot</button>
+        <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+        <button type="button" data-target="#control">🎮 Điều khiển</button>
+    </nav>
+
+    <div id="botsettings" class="container mod-section tab-content active">
+        <h2 data-i18n="bot.h2">Cài đặt bot</h2>
+        <p class="bot-intro" data-i18n="bot.intro">Chọn một mục bên dưới.</p>
+        <div id="jdocStatus"></div>
+        <div class="bot-nav">
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-volume')">
+                <span class="bot-ico" aria-hidden="true">🔊</span>
+                <span data-i18n="bot.volume">Âm lượng</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-eyes')">
+                <span class="bot-ico" aria-hidden="true">👁</span>
+                <span data-i18n="bot.eyes">Màu mắt</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-faces')">
+                <span class="bot-ico" aria-hidden="true">👤</span>
+                <span data-i18n="bot.faces">Khuôn mặt</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-photos')">
+                <span class="bot-ico" aria-hidden="true">📷</span>
+                <span data-i18n="bot.photos">Ảnh</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-location')">
+                <span class="bot-ico" aria-hidden="true">📍</span>
+                <span data-i18n="bot.location">Vị trí</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-timezone')">
+                <span class="bot-ico" aria-hidden="true">🕒</span>
+                <span data-i18n="bot.timezone">Múi giờ</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-temp')">
+                <span class="bot-ico" aria-hidden="true">🌡</span>
+                <span data-i18n="bot.temp">Đơn vị nhiệt</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-perf')">
+                <span class="bot-ico" aria-hidden="true">⚡</span>
+                <span data-i18n="bot.perf">Hiệu năng</span>
+            </button>
+            <button type="button" class="bot-nav-item" id="navWakeEngine" onclick="showBotSection('bot-wake')">
+                <span class="bot-ico" aria-hidden="true">🎛</span>
+                <span data-i18n="bot.wake">Engine đánh thức</span>
+            </button>
+            <button type="button" class="bot-nav-item" id="navCww" onclick="showBotSection('bot-cww')">
+                <span class="bot-ico" aria-hidden="true">🎤</span>
+                <span data-i18n="bot.cww">Từ đánh thức</span>
+            </button>
+            <button type="button" class="bot-nav-item" id="navSens" onclick="showBotSection('bot-sens')">
+                <span class="bot-ico" aria-hidden="true">📶</span>
+                <span data-i18n="bot.sens">Độ nhạy</span>
+            </button>
+            <button type="button" class="bot-nav-item" id="navLocale" onclick="showBotSection('bot-locale')">
+                <span class="bot-ico" aria-hidden="true">🗣</span>
+                <span data-i18n="bot.thf">Giọng THF</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
+                <span class="bot-ico" aria-hidden="true">😊</span>
+                <span data-i18n="bot.stim">Stim</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-petting')">
+                <span class="bot-ico" aria-hidden="true">✋</span>
+                <span data-i18n="bot.petting">Cảm biến trên lưng</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stats')">
+                <span class="bot-ico" aria-hidden="true">📊</span>
+                <span data-i18n="bot.stats">Thống kê</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-wifi-setup')">
+                <span class="bot-ico" aria-hidden="true">📶</span>
+                <span>Chế độ bắt WiFi</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-alexa')">
+                <span class="bot-ico" aria-hidden="true">🔊</span>
+                <span data-i18n="bot.alexa">Alexa</span>
+            </button>
+        </div>
+        <hr class="smallhr">
+
+        <div id="bot-volume" class="bot-section" style="display:none;">
+            <h3>🔊 <span data-i18n="sec.volume">Âm lượng</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="vol.help1">Chọn mức âm lượng — thay đổi áp dụng ngay.</li>
+                    <li data-i18n="vol.help2">Tắt (Mute) = robot không phát tiếng.</li>
+                </ol>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="vol" value="0" onchange="setMasterVolumeVal(0)"> <span data-i18n="vol.mute">Tắt</span></label>
+                <label><input type="radio" name="vol" value="1" onchange="setMasterVolumeVal(1)"> <span data-i18n="vol.low">Thấp</span></label>
+                <label><input type="radio" name="vol" value="2" onchange="setMasterVolumeVal(2)"> <span data-i18n="vol.medlow">Trung thấp</span></label>
+                <label><input type="radio" name="vol" value="3" onchange="setMasterVolumeVal(3)"> <span data-i18n="vol.med">Trung bình</span></label>
+                <label><input type="radio" name="vol" value="4" onchange="setMasterVolumeVal(4)"> <span data-i18n="vol.medhigh">Trung cao</span></label>
+                <label><input type="radio" name="vol" value="5" onchange="setMasterVolumeVal(5)"> <span data-i18n="vol.high">Cao</span></label>
+            </div>
+        </div>
+
+        <div id="bot-eyes" class="bot-section" style="display:none;">
+            <h3>👁 <span data-i18n="sec.eyes">Màu mắt</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="eyes.help1">Chọn preset (gồm Cầu vồng / Đỏ) — đổi ngay.</li>
+                    <li data-i18n="eyes.help2" data-i18n-html="1">Hoặc dùng <b>màu tùy chỉnh</b>: kéo thanh / chọn ô màu rồi Áp dụng.</li>
+                </ol>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="eye" value="0" onchange="setEyePresetVal(0)"> <span data-i18n="eye.teal">Xanh ngọc</span></label>
+                <label><input type="radio" name="eye" value="1" onchange="setEyePresetVal(1)"> <span data-i18n="eye.orange">Cam</span></label>
+                <label><input type="radio" name="eye" value="2" onchange="setEyePresetVal(2)"> <span data-i18n="eye.yellow">Vàng</span></label>
+                <label><input type="radio" name="eye" value="3" onchange="setEyePresetVal(3)"> <span data-i18n="eye.lime">Xanh chanh</span></label>
+                <label><input type="radio" name="eye" value="4" onchange="setEyePresetVal(4)"> <span data-i18n="eye.azure">Xanh dương</span></label>
+                <label><input type="radio" name="eye" value="5" onchange="setEyePresetVal(5)"> <span data-i18n="eye.purple">Tím</span></label>
+                <label><input type="radio" name="eye" value="6" onchange="setEyePresetVal(6)"> <span data-i18n="eye.other">Xanh khác</span></label>
+                <label><input type="radio" name="eye" value="7" onchange="setEyePresetVal(7)"> <span data-i18n="eye.rainbow">Cầu vồng</span></label>
+                <label><input type="radio" name="eye" value="8" onchange="setEyePresetVal(8)"> <span data-i18n="eye.red">Đỏ</span></label>
+            </div>
+            <hr class="smallhr">
+            <h4 data-i18n="eyes.custom">Màu tùy chỉnh</h4>
+            <div class="eye-custom">
+                <div class="eye-custom-row">
+                    <label for="eyeColorPicker" data-i18n="eyes.pick">Chọn màu</label>
+                    <input type="color" id="eyeColorPicker" value="#00c8c8" oninput="onEyePickerInput()">
+                    <span id="eyeCustomSwatch" class="eye-swatch" aria-hidden="true"></span>
+                </div>
+                <div class="eye-custom-row">
+                    <label for="eyeHue">Hue <span id="eyeHueVal">0.50</span></label>
+                    <input type="range" id="eyeHue" min="0" max="1" step="0.001" value="0.5" oninput="onEyeSliderInput()">
+                </div>
+                <div class="eye-custom-row">
+                    <label for="eyeSat"><span data-i18n="eyes.sat">Độ bão hòa</span> <span id="eyeSatVal">1.00</span></label>
+                    <input type="range" id="eyeSat" min="0" max="1" step="0.001" value="1" oninput="onEyeSliderInput()">
+                </div>
+                <button type="button" onclick="applyCustomEyeColor()" data-i18n="eyes.apply">Áp dụng màu tùy chỉnh</button>
+            </div>
+        </div>
+
+        <div id="bot-faces" class="bot-section" style="display:none;">
+            <h3>👤 <span data-i18n="sec.faces">Quản lý khuôn mặt</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="faces.help1" data-i18n-html="1">Nhập tên → <b>Bắt đầu ghi</b> → nhìn thẳng vào Vector.</li>
+                    <li data-i18n="faces.help2">Đổi tên / Xóa trên danh sách đã lưu.</li>
+                    <li data-i18n="faces.help3">Bấm Làm mới nếu danh sách chưa cập nhật.</li>
+                </ol>
+            </div>
+            <div id="facesStatus" class="faces-status" style="display:none;"></div>
+            <h4 data-i18n="faces.add">Thêm khuôn mặt</h4>
+            <div class="button-container" style="gap: 6px;">
+                <label for="faceNewName" data-i18n="faces.name">Tên:</label>
+                <input type="text" id="faceNewName" placeholder="Jeff">
+                <button type="button" onclick="faceTrain()" data-i18n="faces.enroll">Bắt đầu ghi</button>
+            </div>
+            <hr class="smallhr">
+            <h4 data-i18n="faces.saved">Đã lưu</h4>
+            <div class="button-container" style="gap: 6px;">
+                <button type="button" id="facesRefreshBtn" onclick="facesRefresh()" data-i18n="common.refresh">Làm mới</button>
+            </div>
+            <div id="facesList" class="faces-list"></div>
+        </div>
+
+        <div id="bot-photos" class="bot-section" style="display:none;">
+            <h3>📷 <span data-i18n="sec.photos">Ảnh đã chụp</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="photos.help1">Bấm thumbnail để xem ảnh lớn.</li>
+                    <li data-i18n="photos.help2">Xóa từng ảnh bằng nút Xóa.</li>
+                    <li data-i18n="photos.help3">Ảnh lấy từ bộ nhớ robot (Xiaozhi / lệnh chụp).</li>
+                </ol>
+            </div>
+            <div class="button-container" style="gap: 6px;">
+                <button type="button" id="photosRefreshBtn" onclick="photosRefresh()" data-i18n="common.refresh">Làm mới</button>
+            </div>
+            <div id="photosStatus" class="faces-status" style="display:none;"></div>
+            <div id="photosGrid" class="photos-grid"></div>
+            <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="photosCloseLightbox(event)">
+                <div class="photo-lightbox-inner">
+                    <img id="photoLightboxImg" alt="photo">
+                    <div class="photo-lightbox-actions">
+                        <button type="button" onclick="photosCloseLightbox()" data-i18n="common.close">Đóng</button>
+                        <button type="button" id="photoLightboxDelete" onclick="photosDeleteFromLightbox()" data-i18n="common.delete">Xóa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="bot-location" class="bot-section" style="display:none;">
+            <h3>📍 <span data-i18n="sec.location">Vị trí</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="loc.help1">Gõ thành phố / địa danh (vd. Ho Chi Minh City).</li>
+                    <li data-i18n="loc.help2">Bấm Lưu — dùng cho thời tiết / ngữ cảnh.</li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <input type="text" placeholder="Ho Chi Minh City, Vietnam" id="location">
+                <button id="locationSet" onclick="setLocation()" data-i18n="loc.save">Lưu vị trí</button>
+            </div>
+        </div>
+
+        <div id="bot-timezone" class="bot-section" style="display:none;">
+            <h3>🕒 <span data-i18n="sec.timezone">Múi giờ</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="tz.help1">Chọn múi giờ gần bạn nhất (vd. Asia/Ho_Chi_Minh ≈ Asia/Bangkok).</li>
+                    <li data-i18n="tz.help2">Bấm Lưu múi giờ.</li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <select name="timezone" id="timezone">
+                    <option value="Pacific/Honolulu">Pacific/Honolulu</option>
+                    <option value="America/Juneau">America/Juneau</option>
+                    <option value="America/Los_Angeles">America/Los_Angeles</option>
+                    <option value="America/Phoenix">America/Phoenix</option>
+                    <option value="America/Denver">America/Denver</option>
+                    <option value="America/Lima">America/Lima</option>
+                    <option value="America/Chicago">America/Chicago</option>
+                    <option value="America/Bogota">America/Bogota</option>
+                    <option value="America/New_York">America/New_York</option>
+                    <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
+                    <option value="America/Santiago">America/Santiago</option>
+                    <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+                    <option value="America/Halifax">America/Halifax</option>
+                    <option value="America/St_Johns">America/St_Johns</option>
+                    <option value="GMT">GMT</option>
+                    <option value="Europe/Lisbon">Europe/Lisbon</option>
+                    <option value="Europe/London">Europe/London</option>
+                    <option value="Europe/Paris">Europe/Paris</option>
+                    <option value="Europe/Athens">Europe/Athens</option>
+                    <option value="Europe/Istanbul">Europe/Istanbul</option>
+                    <option value="Europe/Moscow">Europe/Moscow</option>
+                    <option value="Africa/Lagos">Africa/Lagos</option>
+                    <option value="Africa/Harare">Africa/Harare</option>
+                    <option value="Africa/Addis_Ababa">Africa/Addis_Ababa</option>
+                    <option value="Asia/Dubai">Asia/Dubai</option>
+                    <option value="Asia/Tehran">Asia/Tehran</option>
+                    <option value="Asia/Karachi">Asia/Karachi</option>
+                    <option value="Asia/Kolkata">Asia/Kolkata</option>
+                    <option value="Asia/Dhaka">Asia/Dhaka</option>
+                    <option value="Asia/Bangkok">Asia/Bangkok</option>
+                    <option value="Asia/Jakarta">Asia/Jakarta</option>
+                    <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+                    <option value="Asia/Singapore">Asia/Singapore</option>
+                    <option value="Asia/Manila">Asia/Manila</option>
+                    <option value="Asia/Seoul">Asia/Seoul</option>
+                    <option value="Asia/Tokyo">Asia/Tokyo</option>
+                    <option value="Australia/Perth">Australia/Perth</option>
+                    <option value="Australia/Darwin">Australia/Darwin</option>
+                    <option value="Australia/Adelaide">Australia/Adelaide</option>
+                    <option value="Australia/Brisbane">Australia/Brisbane</option>
+                    <option value="Australia/Sydney">Australia/Sydney</option>
+                    <option value="Australia/Auckland">Australia/Auckland</option>
+                </select>
+                <button id="timezoneSet" onclick="setTimezone()" data-i18n="tz.save">Lưu múi giờ</button>
+            </div>
+        </div>
+
+        <div id="bot-temp" class="bot-section" style="display:none;">
+            <h3>🌡 <span data-i18n="sec.temp">Đơn vị nhiệt</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="temp.help1">Chọn °C hoặc °F rồi Lưu.</li>
+                    <li data-i18n="temp.help2">Ảnh hưởng cách robot nói về nhiệt độ.</li>
+                </ol>
+            </div>
+            <div class="button-container">
+                <select name="tUnits" id="tUnits">
+                    <option value="c" data-i18n="temp.c">Độ C (Celsius)</option>
+                    <option value="f" data-i18n="temp.f">Độ F (Fahrenheit)</option>
+                </select>
+                <button onclick="setTempUnits()" data-i18n="temp.save">Lưu đơn vị</button>
+            </div>
+        </div>
+
+        <div id="bot-perf" class="bot-section" style="display:none;">
+            <h3>⚡ <span data-i18n="sec.perf">Hồ sơ hiệu năng</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li><b>Thường</b> — ổn định, ít nóng. <em>(Regular — stable, cooler.)</em></li>
+                    <li><b>Cân bằng</b> — giữa ổn định và tốc độ. <em>(Balanced — middle ground.)</em></li>
+                    <li><b>Hiệu năng cao</b> — SDK nhanh hơn, máy có thể nóng. <em>(Performance — faster SDK, may overheat.)</em></li>
+                    <li>Chọn xong có thể cần <b>khởi động lại</b> robot. <em>(A restart may be required after changing.)</em></li>
+                </ol>
+                <p class="help-warn">Đừng để Hiệu năng cao lâu nếu robot nóng bất thường. <em>(Avoid long Performance mode if the robot runs hot.)</em></p>
+            </div>
+            <div id="modStatus"></div>
+            <div id="mods">
+                <form>
+                    <input type="radio" id="regular" name="frequency" value="0" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="regular" data-i18n="perf.regular">Thường</label>
+                    <input type="radio" id="balanced" name="frequency" value="1" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="balanced" data-i18n="perf.balanced">Cân bằng</label>
+                    <input type="radio" id="performance" name="frequency" value="2" onchange="FreqChange_Submit()">
+                    <label class="buttonlabel" for="performance" data-i18n="perf.high">Hiệu năng cao</label>
+                </form>
+            </div>
+        </div>
+
+        <div id="bot-wake" class="bot-section" style="display:none;">
+            <h3>🎛 <span data-i18n="sec.wake">Engine đánh thức</span></h3>
+            <div class="help-box">
+                <strong data-i18n="wake.choose">Chọn engine</strong>
+                <ul>
+                    <li><b>Picovoice</b> — mở khóa <b>Từ đánh thức</b> + <b>Độ nhạy</b>.</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Giọng THF</b> (model giọng / độ nhạy wake).</li>
+                </ul>
+                <p class="help-warn">Chọn radio rồi bấm <b>Lưu engine + restart</b> để áp dụng. Tile khóa/mở phía trên chỉ đổi sau khi lưu (đổi radio chưa lưu không ảnh hưởng).</p>
+            </div>
+            <div id="wakeEngineStatus"></div>
+            <div class="bot-opt-list" style="margin-bottom:12px;">
+                <label><input type="radio" name="wakeEngine" value="picovoice" id="wakeEnginePv" onchange="onWakeEngineRadio()"> Picovoice (custom)</label>
+                <label><input type="radio" name="wakeEngine" value="thf" id="wakeEngineThf" onchange="onWakeEngineRadio()"> Hey Vector (THF / stock)</label>
+            </div>
+            <div class="button-container" style="margin-bottom:16px;">
+                <button type="button" onclick="saveWakeEngine()" data-i18n="wake.save">Lưu engine + restart</button>
+            </div>
+            <div id="wakeThfHint" class="help-box" style="display:none;">
+                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Giọng THF</b> (không phải đổi ngôn ngữ robot).</p>
+                <p><em>Use Giọng THF for accent/wake sensitivity — not UI language.</em></p>
+            </div>
+        </div>
+
+        <div id="bot-cww" class="bot-section" style="display:none;">
+            <h3>🎤 <span data-i18n="sec.cww">Từ đánh thức tùy chỉnh</span></h3>
+            <div id="cwwEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
+            </div>
+            <div id="cwwControls">
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li>Nhập từ muốn dùng — ít nhất <b>2 âm tiết</b>, <b>5+ chữ cái</b>. <em>(At least two syllables, 5+ letters.)</em></li>
+                    <li>Bấm <b>Tạo từ đánh thức</b> — robot sẽ tải model rồi khởi động lại. <em>(Generate — installs model then restarts.)</em></li>
+                    <li>Muốn về “Hey Vector” mặc định Picovoice: bấm <b>Về mặc định</b>. <em>(Revert restores default .ppn.)</em></li>
+                </ol>
+                <p class="help-warn">Trong lúc khởi động lại, đợi trang báo xong rồi mới gọi. <em>(Wait until restart finishes before calling the robot.)</em></p>
+            </div>
+            <div id="wakeWordStatus"></div>
+            <div class="button-container">
+                <label id="keywordLabel" for="keyword" data-i18n="cww.keyword">Từ muốn dùng:</label>
+                <input type="text" placeholder="Hey Vector" id="keyword">
+                <button id="genWakeWord" onclick="genWakeWord()" data-i18n="cww.gen">Tạo từ đánh thức</button>
+                <button id="revertDefaultWakeWord" onclick="revertDefaultWakeWord()" data-i18n="cww.revert">Về mặc định</button>
+            </div>
+            </div>
+        </div>
+
+        <div id="bot-sens" class="bot-section" style="display:none;">
+            <h3>📶 <span data-i18n="sec.sens">Độ nhạy từ đánh thức</span></h3>
+            <div id="sensEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Picovoice</b>. Đang THF — mục này bị khóa.</p>
+            </div>
+            <div id="sensControls">
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li>Kéo thanh hoặc gõ số (mặc định <b>0.45</b>). <em>(Drag or type; default 0.45.)</em></li>
+                    <li><b>Cao hơn</b> = dễ đánh thức hơn (dễ nhầm tiếng ồn). <em>(Higher = easier wake, more false triggers.)</em></li>
+                    <li><b>Thấp hơn</b> = khó đánh thức hơn (ít nhầm). <em>(Lower = harder wake, fewer false triggers.)</em></li>
+                    <li>Bấm <b>Đặt</b> — robot khởi động lại để áp dụng. <em>(Set — robot restarts to apply.)</em></li>
+                </ol>
+                <p class="help-warn">Khoảng hợp lệ: 0.001 – 0.999. Chỉ Picovoice. <em>(Picovoice only.)</em></p>
+            </div>
+            <div class="button-container">
+                <input type="range" id="sensitivitySlider" min="0.001" max="0.999" step="0.001" value="0.500"
+                    oninput="document.getElementById('sensitivityInput').value = this.value">
+                <input type="number" id="sensitivityInput" min="0.001" max="0.999" step="0.001" value="0.500"
+                    oninput="document.getElementById('sensitivitySlider').value = this.value">
+                <button id="setSensitivityBtn" onclick="sendSensitivity()" data-i18n="common.set">Đặt</button>
+            </div>
+            </div>
+        </div>
+
+        <div id="bot-locale" class="bot-section" style="display:none;">
+            <h3>🗣 <span data-i18n="sec.thf">Giọng THF</span></h3>
+            <div id="localeEngineLock" class="help-box" style="display:none;">
+                <p class="help-warn">Chỉ dùng với engine <b>Hey Vector (THF)</b>. Đang Picovoice — mục này bị khóa.</p>
+            </div>
+            <div id="localeControls">
+            <div class="help-box">
+                <p><b>Không phải đổi ngôn ngữ.</b> Mỗi lựa chọn là model Sensory khác nhau — ảnh hưởng <b>độ nhạy / dễ bắt “Hey Vector”</b> theo giọng nói.</p>
+                <p>★ <b>en-AU</b> thường <b>nhạy nhất với người Việt</b> (khuyến nghị). Các model khác thường cần phát âm “Hey Vector” chuẩn tiếng Anh hơn.</p>
+                <p><em>Accent profile for wake detection — not robot language. ★ en-AU recommended for Vietnamese speakers.</em></p>
+            </div>
+            <div id="wakeLocaleStatus"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="wakeLocale" value="en-AU" onchange="onWakeLocaleChange('en-AU')"> ★ en-AU <small>(Úc — khuyến nghị cho người Việt / most sensitive)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-US" onchange="onWakeLocaleChange('en-US')"> en-US <small>(Mỹ — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="en-GB" onchange="onWakeLocaleChange('en-GB')"> en-GB <small>(Anh — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="fr-FR" onchange="onWakeLocaleChange('fr-FR')"> fr-FR <small>(Pháp — cần phát âm chuẩn hơn)</small></label>
+                <label><input type="radio" name="wakeLocale" value="de-DE" onchange="onWakeLocaleChange('de-DE')"> de-DE <small>(Đức — cần phát âm chuẩn hơn)</small></label>
+            </div>
+            </div>
+        </div>
+
+        <div id="bot-stim" class="bot-section" style="display:none;">
+            <h3>😊 <span data-i18n="sec.stim">Kích thích</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li>Mở mục này để xem mức kích thích realtime của Vector. <em>(Open to watch live stimulation.)</em></li>
+                    <li>Vuốt / chạm / chơi với robot — đường sẽ nhảy. <em>(Pet / play — the graph moves.)</em></li>
+                </ol>
+            </div>
+            <div id="stimStatus" class="faces-status" style="display:none;"></div>
+            <div class="stim-wrap">
+                <canvas id="stimCanvas" width="480" height="180" aria-label="stimulation chart"></canvas>
+                <div class="stim-value">Giá trị <small>(Value)</small>: <b id="stimValueLabel">—</b></div>
+            </div>
+        </div>
+
+        <div id="bot-petting" class="bot-section" style="display:none;">
+            <h3>✋ <span data-i18n="sec.petting">Cảm biến trên lưng</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li data-i18n="petting.help1">Khi xoa lưng (cảm biến cảm ứng), robot phản ứng petting và phát tiếng rừ rừ.</li>
+                    <li data-i18n="petting.help2" data-i18n-html="1">Chỉ muốn tắt tiếng rừ rừ / petting → chọn <b>Tắt</b> ở nhóm Petting (wake/timer vẫn dùng cảm biến).</li>
+                    <li data-i18n="petting.help3" data-i18n-html="1">Phần cứng báo ảo liên tục → chọn <b>Tắt hết cảm biến</b> để chặn mọi tính năng chạm lưng.</li>
+                    <li data-i18n="petting.help4">Đổi áp dụng gần như ngay (không cần restart).</li>
+                </ol>
+            </div>
+            <div id="pettingStatus" class="faces-status" style="display:none;"></div>
+            <p style="margin:10px 0 6px;"><b data-i18n="petting.group_touch">Cảm biến trên lưng (tất cả tính năng)</b></p>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="touchSensorEnabled" value="true" onchange="saveTouchSensor()"> <span data-i18n="touch.on">Bật cảm biến</span> <small data-i18n="touch.on_hint">(wake / hủy timer / SDK / …)</small></label>
+                <label><input type="radio" name="touchSensorEnabled" value="false" onchange="saveTouchSensor()"> <span data-i18n="touch.off">Tắt hết cảm biến</span> <small data-i18n="touch.off_hint">(chặn mọi tính năng — hết báo ảo)</small></label>
+            </div>
+            <p style="margin:16px 0 6px;"><b data-i18n="petting.group_petting">Petting / tiếng rừ rừ</b></p>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="pettingEnabled" value="true" onchange="savePetting()"> <span data-i18n="petting.on">Bật</span> <small data-i18n="petting.on_hint">(phản ứng petting + tiếng rừ rừ)</small></label>
+                <label><input type="radio" name="pettingEnabled" value="false" onchange="savePetting()"> <span data-i18n="petting.off">Tắt</span> <small data-i18n="petting.off_hint">(không petting / không rừ rừ)</small></label>
+            </div>
+        </div>
+
+        <div id="bot-stats" class="bot-section" style="display:none;">
+            <h3>📊 <span data-i18n="sec.stats">Thống kê lifetime</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howto">Cách dùng</strong>
+                <ol>
+                    <li>Bấm Làm mới để đọc số liệu từ robot. <em>(Refresh to pull jdoc stats.)</em></li>
+                </ol>
+            </div>
+            <div class="button-container" style="gap:6px;">
+                <button type="button" onclick="statsRefresh()" data-i18n="common.refresh">Làm mới</button>
+            </div>
+            <div id="statsStatus" class="faces-status" style="display:none;"></div>
+            <div id="statsSection" class="stats-list"></div>
+        </div>
+
+        <div id="bot-wifi-setup" class="bot-section" style="display:none;">
+            <h3>📶 Chế độ bắt WiFi khi mất mạng</h3>
+            <div class="help-box">
+                <ol>
+                    <li>Đang có WiFi: chỉ lưu lựa chọn, không ngắt kết nối hiện tại.</li>
+                    <li>Mất WiFi: robot dùng Bluetooth hoặc phát hotspot tùy lựa chọn bên dưới.</li>
+                </ol>
+            </div>
+            <div id="wifiModeStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="wifiSetupMode" value="ble" onchange="setWifiSetupMode('ble')"> Bluetooth (BLE)</label>
+                <label><input type="radio" name="wifiSetupMode" value="hotspot" onchange="setWifiSetupMode('hotspot')"> Hotspot mở (không mật khẩu)</label>
+            </div>
+            <hr class="smallhr">
+            <div id="wifiModeGuideBle" class="help-box" style="display:none;">
+                <strong>Bluetooth (BLE) — hướng dẫn bắt WiFi</strong>
+                <ol>
+                    <li>Mở <a href="https://wpsetup.keriganc.com/html/main.html" target="_blank" rel="noopener noreferrer">Vector Web Setup</a> bằng Chrome hoặc Edge.</li>
+                    <li>Đặt robot lên đế sạc.</li>
+                    <li>Nhấn nút lưng 2 lần nhanh; chờ mặt robot hiện mã ghép nối gồm 6 ký tự.</li>
+                    <li>Trên Web Setup, bấm <b>Pair</b>, chọn robot rồi nhập đúng 6 ký tự đang hiện trên mặt.</li>
+                    <li>Chọn WiFi nhà, nhập mật khẩu và chờ robot kết nối hoàn tất.</li>
+                </ol>
+                <p>Nếu ghép nối hoặc bắt WiFi bị lỗi: tắt robot, mở lại, đặt lên đế sạc rồi nhấn nút lưng 2 lần và thực hiện lại từ đầu.</p>
+            </div>
+            <div id="wifiModeGuideHotspot" class="help-box" style="display:none;">
+                <strong>Hotspot mở — hướng dẫn bắt WiFi</strong>
+                <p>Khi mất WiFi, kết nối điện thoại hoặc máy tính vào hotspot mang tên robot, mở <code>http://192.168.4.1/</code>, chọn WiFi nhà rồi nhập mật khẩu.</p>
+            </div>
+        </div>
+
+        <div id="bot-alexa" class="bot-section" style="display:none;">
+            <h3>🔊 <span data-i18n="sec.alexa">Amazon Alexa</span></h3>
+            <div class="help-box">
+                <strong data-i18n="common.howworks">Cách hoạt động</strong>
+                <ol>
+                    <li><b>Giọng nói:</b> Sau khi liên kết, nói <b>"Alexa"</b> hoặc <b>"Hey Vector"</b> đều được — hai wake word song song. <em>(Voice: both "Alexa" and "Hey Vector" work.)</em></li>
+                    <li><b>Nút lưng:</b> Chọn một — bấm nút = gọi Hey Vector <em>hoặc</em> Alexa (không phải cả hai). <em>(Back button: pick one assistant.)</em></li>
+                    <li>Sau đăng nhập Alexa thành công, FW thường tự đặt nút = Alexa — bạn có thể đổi lại bên dưới. <em>(FW may auto-set button to Alexa after login.)</em></li>
+                </ol>
+                <p class="help-warn">Nếu Xiaozhi đang bật, "Hey Vector" có thể ưu tiên Xiaozhi thay vì lệnh Vector gốc. <em>(Xiaozhi may capture Hey Vector.)</em></p>
+            </div>
+            <div id="alexaStatus"></div>
+            <div class="button-container" style="gap:8px;">
+                <button type="button" onclick="alexaOptIn(true)" data-i18n="alexa.link">Liên kết Alexa</button>
+                <button type="button" onclick="alexaOptIn(false)" data-i18n="alexa.unlink">Hủy liên kết</button>
+                <button type="button" onclick="alexaRefresh()" data-i18n="alexa.refresh">Làm mới trạng thái</button>
+            </div>
+            <hr class="smallhr">
+            <h4 style="color:#67e8f9; margin:8px 0;" data-i18n="alexa.back_title">Nút lưng bấm gọi ai?</h4>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="btnWake" value="0" onchange="alexaSetButtonWake(0)"> Hey Vector</label>
+                <label><input type="radio" name="btnWake" value="1" onchange="alexaSetButtonWake(1)"> Alexa</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="xiaozhi" class="container mod-section tab-content">
+        <h2 data-i18n="xz.h2">💜 Xiaozhi AI</h2>
+        <div class="help-box mode-switch-box">
+            <strong data-i18n="xz.listen_title">Chế độ nghe lệnh</strong>
+            <p style="margin:8px 0 6px;" data-i18n="xz.listen_intro" data-i18n-html="1">Chọn bên dưới — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot khởi động lại cloud vài giây.</p>
+            <div class="mode-compare">
+                <div class="mode-card mode-on">
+                    <h4>💜 Xiaozhi</h4>
+                    <ul>
+                        <li data-i18n="xz.xz_li1">Nói chuyện tự nhiên (VN/EN) với cloud.</li>
+                        <li data-i18n="xz.xz_li2">LLM / MCP điều khiển robot (cube, blackjack…).</li>
+                        <li data-i18n="xz.xz_li3">Hiện khối cấu hình Xiaozhi bên dưới.</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-off">
+                    <h4>🎙 Vosk</h4>
+                    <ul>
+                        <li data-i18n="xz.vosk_li1">STT offline trên robot (thường tiếng Anh).</li>
+                        <li data-i18n="xz.vosk_li2">Xiaozhi cloud tắt; ẩn cấu hình Xiaozhi.</li>
+                        <li data-i18n="xz.vosk_li3" data-i18n-html="1">Xem cụm lệnh ở tab <b>Lệnh thoại</b>.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="bot-opt-list xz-mode-radios" style="margin:8px 0 8px;">
+            <label><input type="radio" name="xzListenMode" value="xiaozhi" id="xzModeXiaozhi" onchange="xzOnModeRadio()"> <span data-i18n="xz.radio_xz">Xiaozhi (cloud chat)</span></label>
+            <label><input type="radio" name="xzListenMode" value="vosk" id="xzModeVosk" onchange="xzOnModeRadio()"> <span data-i18n="xz.radio_vosk">Vosk (lệnh offline)</span></label>
+        </div>
+        <div id="xiaozhiStatus" class="xz-status" style="display:none;"></div>
+
+        <div id="xzConfigBlock" class="xz-config-block" style="display:none;">
+            <h3 class="xz-config-title" data-i18n="xz.cfg_title">Cấu hình Xiaozhi</h3>
+            <div class="xz-config-card">
+                <div class="bot-opt-list xz-mode-radios" style="margin:0 0 12px;">
+                    <label>
+                        <input type="radio" name="xzPreset" value="vi_pool" id="xzPresetVi" checked onchange="xzOnPresetRadio()">
+                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
+                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
+                    </label>
+                </div>
+
+                <div id="xzPoolHelp" class="help-box xz-config-help">
+                    <p data-i18n="xz.pool_help" data-i18n-html="1">Chọn cái này rồi <b>đánh thức robot</b> (Hey Vector) là nói chuyện được luôn — không cần mã 6 số.</p>
+                    <p id="xzPoolUsing" class="wifi-hint" style="margin:8px 0;"></p>
+                    <div class="xz-config-actions" style="margin-top:10px;">
+                        <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới MAC</button>
+                    </div>
+                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
+                    <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
+                </div>
+
+                <div id="xzCustomFields" style="display:none;">
+                <div class="help-box xz-config-help">
+                    <ol>
+                        <li data-i18n="xz.cfg_1" data-i18n-html="1"><b>Máy chủ OTA:</b> lần đầu để mặc định <code>https://api.tenclass.net/</code>. Đã lưu rồi thì giữ nguyên.</li>
+                        <li data-i18n="xz.cfg_2" data-i18n-html="1"><b>WebSocket:</b> ô xám — hệ thống tự lấy từ OTA, chỉ xem, không cần sửa.</li>
+                        <li data-i18n="xz.cfg_3" data-i18n-html="1"><b>ID thiết bị / client:</b> lần đầu để trống để robot tự tạo MAC / UUID.</li>
+                        <li data-i18n="xz.cfg_4" data-i18n-html="1"><b>Lấy mã 6 số:</b> bấm <b>Lưu &amp; kích hoạt</b>. Robot hiện mã (hoặc báo đã ghép).</li>
+                        <li data-i18n="xz.cfg_5" data-i18n-html="1"><b>Ghép trên web:</b> vào <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → tạo agent → cấu hình agent → thêm mã 6 số vào agent vừa tạo.</li>
+                        <li data-i18n="xz.cfg_6" data-i18n-html="1"><b>Muốn cấu hình lại / lấy mã mới:</b> xóa hết ô <b>ID thiết bị (MAC)</b> hiện tại → bấm lại <b>Lưu &amp; kích hoạt</b> → làm tiếp bước 5 với mã mới.</li>
+                    </ol>
+                </div>
+
+                <div class="xz-config-fields">
+                    <label data-i18n="xz.lbl_ota">Máy chủ OTA:</label>
+                    <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/">
+
+                    <label data-i18n="xz.lbl_ws">Đầu cuối WebSocket:</label>
+                    <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly data-i18n-placeholder="xz.ph_ws" placeholder="(tự lấy sau Lưu &amp; kích hoạt)">
+
+                    <label data-i18n="xz.lbl_did">ID thiết bị (để trống = MAC ngẫu nhiên):</label>
+                    <input type="text" id="xzDeviceID" placeholder="auto = random MAC">
+
+                    <label data-i18n="xz.lbl_cid">ID client (để trống = UUID ngẫu nhiên):</label>
+                    <input type="text" id="xzClientID" placeholder="auto = UUID">
+
+                    <div class="xz-conv-block">
+                        <strong data-i18n="xz.conv_title">Cách hội thoại</strong>
+                        <div class="bot-opt-list xz-conv-radios" style="margin:8px 0;">
+                            <label class="xz-conv-option">
+                                <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked>
+                                <span>
+                                    <b data-i18n="xz.conv_cont">Liên tục</b><br>
+                                    <span class="xz-conv-desc" data-i18n="xz.conv_cont_desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu.</span>
+                                </span>
+                            </label>
+                            <label class="xz-conv-option">
+                                <input type="radio" name="xzConvMode" value="single" id="xzConvSingle">
+                                <span>
+                                    <b data-i18n="xz.conv_single">Một lượt</b><br>
+                                    <span class="xz-conv-desc" data-i18n="xz.conv_single_desc">Một câu hỏi → một câu trả lời rồi tắt mic. Muốn nói tiếp phải Hey Vector lại. Tiết kiệm / ít bị nghe nhầm.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="xz-config-actions">
+                        <button type="button" id="xzSaveActivateBtn" onclick="xzSaveAndActivate()" data-i18n="xz.save_btn">Lưu &amp; kích hoạt</button>
+                    </div>
+                    <div id="xzConfigStatus" class="xz-status" style="display:none;"></div>
+
+                    <div id="xzCodeBox" class="xz-code-box" style="display:none;">
+                        <strong data-i18n="xz.code_label">Mã kích hoạt:</strong>
+                        <span id="xzCode" class="xz-code-value"></span>
+                        <p class="xz-code-help" data-i18n="xz.code_help" data-i18n-html="1">Copy mã này → vào agent trên <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → thêm thiết bị bằng mã 6 số.</p>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="control" class="container mod-section tab-content">
+        <h2 data-i18n="control.h2">🎮 Điều khiển (beta)</h2>
+        <div class="help-box">
+            <strong data-i18n="common.howto">Cách dùng</strong>
+            <ol>
+                <li data-i18n="ctrl.help1" data-i18n-html="1">Bấm <b>Chiếm quyền</b> trước — lúc đó mới lái / tay / đầu / gương / micro được.</li>
+                <li data-i18n="ctrl.help2">Dùng pad / camera khi đang chiếm quyền. Bật <b>Micro</b> để nói qua loa robot; <b>Nghe robot</b> để nghe mic robot trên điện thoại (đàm thoại 2 chiều).</li>
+                <li data-i18n="ctrl.help3" data-i18n-html="1">Xong thì tắt micro và bấm <b>Nhả quyền</b> — robot mới về trạng thái tự nhiên / Xiaozhi.</li>
+                <li data-i18n="ctrl.help4" data-i18n-html="1">Muốn điều khiển <b>khác mạng</b>: bật <b>Ngoài mạng</b> → copy link HTTPS → mở trên 4G/Wi‑Fi khác.</li>
+            </ol>
+            <p class="help-warn" data-i18n="ctrl.warn">Micro cần trang HTTPS: mở https://IP-robot:8443 — HTTP bị trình duyệt chặn mic (Meet vẫn được vì là HTTPS).</p>
+            <p class="help-warn" data-i18n="ctrl.remote_warn">Link ngoài mạng chỉ tắt khi bạn tắt — ai có link đều điều khiển được, nhớ tắt khi xong.</p>
+        </div>
+        <div id="controlStatus"></div>
+        <hr class="smallhr">
+
+        <div class="ctrl-session" role="group" aria-label="Session">
+            <button type="button" id="ctrlAssumeBtn" class="ctrl-seg" onclick="ctrlAssume()" data-i18n="ctrl.assume">Chiếm quyền</button>
+            <button type="button" id="ctrlReleaseBtn" class="ctrl-seg is-active" onclick="ctrlRelease()" data-i18n="ctrl.release">Nhả quyền</button>
+        </div>
+
+        <div class="ctrl-remote-card" id="ctrlRemotePanel">
+            <div class="ctrl-remote-head">
+                <div class="ctrl-remote-title" data-i18n="ctrl.remote">Ngoài mạng</div>
+                <div class="ctrl-remote-sub" data-i18n="ctrl.remote_sub">Tạo link HTTPS để điều khiển từ 4G / Wi‑Fi khác. Giữ đến khi bạn tắt.</div>
+            </div>
+            <div class="ctrl-session ctrl-remote-toggle" role="group" aria-label="Remote share">
+                <button type="button" id="ctrlRemoteOffBtn" class="ctrl-seg is-active" onclick="ctrlRemoteToggle(false)" data-i18n="ctrl.remote_off">Tắt</button>
+                <button type="button" id="ctrlRemoteOnBtn" class="ctrl-seg" onclick="ctrlRemoteToggle(true)" data-i18n="ctrl.remote_on">Bật link</button>
+            </div>
+            <div id="ctrlRemoteBox" class="ctrl-remote-box" hidden>
+                <div class="ctrl-remote-link-label" data-i18n="ctrl.remote_link">Link điều khiển</div>
+                <div class="ctrl-remote-row">
+                    <input type="text" id="ctrlRemoteURL" readonly placeholder="…" aria-label="Remote control URL">
+                    <button type="button" id="ctrlRemoteCopyBtn" class="ctrl-remote-copy" onclick="ctrlRemoteCopy()" data-i18n="ctrl.remote_copy">Copy</button>
+                </div>
+                <p id="ctrlRemoteStatus" class="ctrl-remote-status"></p>
+            </div>
+        </div>
+
+        <div class="ctrl-stage">
+            <div class="ctrl-stage-cam">
+                <div id="ctrlCamBox" class="ctrl-cam" aria-label="Camera stream">
+                    <div class="ctrl-cam-placeholder"><span data-i18n="ctrl.cam_off" data-i18n-html="1">Camera tắt — bật switch bên dưới hoặc Chiếm quyền.</span></div>
+                </div>
+                <div class="ctrl-switches">
+                    <label class="ctrl-switch" for="ctrlCamSwitch">
+                        <span class="ctrl-switch-text">Camera</span>
+                        <input type="checkbox" id="ctrlCamSwitch" onchange="ctrlCamToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlMirrorSwitch">
+                        <span class="ctrl-switch-text"><span data-i18n="ctrl.mirror">Gương</span></span>
+                        <input type="checkbox" id="ctrlMirrorSwitch" disabled onchange="ctrlMirrorToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlMicSwitch">
+                        <span class="ctrl-switch-text"><span data-i18n="ctrl.mic">Micro</span></span>
+                        <input type="checkbox" id="ctrlMicSwitch" disabled onchange="ctrlMicToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                    <label class="ctrl-switch" for="ctrlListenSwitch">
+                        <span class="ctrl-switch-text"><span data-i18n="ctrl.listen">Nghe robot</span></span>
+                        <input type="checkbox" id="ctrlListenSwitch" disabled onchange="ctrlListenToggle(this.checked)">
+                        <span class="ctrl-switch-track" aria-hidden="true"><span class="ctrl-switch-thumb"></span></span>
+                    </label>
+                </div>
+            </div>
+            <div class="ctrl-stage-pad">
+                <div class="ctrl-grid" id="ctrlGrid">
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlLiftHold(2,event)" onpointerup="ctrlLiftStop(event)"
+                        onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)" data-i18n="ctrl.lift_up" data-i18n-html="1">Nâng tay</button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(140,140,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)" data-i18n="ctrl.fwd" data-i18n-html="1">Tiến</button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHeadHold(2,event)" onpointerup="ctrlHeadStop(event)"
+                        onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)" data-i18n="ctrl.head_up" data-i18n-html="1">Ngẩng</button>
+
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(-160,160,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)" data-i18n="ctrl.left" data-i18n-html="1">Trái ↺</button>
+                    <button type="button" class="ctrl-btn ctrl-stop" disabled
+                        onclick="ctrlStopAll(event)" data-i18n="ctrl.stop" data-i18n-html="1">Dừng</button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(160,-160,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)" data-i18n="ctrl.right" data-i18n-html="1">Phải ↻</button>
+
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlLiftHold(-2,event)" onpointerup="ctrlLiftStop(event)"
+                        onpointerleave="ctrlLiftStop(event)" onpointercancel="ctrlLiftStop(event)" data-i18n="ctrl.lift_dn" data-i18n-html="1">Hạ tay</button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHold(-140,-140,event)" onpointerup="ctrlStop(event)"
+                        onpointerleave="ctrlStop(event)" onpointercancel="ctrlStop(event)" data-i18n="ctrl.back" data-i18n-html="1">Lùi</button>
+                    <button type="button" class="ctrl-btn" disabled
+                        onpointerdown="ctrlHeadHold(-2,event)" onpointerup="ctrlHeadStop(event)"
+                        onpointerleave="ctrlHeadStop(event)" onpointercancel="ctrlHeadStop(event)" data-i18n="ctrl.head_dn" data-i18n-html="1">Cúi</button>
+                </div>
+                <p class="ctrl-pad-hint" data-i18n="ctrl.pad_hint">Giữ để chạy — giữa = dừng hết.</p>
+            </div>
+        </div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#67e8f9;" data-i18n="ctrl.say_title">🗣 Robot nói</h3>
+        <div class="help-box">
+            <ol>
+                <li data-i18n="ctrl.say1" data-i18n-html="1">Cần <b>Chiếm quyền</b> trước.</li>
+                <li data-i18n="ctrl.say2">Nhập câu → Gửi — Vector nói bằng giọng máy.</li>
+            </ol>
+        </div>
+        <div class="button-container" style="gap:6px; flex-wrap:wrap;">
+            <input type="text" id="ctrlSayText" data-i18n-placeholder="ctrl.say_ph" placeholder="Nhập nội dung" disabled style="flex:1; min-width:180px;">
+            <button type="button" id="ctrlSayBtn" disabled onclick="ctrlSayText()" data-i18n="ctrl.send">Gửi</button>
+        </div>
+        <hr class="smallhr">
+
+        <h3 style="margin:8px 0; color:#67e8f9;" data-i18n="ctrl.audio_title">🔊 Phát âm thanh</h3>
+        <div class="help-box">
+            <ol>
+                <li data-i18n="ctrl.aud1" data-i18n-html="1">Chọn file <b>.wav</b> — trình duyệt resample 8 kHz mono rồi gửi.</li>
+                <li data-i18n="ctrl.aud2" data-i18n-html="1">Nghe thử nếu muốn, rồi <b>Gửi file</b> (cần Chiếm quyền).</li>
+                <li data-i18n="ctrl.aud3" data-i18n-html="1">Hoặc bật switch <b>Micro</b> phía trên camera để nói trực tiếp qua loa robot.</li>
+            </ol>
+        </div>
+        <div class="button-container" style="gap:6px; flex-wrap:wrap;">
+            <input type="file" id="ctrlAudioFile" accept=".wav,audio/wav">
+            <button type="button" id="ctrlAudioSendBtn" style="display:none;" onclick="ctrlSendAudio()" data-i18n="ctrl.send_file">Gửi file</button>
+        </div>
+        <audio id="ctrlAudioPreview" controls style="width:100%; max-width:420px; margin-top:8px;"></audio>
+    </div>
+
+    <div id="showDuringVicRestart" class="container" style="display:none"><h2>Robot đang khởi động lại, vui lòng chờ…</h2></div>
+    <div id="restartNeeded" class="container" style="display:none"><h2>Cần khởi động lại để áp dụng thay đổi.</h2><button id="restartButton" onclick="RestartVic()">Khởi động lại</button></div>
+    <script src="/hotspot/portal.js"></script>
+    <script src="/portal-assets/js/freq.js"></script>
+    <script src="/portal-assets/js/wake-engine.js"></script>
+    <script src="/portal-assets/js/wakeword-pv.js"></script>
+    <script src="/portal-assets/js/sensitivity-pv.js"></script>
+    <script src="/portal-assets/js/jdoc-settings.js"></script>
+    <script src="/portal-assets/js/faces.js"></script>
+    <script src="/portal-assets/js/photos.js"></script>
+    <script src="/portal-assets/js/xiaozhi.js"></script>
+    <script src="/portal-assets/js/alexa.js"></script>
+    <script src="/portal-assets/js/control.js"></script>
+    <script src="/portal-assets/js/stim-stats.js"></script>
+    <script src="/portal-assets/js/petting.js"></script>
+    <script src="/portal-assets/js/wifi-mode.js"></script>
+</body>
+</html>

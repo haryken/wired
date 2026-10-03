@@ -2,6 +2,9 @@
 
 all: wired wireos-hotspot-portal
 
+hotspot-webroot/index.html: webroot/index.html tools/build-hotspot-webroot.py
+	python3 tools/build-hotspot-webroot.py
+
 go_deps:
 	echo `${HOME}/.anki/go/dist/1.24.4/go/bin/go version` && ${HOME}/.anki/go/dist/1.24.4/go/bin/go mod download
 
@@ -18,7 +21,7 @@ wired: go_deps
 	 ${HOME}/.anki/go/dist/1.24.4/go/bin/go build -tags vicos -ldflags '-w -s' -o build/wired .
 	#${HOME}/.anki/upx/dist/5.0.1/upx --best --lzma build/wired
 
-wireos-hotspot-portal: go_deps
+wireos-hotspot-portal: hotspot-webroot/index.html go_deps
 	CGO_LDFLAGS="-L$(PWD)/vector-gobot/build/ -Wl,-rpath-link,${HOME}/.anki/vicos-sdk/dist/5.3.0-r07/sysroot/lib -Wl,-rpath-link,${HOME}/.anki/vicos-sdk/dist/5.3.0-r07/sysroot/usr/lib" \
 	CGO_CFLAGS="-I$(PWD)/vector-gobot/include" \
 	CGO_ENABLED=1 GOARM=7 GOARCH=arm CC=${HOME}/.anki/vicos-sdk/dist/5.3.0-r07/prebuilt/bin/arm-oe-linux-gnueabi-clang \

@@ -1,0 +1,41 @@
+.portal-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.portal-tabs a,
+.portal-tabs button,
+.nav-drawer-list a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    background: #272727;
+    color: #fff;
+    font: inherit;
+    text-align: center;
+    text-decoration: none;
+}
+
+.portal-tabs button.active {
+    border-color: rgba(34, 211, 238, .65);
+    background: rgba(34, 211, 238, .14);
+    color: #67e8f9;
+}
+
+.nav-drawer-list a {
+    justify-content: flex-start;
+    margin: 0 0 4px;
+    border: 0;
+    background: transparent;
+}
+
+@media (max-width: 768px) {
+    .portal-tabs {
+        display: none;
+    }
+}

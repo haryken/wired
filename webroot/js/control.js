@@ -359,6 +359,14 @@ async function ctrlMicStart() {
     // Google Meet works because it is HTTPS. Use wired :8443 instead.
     const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     if (!window.isSecureContext || !hasMedia) {
+        if (location.pathname.startsWith('/portal/')) {
+            setControlStatus(
+                'Trình duyệt chặn micro trên cổng hotspot HTTP. ' +
+                'Các nút lái, camera, tay, đầu và loa vẫn dùng được; micro trình duyệt cần HTTPS sau khi robot đã vào WiFi nhà.'
+            );
+            ctrlSetMicSwitch(false);
+            return;
+        }
         const httpsURL = 'https://' + location.hostname + ':8443/' + (location.hash || '#control');
         setControlStatus(
             'Trình duyệt chặn micro trên HTTP (Không bảo mật). ' +
