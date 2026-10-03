@@ -44,7 +44,7 @@ func GetModDir(modname string) string {
 }
 
 func SaveFile(contents string, path string) error {
-	os.MkdirAll(filepath.Dir(path), 0777)
+	MkdirAll(filepath.Dir(path))
 	return os.WriteFile(path, []byte(contents), 0777)
 }
 

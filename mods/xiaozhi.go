@@ -104,7 +104,7 @@ func loadXiaozhiCfg() (XiaozhiCfg, error) {
 }
 
 func saveXiaozhiCfg(cfg XiaozhiCfg) error {
-	if err := os.MkdirAll(filepath.Dir(xiaozhiConfigPath), 0777); err != nil {
+	if err := vars.MkdirAll(filepath.Dir(xiaozhiConfigPath)); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")

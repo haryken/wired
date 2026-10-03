@@ -68,7 +68,7 @@ func loadWebLocale() webLocaleCfg {
 
 func saveWebLocale(cfg webLocaleCfg) error {
 	cfg.Lang = normalizeUILang(cfg.Lang)
-	if err := os.MkdirAll(filepath.Dir(webLocalePath), 0777); err != nil {
+	if err := vars.MkdirAll(filepath.Dir(webLocalePath)); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(cfg, "", "  ")

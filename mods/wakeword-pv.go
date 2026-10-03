@@ -87,7 +87,7 @@ func (modu *WakeWordPV) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "Error decoding keyword file: "+err.Error())
 			return
 		}
-		os.MkdirAll(filepath.Dir(WakeWordPVLocation), 0777)
+		vars.MkdirAll(filepath.Dir(WakeWordPVLocation))
 		err = os.WriteFile(WakeWordPVLocation, decoded, 0777)
 		if err != nil {
 			vars.HTTPError(w, r, "Error writing model file to disk: "+err.Error())

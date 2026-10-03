@@ -55,7 +55,7 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if vars.IsEndpoint(r, "set") {
 		engine := normalizeWakeEngine(r.FormValue("engine"))
-		if err := os.MkdirAll(filepath.Dir(WakeEngineLocation), 0777); err != nil {
+		if err := vars.MkdirAll(filepath.Dir(WakeEngineLocation)); err != nil {
 			vars.HTTPError(w, r, "mkdir: "+err.Error())
 			return
 		}
@@ -69,8 +69,8 @@ func (modu *WakeEngine) HTTP(w http.ResponseWriter, r *http.Request) {
 func (modu *WakeEngine) Load() error {
 	// Seed OTA default on first boot so file exists for anim + UI.
 	if _, err := os.Stat(WakeEngineLocation); os.IsNotExist(err) {
-		_ = os.MkdirAll(filepath.Dir(WakeEngineLocation), 0777)
 		vars.SaveFile(WakeEngineTHF+"\n", WakeEngineLocation)
 	}
+	vars.FixPersistentOwnership(vars.PersistentRoot)
 	return nil
 }
