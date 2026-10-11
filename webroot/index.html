@@ -165,6 +165,10 @@
                 <span class="bot-ico" aria-hidden="true">🔊</span>
                 <span data-i18n="bot.alexa">Alexa</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-listen')">
+                <span class="bot-ico" aria-hidden="true">🎙</span>
+                <span data-i18n="bot.listen">Mở micro</span>
+            </button>
         </div>
         <hr class="smallhr">
 
@@ -574,6 +578,22 @@
             <div id="wifiModeGuideHotspot" class="help-box" style="display:none;">
                 <strong>Hotspot mở — hướng dẫn bắt WiFi</strong>
                 <p>Khi mất WiFi, kết nối điện thoại hoặc máy tính vào hotspot mang tên robot, mở <code>http://192.168.4.1/</code>, chọn WiFi nhà rồi nhập mật khẩu.</p>
+            </div>
+        </div>
+
+        <div id="bot-listen" class="bot-section" style="display:none;">
+            <h3>🎙 <span data-i18n="sec.listen">Chế độ mở micro (Xiaozhi)</span></h3>
+            <div class="help-box">
+                <ol>
+                    <li><b>Cố định ~6 giây</b> — như bản cũ: sau khi đánh thức, micro mở khoảng 6 giây rồi tự đóng dù bạn chưa nói xong.</li>
+                    <li><b>Theo giọng nói</b> — micro mở đến khi bạn <b>ngưng nói</b> (máy chủ Xiaozhi tự nhận biết, giống ESP32). Lưng sáng xanh suốt lúc nghe. Không ai nói trong 10 giây thì tự tắt; nói liên tục tối đa 30 giây.</li>
+                </ol>
+                <p class="help-warn">Áp dụng từ lần đánh thức tiếp theo, không cần khởi động lại. Chỉ có tác dụng khi đang dùng Xiaozhi.</p>
+            </div>
+            <div id="listenModeStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="listenMode" value="fixed" onchange="setListenMode('fixed')"> Cố định ~6 giây (như cũ)</label>
+                <label><input type="radio" name="listenMode" value="vad" onchange="setListenMode('vad')"> Theo giọng nói (gửi khi ngưng nói)</label>
             </div>
         </div>
 
@@ -1289,6 +1309,7 @@
     <script src="js/petting.js"></script>
     <script src="js/journal-logs.js"></script>
     <script src="js/wifi-mode.js"></script>
+    <script src="js/listen-mode.js"></script>
 </body>
 
 </html>

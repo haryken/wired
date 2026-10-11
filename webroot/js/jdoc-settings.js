@@ -296,6 +296,7 @@ function showBotSection(id) {
     if (id === 'bot-stats' && typeof statsRefresh === 'function') statsRefresh();
     if (id === 'bot-wifi-setup' && typeof loadWifiSetupMode === 'function') loadWifiSetupMode();
     if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
+    if (id === 'bot-listen' && typeof loadListenMode === 'function') loadListenMode();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {
         GetCurrent('FreqChange').then((data) => {
             document.getElementsByName('frequency').forEach((rb) => {

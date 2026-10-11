@@ -38,6 +38,28 @@ type XiaozhiCfg struct {
 	GameGoogleTTSLang string `json:"game_google_tts_lang,omitempty"`
 	// IdentityMode: "vi_pool" = shared Vietnamese preset; "custom" = xiaozhi.me pair.
 	IdentityMode string `json:"identity_mode,omitempty"`
+	// ListenMode: "fixed" (default, ~6s mic) or "vad" (mic open until server STT).
+	ListenMode string `json:"listen_mode,omitempty"`
+}
+
+const (
+	xiaozhiListenFixed = "fixed"
+	xiaozhiListenVAD   = "vad"
+)
+
+// Read by vic-anim / vic-engine / vic-cloud at stream start (tmpfs, owned anki:anki).
+var xiaozhiListenVADFlagPath = "/run/vic-cloud/xiaozhi-listen-vad"
+
+// syncXiaozhiListenVADFlag applies listen_mode to the next listen without
+// waiting for vic-cloud to reload xiaozhi.json.
+func syncXiaozhiListenVADFlag(cfg XiaozhiCfg) {
+	if cfg.Enabled && cfg.ListenMode == xiaozhiListenVAD {
+		if err := os.MkdirAll(filepath.Dir(xiaozhiListenVADFlagPath), 0775); err == nil {
+			_ = os.WriteFile(xiaozhiListenVADFlagPath, []byte("1"), 0664)
+		}
+		return
+	}
+	_ = os.Remove(xiaozhiListenVADFlagPath)
 }
 
 func defaultXiaozhiCfg() XiaozhiCfg {
@@ -111,7 +133,11 @@ func saveXiaozhiCfg(cfg XiaozhiCfg) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(xiaozhiConfigPath, data, 0644)
+	if err := os.WriteFile(xiaozhiConfigPath, data, 0644); err != nil {
+		return err
+	}
+	syncXiaozhiListenVADFlag(cfg)
+	return nil
 }
 
 // normalizeOTABaseURL ensures https scheme and trailing slash.
@@ -538,6 +564,26 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if lang := strings.TrimSpace(r.FormValue("lang")); lang != "" {
 			cfg.GameGoogleTTSLang = normalizeGoogleTTSLang(lang)
 		}
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	case vars.IsEndpoint(r, "set_listen_mode"):
+		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
+		if mode != xiaozhiListenFixed && mode != xiaozhiListenVAD {
+			vars.HTTPError(w, r, "mode must be fixed or vad")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.ListenMode = mode
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

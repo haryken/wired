@@ -40,6 +40,7 @@ scripts = [
     "stim-stats.js",
     "petting.js",
     "wifi-mode.js",
+    "listen-mode.js",
 ]
 script_tags = "\n".join(
     f'    <script src="/portal-assets/js/{name}"></script>' for name in scripts
