@@ -534,7 +534,7 @@ func (g *chessGame) genPseudo(from int) []chessMove {
 	return moves
 }
 
-func (g *chessGame) apply(m chessMove) {
+func (g *chessGame) apply(m *chessMove) {
 	m.PrevEP = g.ep
 	m.PrevCastle = g.castle
 	m.PrevHalfmove = g.halfmove
@@ -608,7 +608,7 @@ func (g *chessGame) apply(m chessMove) {
 	g.white = !g.white
 }
 
-func (g *chessGame) undo(m chessMove) {
+func (g *chessGame) undo(m *chessMove) {
 	g.white = !g.white
 	if !g.white {
 		g.fullmove--
@@ -665,9 +665,9 @@ func (g *chessGame) legalMoves() []chessMove {
 	white := g.white
 	for from := 0; from < 64; from++ {
 		for _, m := range g.genPseudo(from) {
-			g.apply(m)
+			g.apply(&m)
 			ok := !g.inCheck(white)
-			g.undo(m)
+			g.undo(&m)
 			if ok {
 				out = append(out, m)
 			}
@@ -775,7 +775,7 @@ func (g *chessGame) playUCI(uci string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("illegal move")
 	}
 	youPiece := g.board[chosen.From]
-	g.apply(*chosen)
+	g.apply(chosen)
 	u := moveUCI(*chosen)
 	g.lastUCI = u
 	g.lastSAN = u
@@ -886,7 +886,7 @@ func (g *chessGame) botMoveLocked() chessPiece {
 		best = g.pickChessSearch(legal, 3, 6)
 	}
 	piece := g.board[best.From]
-	g.apply(best)
+	g.apply(&best)
 	u := moveUCI(best)
 	g.lastUCI = u
 	g.lastSAN = u
@@ -1053,7 +1053,7 @@ func (g *chessGame) chessSEE(m chessMove) int {
 		// net of pawn→promo: promo value minus pawn (already on board)
 		gain += materialCP(m.Promo) - materialCP('p')
 	}
-	g.apply(m)
+	g.apply(&m)
 	// After move, side to move is the opponent.
 	toPiece := g.board[m.To]
 	if toPiece != empty && g.attacked(m.To, g.white) {
@@ -1062,7 +1062,7 @@ func (g *chessGame) chessSEE(m chessMove) int {
 	}
 	// Giving check allows a mild negative see (tempo), but not dumping a full queen.
 	checking := g.inCheck(g.white)
-	g.undo(m)
+	g.undo(&m)
 	if checking && gain >= -materialCP(mover)/2 {
 		if gain < 0 {
 			gain += 40
@@ -1138,9 +1138,9 @@ func (g *chessGame) pickChessSearch(legal []chessMove, depth int, noisePct int) 
 	bestSEE := -999999
 	alpha, beta := -999999, 999999
 	for _, m := range order {
-		g.apply(m)
+		g.apply(&m)
 		sc := -g.negamaxChess(depth-1, -beta, -alpha, true)
-		g.undo(m)
+		g.undo(&m)
 		see := 0
 		if m.Capture != empty || m.IsEnPassant {
 			see = g.chessSEE(m)
@@ -1163,9 +1163,9 @@ func (g *chessGame) pickChessSearch(legal []chessMove, depth int, noisePct int) 
 			if (m.Capture != empty || m.IsEnPassant) && g.chessSEE(m) < -100 {
 				continue
 			}
-			g.apply(m)
+			g.apply(&m)
 			sc := -g.negamaxChess(depth-1, -999999, 999999, true)
-			g.undo(m)
+			g.undo(&m)
 			if sc >= bestScore-80 {
 				pool = append(pool, m)
 			}
@@ -1209,7 +1209,7 @@ func (g *chessGame) pickChessHard(legal []chessMove) chessMove {
 					continue
 				}
 			}
-			g.apply(m)
+			g.apply(&m)
 			ext := 0
 			// Only extend checks that aren't pure material hangs.
 			if g.inCheck(g.white) && see >= 0 {
@@ -1221,7 +1221,7 @@ func (g *chessGame) pickChessHard(legal []chessMove) chessMove {
 			}
 			// Soft root SEE bias so free captures beat dead-equal Q trades.
 			sc += see / 5
-			g.undo(m)
+			g.undo(&m)
 			if sc > bestScore || (sc == bestScore && see > bestSEE) {
 				bestScore = sc
 				bestSEE = see
@@ -1264,7 +1264,7 @@ func (g *chessGame) negamaxChess(depth, alpha, beta int, doQ bool) int {
 		if depth >= 2 && (m.Capture != empty || m.IsEnPassant) && g.chessSEE(m) < -200 {
 			continue
 		}
-		g.apply(m)
+		g.apply(&m)
 		ext := 0
 		if depth >= 2 && g.inCheck(g.white) {
 			// Don't extend if we just hung a major (cheap check).
@@ -1279,7 +1279,7 @@ func (g *chessGame) negamaxChess(depth, alpha, beta int, doQ bool) int {
 			}
 		}
 		sc := -g.negamaxChess(depth-1+ext, -beta, -alpha, doQ)
-		g.undo(m)
+		g.undo(&m)
 		if sc > best {
 			best = sc
 		}
@@ -1293,9 +1293,9 @@ func (g *chessGame) negamaxChess(depth, alpha, beta int, doQ bool) int {
 	if best <= -999990 {
 		// Everything pruned — search one quiet-ish move raw.
 		for _, m := range legal {
-			g.apply(m)
+			g.apply(&m)
 			sc := -g.negamaxChess(depth-1, -beta, -alpha, doQ)
-			g.undo(m)
+			g.undo(&m)
 			if sc > best {
 				best = sc
 			}
@@ -1343,9 +1343,9 @@ func (g *chessGame) quiesceChess(alpha, beta, qDepth int) int {
 		if stand+see+50 < alpha {
 			continue
 		}
-		g.apply(m)
+		g.apply(&m)
 		sc := -g.quiesceChess(-beta, -alpha, qDepth-1)
-		g.undo(m)
+		g.undo(&m)
 		if sc >= beta {
 			return beta
 		}
