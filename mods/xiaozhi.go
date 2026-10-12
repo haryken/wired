@@ -40,12 +40,32 @@ type XiaozhiCfg struct {
 	IdentityMode string `json:"identity_mode,omitempty"`
 	// ListenMode: "fixed" (default, ~6s mic) or "vad" (mic open until server STT).
 	ListenMode string `json:"listen_mode,omitempty"`
+	// MusicSource: "server" (default, Xiaozhi server music) or "youtube"
+	// (vic-cloud self.music.play streaming from MusicServerURL).
+	MusicSource    string `json:"music_source,omitempty"`
+	MusicServerURL string `json:"music_server_url,omitempty"`
 }
 
 const (
 	xiaozhiListenFixed = "fixed"
 	xiaozhiListenVAD   = "vad"
+
+	xiaozhiMusicServer     = "server"
+	xiaozhiMusicYouTube    = "youtube"
+	xiaozhiMusicDefaultURL = "https://youtube.kytuoi.com"
 )
+
+// normalizeMusicServerURL mirrors vic-cloud's music.NormalizeServerURL.
+func normalizeMusicServerURL(u string) string {
+	u = strings.TrimSpace(u)
+	if u == "" {
+		return xiaozhiMusicDefaultURL
+	}
+	if !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		u = "https://" + u
+	}
+	return strings.TrimRight(u, "/")
+}
 
 // Read by vic-anim / vic-engine / vic-cloud at stream start (tmpfs, owned anki:anki).
 var xiaozhiListenVADFlagPath = "/run/vic-cloud/xiaozhi-listen-vad"
@@ -593,6 +613,41 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			"status": "success",
 			"config": cfg,
 		})
+		return
+
+	case vars.IsEndpoint(r, "set_music"):
+		source := strings.ToLower(strings.TrimSpace(r.FormValue("source")))
+		if source != xiaozhiMusicServer && source != xiaozhiMusicYouTube {
+			vars.HTTPError(w, r, "source must be server or youtube")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.MusicSource = source
+		cfg.MusicServerURL = normalizeMusicServerURL(r.FormValue("url"))
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	case vars.IsEndpoint(r, "test_music_server"):
+		base := strings.TrimSpace(r.FormValue("url"))
+		if base == "" {
+			cfg, _ := loadXiaozhiCfg()
+			base = cfg.MusicServerURL
+		}
+		query := strings.TrimSpace(r.FormValue("q"))
+		if query == "" {
+			query = "Lac Troi Son Tung"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(testMusicServer(normalizeMusicServerURL(base), query))
 		return
 
 	case vars.IsEndpoint(r, "set_game_google_tts_lang"):

@@ -120,6 +120,10 @@
                 <span class="bot-ico" aria-hidden="true">🎙</span>
                 <span data-i18n="bot.listen">Mở micro</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-music')">
+                <span class="bot-ico" aria-hidden="true">🎵</span>
+                <span data-i18n="bot.music">Nhạc</span>
+            </button>
         </div>
         <hr class="smallhr">
 
@@ -548,6 +552,31 @@
             </div>
         </div>
 
+        <div id="bot-music" class="bot-section" style="display:none;">
+            <h3>🎵 <span data-i18n="sec.music">Nguồn nhạc (Xiaozhi)</span></h3>
+            <div class="help-box">
+                <ol>
+                    <li><b>Nhạc server gốc</b> — để máy chủ Xiaozhi tự phát nhạc như bình thường.</li>
+                    <li><b>Nhạc YouTube</b> — khi bạn bảo "mở bài …", robot tự tìm bài trên server nhạc bên dưới. Tìm được thì robot nói tên bài rồi phát nhạc (tạm ngắt trò chuyện); không tìm được thì robot báo và hỏi bạn có muốn thử bài khác không.</li>
+                    <li>Phát hết bài, robot tự báo cho Xiaozhi để chào lại bạn rồi mở micro như thường. Nói "Hey Vector" khi đang phát để dừng nhạc.</li>
+                </ol>
+                <p class="help-warn">Áp dụng từ lần đánh thức tiếp theo, không cần khởi động lại. Chỉ có tác dụng khi đang dùng Xiaozhi.</p>
+            </div>
+            <div id="musicStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="musicSource" value="server" onchange="saveMusicSettings()"> Nhạc server gốc (Xiaozhi)</label>
+                <label><input type="radio" name="musicSource" value="youtube" onchange="saveMusicSettings()"> Nhạc YouTube (server nhạc riêng)</label>
+            </div>
+            <div class="button-container" style="align-items:stretch;">
+                <label for="musicServerUrl">URL server nhạc:</label>
+                <input type="url" id="musicServerUrl" placeholder="https://youtube.kytuoi.com"
+                    style="width:100%; box-sizing:border-box; min-height:44px; font-size:15px;">
+                <button type="button" onclick="saveMusicSettings()">Lưu</button>
+                <button type="button" onclick="resetMusicServerUrl()">Về mặc định</button>
+                <button type="button" onclick="testMusicServer()">Thử server</button>
+            </div>
+        </div>
+
         <div id="bot-alexa" class="bot-section" style="display:none;">
             <h3>🔊 <span data-i18n="sec.alexa">Amazon Alexa</span></h3>
             <div class="help-box">
@@ -840,5 +869,6 @@
     <script src="/portal-assets/js/petting.js"></script>
     <script src="/portal-assets/js/wifi-mode.js"></script>
     <script src="/portal-assets/js/listen-mode.js"></script>
+    <script src="/portal-assets/js/music-settings.js"></script>
 </body>
 </html>
