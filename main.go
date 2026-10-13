@@ -17,6 +17,7 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewJdocSettings(),
 	mods.NewFaces(),
 	mods.NewXiaozhi(),
+	mods.NewOpenAI(),
 	mods.NewControl(),
 	mods.NewFreeTime(),
 	mods.NewBattery(),

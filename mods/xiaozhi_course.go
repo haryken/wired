@@ -284,7 +284,8 @@ func applyXiaozhiCourseUpdate(cfg *XiaozhiCfg, u xzCourseUpdate) (identityChange
 func xiaozhiConnectionChanged(a, b XiaozhiCfg) bool {
 	return a.Enabled != b.Enabled || a.DeviceID != b.DeviceID || a.ClientID != b.ClientID ||
 		a.Endpoint != b.Endpoint || a.Token != b.Token || a.OTABaseURL != b.OTABaseURL ||
-		a.ProtocolVersion != b.ProtocolVersion || !strings.EqualFold(a.IdentityMode, b.IdentityMode)
+		a.ProtocolVersion != b.ProtocolVersion || !strings.EqualFold(a.IdentityMode, b.IdentityMode) ||
+		a.Backend != b.Backend
 }
 
 // --- apply config in vic-cloud ---

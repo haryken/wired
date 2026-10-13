@@ -54,11 +54,21 @@ type XiaozhiCfg struct {
 	MusicServerURL string `json:"music_server_url,omitempty"`
 	// FaceGreet: vic-cloud greets ("xin chào" detect) when Vector sees a person arrive.
 	FaceGreet bool `json:"face_greet,omitempty"`
+	// Backend: "" / "xiaozhi" (default) or "openai" (settings in openai.json).
+	Backend string `json:"backend,omitempty"`
 }
 
 const (
 	xiaozhiListenFixed = "fixed"
 	xiaozhiListenVAD   = "vad"
+
+	xiaozhiBackendXiaozhi = "xiaozhi"
+	xiaozhiBackendOpenAI  = "openai"
+	xiaozhiBackendGemini  = "gemini"
+	xiaozhiBackendGrok    = "grok"
+	// "Tự chọn AI" (STT → LLM → TTS) is its own choice on the page but runs
+	// as backend openai with openai.json mode pipeline; it is never stored.
+	xiaozhiBackendPipeline = "pipeline"
 
 	xiaozhiMusicServer     = "server"
 	xiaozhiMusicYouTube    = "youtube"
@@ -82,14 +92,61 @@ var xiaozhiListenVADFlagPath = "/run/vic-cloud/xiaozhi-listen-vad"
 
 // syncXiaozhiListenVADFlag applies listen_mode to the next listen without
 // waiting for vic-cloud to reload xiaozhi.json.
+// The direct-API backends always end the listen on end-of-speech.
 func syncXiaozhiListenVADFlag(cfg XiaozhiCfg) {
-	if cfg.Enabled && cfg.ListenMode == xiaozhiListenVAD {
+	if cfg.Enabled && (cfg.ListenMode == xiaozhiListenVAD || isDirectAPIBackend(cfg.Backend)) {
 		if err := os.MkdirAll(filepath.Dir(xiaozhiListenVADFlagPath), 0775); err == nil {
 			_ = os.WriteFile(xiaozhiListenVADFlagPath, []byte("1"), 0664)
 		}
 		return
 	}
 	_ = os.Remove(xiaozhiListenVADFlagPath)
+}
+
+// isDirectAPIBackend: vic-cloud calls the AI API itself (OpenAI / Gemini
+// Live / Grok, settings in openai.json) instead of the Xiaozhi server.
+func isDirectAPIBackend(b string) bool {
+	return b == xiaozhiBackendOpenAI || b == xiaozhiBackendGemini || b == xiaozhiBackendGrok
+}
+
+// xiaozhiBackendFor resolves set_enabled's backend: explicit "backend" wins;
+// an identity_mode (older clients picking a Xiaozhi preset) means Xiaozhi;
+// otherwise the current backend is kept. Xiaozhi is stored as "".
+func xiaozhiBackendFor(current, arg, ident string) string {
+	switch strings.ToLower(strings.TrimSpace(arg)) {
+	case xiaozhiBackendPipeline:
+		return xiaozhiBackendOpenAI
+	case xiaozhiBackendOpenAI, xiaozhiBackendGemini, xiaozhiBackendGrok:
+		return strings.ToLower(strings.TrimSpace(arg))
+	case xiaozhiBackendXiaozhi:
+		return ""
+	}
+	if ident != "" {
+		return ""
+	}
+	return current
+}
+
+// openAIModeFor: the openai.json mode a set_enabled backend asks for
+// ("" = leave it alone).
+func openAIModeFor(arg string) string {
+	switch strings.ToLower(strings.TrimSpace(arg)) {
+	case xiaozhiBackendPipeline:
+		return openAIModePipeline
+	case xiaozhiBackendOpenAI:
+		return openAIModeRealtime
+	}
+	return ""
+}
+
+// xiaozhiCfgView adds openai_mode so the page can tell "OpenAI Realtime"
+// from "Tự chọn AI" (both run as backend openai).
+func xiaozhiCfgView(cfg XiaozhiCfg) map[string]interface{} {
+	m := map[string]interface{}{}
+	b, _ := json.Marshal(cfg)
+	_ = json.Unmarshal(b, &m)
+	m["openai_mode"] = loadOpenAICfg().Mode
+	return m
 }
 
 func defaultXiaozhiCfg() XiaozhiCfg {
@@ -412,9 +469,8 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if isXiaozhiViPool(cfg) && strings.TrimSpace(cfg.IdentityMode) == "" {
 			cfg.IdentityMode = xiaozhiIdentityViPool
 		}
-		b, _ := json.Marshal(cfg)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(b)
+		json.NewEncoder(w).Encode(xiaozhiCfgView(cfg))
 
 	case vars.IsEndpoint(r, "save"):
 		cfg, _ := loadXiaozhiCfg()
@@ -541,7 +597,15 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		want := v == "true" || v == "1" || v == "on"
 		ident := strings.ToLower(strings.TrimSpace(r.FormValue("identity_mode")))
-		if want && ident == "" {
+		backend := xiaozhiBackendFor(cfg.Backend, r.FormValue("backend"), ident)
+		backendChanged := want && backend != cfg.Backend
+		if want {
+			cfg.Backend = backend
+		}
+		if want && isDirectAPIBackend(backend) {
+			// OpenAI / Gemini keep the Xiaozhi identity untouched (no OTA / pool change).
+			ident = strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
+		} else if want && ident == "" {
 			if isXiaozhiViPool(cfg) || strings.TrimSpace(cfg.IdentityMode) == "" {
 				ident = xiaozhiIdentityViPool
 			} else {
@@ -549,11 +613,11 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		prevIdent := strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
-		changed := cfg.Enabled != want
+		changed := cfg.Enabled != want || backendChanged
 		identChanged := want && ident != "" && ident != prevIdent
 		cfg.Enabled = want
 		cfg.AutoApplyOTAWebsocket = true
-		if want {
+		if want && !isDirectAPIBackend(cfg.Backend) {
 			if ident == xiaozhiIdentityViPool {
 				ensureXiaozhiViPool(&cfg)
 			} else if ident == xiaozhiIdentityCourse {
@@ -575,6 +639,17 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
+		if mode := openAIModeFor(r.FormValue("backend")); want && mode != "" {
+			ocfg := loadOpenAICfg()
+			if ocfg.Mode != mode {
+				ocfg.Mode = mode
+				if err := saveOpenAICfg(ocfg); err != nil {
+					vars.HTTPError(w, r, "save failed: "+err.Error())
+					return
+				}
+				changed = true
+			}
+		}
 		applied, restarted := false, false
 		if changed || identChanged {
 			applied = applyVicCloudConfig()
@@ -583,7 +658,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "success",
-			"config":    cfg,
+			"config":    xiaozhiCfgView(cfg),
 			"applied":   applied,
 			"restarted": restarted,
 		})

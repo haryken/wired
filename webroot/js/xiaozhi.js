@@ -4,7 +4,7 @@ const XZ_DEFAULT_OTA = 'https://api.tenclass.net/';
 
 let xzModeBusy = false;
 let xzSaveBusy = false;
-let xzAppliedMode = null; // 'xiaozhi' | 'vosk'
+let xzAppliedMode = null; // 'xiaozhi' | 'pipeline' | 'gemini' | 'openai' | 'grok' | 'vosk'
 
 function xzSetElStatus(elId, msg, isError) {
     const el = document.getElementById(elId);
@@ -26,9 +26,23 @@ function xzSetPoolStatus(msg, isError) {
     xzSetElStatus('xzPoolStatus', msg, isError);
 }
 
+// Direct-API modes: vic-cloud talks to the AI service itself (openai.json).
+// 'pipeline' (Tự chọn AI) runs as backend openai with openai.json mode pipeline.
+const XZ_MODE_RADIOS = {
+    xiaozhi: 'xzModeXiaozhi', pipeline: 'xzModePipeline', gemini: 'xzModeGemini',
+    openai: 'xzModeOpenAI', grok: 'xzModeGrok', vosk: 'xzModeVosk',
+};
+
+function xzIsDirectMode(mode) {
+    return mode === 'openai' || mode === 'pipeline' || mode === 'gemini' || mode === 'grok';
+}
+
 function xzSelectedMode() {
-    const vosk = document.getElementById('xzModeVosk');
-    return (vosk && vosk.checked) ? 'vosk' : 'xiaozhi';
+    for (const m of Object.keys(XZ_MODE_RADIOS)) {
+        const r = document.getElementById(XZ_MODE_RADIOS[m]);
+        if (r && r.checked) return m;
+    }
+    return 'xiaozhi';
 }
 
 function xzT(key, fallback) {
@@ -60,11 +74,22 @@ function xzShowPresetUI(preset) {
 function xzShowConfigForMode(mode) {
     const block = document.getElementById('xzConfigBlock');
     if (block) block.style.display = (mode === 'xiaozhi') ? 'block' : 'none';
-    const xzRadio = document.getElementById('xzModeXiaozhi');
-    const voskRadio = document.getElementById('xzModeVosk');
-    if (xzRadio) xzRadio.checked = (mode === 'xiaozhi');
-    if (voskRadio) voskRadio.checked = (mode === 'vosk');
+    const direct = xzIsDirectMode(mode);
+    const oaiBlock = document.getElementById('oaiConfigBlock');
+    if (oaiBlock) oaiBlock.style.display = direct ? 'block' : 'none';
+    Object.keys(XZ_MODE_RADIOS).forEach(function (m) {
+        const r = document.getElementById(XZ_MODE_RADIOS[m]);
+        if (r) r.checked = (m === mode);
+    });
+    document.querySelectorAll('.mode-card[data-mode]').forEach(function (card) {
+        const on = card.dataset.mode === mode;
+        card.classList.toggle('selected', on);
+        card.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    if (typeof showVoiceMode === 'function') showVoiceMode(mode === 'vosk' ? 'vosk' : 'xz');
     if (mode === 'xiaozhi') xzShowPresetUI(xzSelectedPreset());
+    if (direct && typeof oaiSetLayout === 'function') oaiSetLayout(mode);
+    if (direct && typeof oaiLoad === 'function') oaiLoad();
 }
 
 function xzSelectedConvMode() {
@@ -112,7 +137,13 @@ function xzApplyCfg(cfg) {
             : '';
     }
 
-    const mode = cfg.enabled ? 'xiaozhi' : 'vosk';
+    let mode = !cfg.enabled ? 'vosk'
+        : xzIsDirectMode(cfg.backend) ? cfg.backend : 'xiaozhi';
+    if (mode === 'openai') {
+        // Only get / set_enabled report openai_mode; otherwise keep the choice.
+        if (cfg.openai_mode) mode = cfg.openai_mode === 'pipeline' ? 'pipeline' : 'openai';
+        else if (xzAppliedMode === 'pipeline') mode = 'pipeline';
+    }
     xzAppliedMode = mode;
     xzShowConfigForMode(mode);
 }
@@ -325,7 +356,7 @@ function xzCourseSignature(cfg) {
         cfg.course_book, cfg.course_unit, cfg.student_name, cfg.device_id, cfg.client_id]);
 }
 
-/** Picks up lesson changes made on the robot (voice "next unit" via MCP shift_unit). */
+/** Picks up lesson changes made on the robot (voice "next unit" via MCP self.otto.next_unit / prev_unit). */
 async function xzPollCourse() {
     const block = document.getElementById('xzCourseFields');
     if (document.hidden || !block || block.offsetParent === null || xzSaveBusy) return;
@@ -504,19 +535,33 @@ async function xzRenewPool() {
 
 async function xzSetListenMode(mode) {
     if (xzModeBusy) return;
-    const wantXz = (mode === 'xiaozhi');
+    const wantOAI = xzIsDirectMode(mode);
+    const wantXz = (mode === 'xiaozhi') || wantOAI;
     if (xzAppliedMode === mode) {
         xzShowConfigForMode(mode);
         return;
     }
     xzModeBusy = true;
     xzShowConfigForMode(mode);
-    xzSetModeStatus(wantXz
+    xzSetModeStatus(mode === 'pipeline'
+        ? xzT('xz.switching_pl', 'Đang bật Tự chọn AI…')
+        : mode === 'gemini'
+        ? xzT('xz.switching_gemini', 'Đang bật Gemini Live…')
+        : mode === 'grok'
+        ? xzT('xz.switching_grok', 'Đang bật Grok Voice…')
+        : wantOAI
+        ? xzT('xz.switching_oai', 'Đang bật OpenAI…')
+        : wantXz
         ? xzT('xz.switching_xz', 'Đang bật Xiaozhi (tắt Vosk)…')
         : xzT('xz.switching_vosk', 'Đang bật Vosk (tắt Xiaozhi)…'), false);
     try {
         const params = new URLSearchParams({ enabled: wantXz ? 'true' : 'false' });
-        if (wantXz) params.set('identity_mode', xzSelectedPreset());
+        if (wantOAI) {
+            params.set('backend', mode);
+        } else if (wantXz) {
+            params.set('backend', 'xiaozhi');
+            params.set('identity_mode', xzSelectedPreset());
+        }
         const resp = await fetch('/api/mods/Xiaozhi/set_enabled?' + params.toString(), { method: 'POST' });
         const j = await resp.json();
         if (j.status !== 'success') {
@@ -530,7 +575,17 @@ async function xzSetListenMode(mode) {
             xzShowConfigForMode(mode);
         }
         let msg;
-        if (j.restarted) {
+        if (wantOAI) {
+            msg = !(j.applied || j.restarted)
+                ? xzT('xz.on_saved', 'Đã lưu.')
+                : mode === 'pipeline'
+                ? xzT('xz.on_pl', 'Đã chuyển sang Tự chọn AI — robot kết nối lại và sẽ tự chào (cần key cho các bước đã chọn).')
+                : mode === 'gemini'
+                ? xzT('xz.on_gemini_live', 'Đã chuyển sang Gemini Live — robot kết nối lại và sẽ tự chào (cần key Gemini).')
+                : mode === 'grok'
+                ? xzT('xz.on_grok', 'Đã chuyển sang Grok Voice — robot kết nối lại và sẽ tự chào (cần key xAI).')
+                : xzT('xz.on_oai_live', 'Đã chuyển sang OpenAI — robot kết nối lại và sẽ tự chào (cần API key).');
+        } else if (j.restarted) {
             msg = wantXz
                 ? xzT('xz.on_xiaozhi', 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.')
                 : xzT('xz.on_vosk', 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.');
@@ -552,6 +607,19 @@ async function xzSetListenMode(mode) {
 
 function xzOnModeRadio() {
     xzSetListenMode(xzSelectedMode());
+}
+
+// The mode cards are the picker: a click anywhere on a card selects it.
+function xzPickMode(mode) {
+    if (xzModeBusy || !XZ_MODE_RADIOS[mode]) return;
+    xzSetListenMode(mode);
+}
+
+function xzCardKey(ev, mode) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        xzPickMode(mode);
+    }
 }
 
 async function xzSaveGameGoogleVi() {

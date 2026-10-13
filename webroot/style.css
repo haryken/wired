@@ -700,6 +700,80 @@ body.nav-drawer-open {
     border-color: #7a6a4a;
 }
 
+/* AI giao tiếp: the cards are the mode picker. */
+.mode-card[data-mode] {
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+.mode-card[data-mode]:hover,
+.mode-card[data-mode]:focus-visible {
+    background: #252525;
+    outline: none;
+    box-shadow: 0 0 0 1px #67e8f9;
+}
+
+.mode-card[data-mode] h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mode-card[data-mode] input[type="radio"] {
+    margin: 0;
+    pointer-events: none;
+    accent-color: #22d3ee;
+}
+
+.mode-card.selected {
+    border: 2px solid #22d3ee;
+    background: rgba(34, 211, 238, 0.08);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+}
+
+.mode-in-use {
+    display: none;
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #22d3ee;
+    color: #0b1f24;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.mode-card.selected .mode-in-use {
+    display: inline-block;
+}
+
+.mode-free {
+    border-color: #5b8a72;
+}
+
+.mode-paid {
+    border-color: #a16207;
+}
+
+.mode-cost {
+    margin: 0 0 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.mode-free .mode-cost {
+    background: rgba(74, 222, 128, 0.12);
+    color: #86efac;
+}
+
+.mode-paid .mode-cost {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
 .mode-tip {
     margin: 8px 0 0;
     font-size: 12px;
@@ -865,7 +939,11 @@ input.xz-readonly:disabled {
     font-size: 14px;
 }
 
-.xz-config-fields > input[type="text"] {
+.xz-config-fields > input[type="text"],
+.xz-config-fields > input[type="password"],
+.xz-config-fields > input[type="number"],
+.xz-config-fields > select,
+.xz-config-fields > textarea {
     width: 100%;
     max-width: none;
     box-sizing: border-box;
@@ -878,9 +956,87 @@ input.xz-readonly:disabled {
     font-size: 15px;
 }
 
-.xz-config-fields > input[type="text"]:focus {
+.xz-config-fields > textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.xz-config-fields > input[type="text"]:focus,
+.xz-config-fields > input[type="password"]:focus,
+.xz-config-fields > input[type="number"]:focus,
+.xz-config-fields > select:focus,
+.xz-config-fields > textarea:focus {
     outline: none;
     border-color: rgba(34, 211, 238, 0.45);
+}
+
+.oai-advanced > summary {
+    cursor: pointer;
+    color: #b3b3b3;
+    font-size: 14px;
+}
+
+.oai-presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.oai-presets span {
+    color: #b3b3b3;
+    font-size: 14px;
+}
+
+.oai-presets button {
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.oai-stage {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: #e5e5e5;
+    border-top: 1px solid #333;
+    padding-top: 10px;
+}
+
+/* Mode B: one card per step so the three steps never run together. */
+.oai-step {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid #333;
+    border-left: 4px solid var(--oai-step-color, #888);
+    border-radius: 10px;
+    background: #1c1c1c;
+}
+
+.oai-step-1 { --oai-step-color: #38bdf8; }
+.oai-step-2 { --oai-step-color: #a78bfa; }
+.oai-step-3 { --oai-step-color: #34d399; }
+
+.oai-step > .oai-stage {
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    font-size: 17px;
+    color: var(--oai-step-color);
+}
+
+.oai-step .oai-stage-sub {
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #333;
+}
+
+.oai-key-box {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #252525;
+}
+
+.oai-common {
+    margin-top: 18px;
 }
 
 .xz-conv-block {

@@ -728,30 +728,63 @@
         <h2 data-i18n="xz.h2">💜 Cấu hình AI giao tiếp</h2>
         <div class="help-box mode-switch-box">
             <strong data-i18n="xz.listen_title">Chế độ nghe lệnh</strong>
-            <p style="margin:8px 0 6px;" data-i18n="xz.listen_intro" data-i18n-html="1">Chọn bên dưới — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot kết nối lại và tự chào sau vài giây.</p>
-            <div class="mode-compare">
-                <div class="mode-card mode-on">
-                    <h4>💜 Xiaozhi</h4>
+            <p style="margin:8px 0 6px;" data-i18n="xz.listen_intro" data-i18n-html="1"><b>Bấm vào một thẻ</b> để chọn — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot kết nối lại và tự chào sau vài giây.</p>
+            <div class="mode-compare" role="radiogroup">
+                <div class="mode-card mode-free" data-mode="xiaozhi" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('xiaozhi')" onkeydown="xzCardKey(event, 'xiaozhi')">
+                    <h4><input type="radio" name="xzListenMode" value="xiaozhi" id="xzModeXiaozhi" tabindex="-1" aria-hidden="true"> 💜 Xiaozhi<span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_xz">✅ Miễn phí — không cần key</p>
                     <ul>
                         <li data-i18n="xz.xz_li1">Nói chuyện tự nhiên (VN/EN) với cloud.</li>
                         <li data-i18n="xz.xz_li2">LLM / MCP điều khiển robot (cube, blackjack…).</li>
                         <li data-i18n="xz.xz_li3">Hiện khối cấu hình Xiaozhi bên dưới.</li>
                     </ul>
                 </div>
-                <div class="mode-card mode-off">
-                    <h4>🎙 Vosk</h4>
+                <div class="mode-card mode-free" data-mode="pipeline" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('pipeline')" onkeydown="xzCardKey(event, 'pipeline')">
+                    <h4><input type="radio" name="xzListenMode" value="pipeline" id="xzModePipeline" tabindex="-1" aria-hidden="true"> <span data-i18n="xz.pl_card">🧩 Tự chọn AI</span><span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_pl">✅ Miễn phí nếu chọn Groq + Gemini + Edge (cần key Groq, Gemini miễn phí) — chọn OpenAI thì tính phí</p>
+                    <ul>
+                        <li data-i18n="xz.pl_li1">Tự chọn dịch vụ cho 3 bước Nghe → Suy nghĩ → Nói, có thể miễn phí hoàn toàn (Groq, Gemini, Edge).</li>
+                        <li data-i18n="xz.pl_li2">Chạy thẳng trên robot, không cần server riêng.</li>
+                        <li data-i18n="xz.pl_li3">Nhớ hội thoại và điều khiển robot bằng lời nói.</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-free" data-mode="gemini" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('gemini')" onkeydown="xzCardKey(event, 'gemini')">
+                    <h4><input type="radio" name="xzListenMode" value="gemini" id="xzModeGemini" tabindex="-1" aria-hidden="true"> ♊ Gemini Live<span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_gl">✅ Miễn phí — cần key Gemini (miễn phí, có giới hạn lượt mỗi ngày)</p>
+                    <ul>
+                        <li data-i18n="xz.gl_li1">Nói chuyện giọng nói trực tiếp với Google Gemini, phản hồi dưới 1 giây.</li>
+                        <li data-i18n="xz.gl_li2">Nói liên tục, mic tự dừng khi nói xong, nhớ hội thoại.</li>
+                        <li data-i18n="xz.gl_li3">Điều khiển robot bằng lời nói.</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-paid" data-mode="openai" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('openai')" onkeydown="xzCardKey(event, 'openai')">
+                    <h4><input type="radio" name="xzListenMode" value="openai" id="xzModeOpenAI" tabindex="-1" aria-hidden="true"> <span data-i18n="xz.oai_card">🤖 OpenAI Realtime</span><span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_oai">💲 Tính phí — cần key OpenAI đã nạp tiền (tính theo phút nói chuyện)</p>
+                    <ul>
+                        <li data-i18n="xz.oai_li1">Gọi thẳng OpenAI bằng API key của bạn (giống wire-pod), không cần server.</li>
+                        <li data-i18n="xz.oai_li2">Nói liên tục, mic tự dừng khi nói xong, nhớ ngữ cảnh.</li>
+                        <li data-i18n="xz.oai_li3">Hiểu ý để điều khiển robot (VD: "bắn pháo hoa đi").</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-paid" data-mode="grok" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('grok')" onkeydown="xzCardKey(event, 'grok')">
+                    <h4><input type="radio" name="xzListenMode" value="grok" id="xzModeGrok" tabindex="-1" aria-hidden="true"> ✖️ Grok Voice<span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_gk">💲 Tính phí — cần key xAI đã nạp tiền (0,08 USD/phút)</p>
+                    <ul>
+                        <li data-i18n="xz.gk_li1">Nói chuyện giọng nói trực tiếp với Grok (xAI), phản hồi dưới 1 giây.</li>
+                        <li data-i18n="xz.gk_li2">Tự tra web khi cần: tin tức, thời tiết.</li>
+                        <li data-i18n="xz.gk_li3">Nhớ hội thoại và điều khiển robot bằng lời nói.</li>
+                    </ul>
+                </div>
+                <div class="mode-card mode-free" data-mode="vosk" role="radio" aria-checked="false" tabindex="0" onclick="xzPickMode('vosk')" onkeydown="xzCardKey(event, 'vosk')">
+                    <h4><input type="radio" name="xzListenMode" value="vosk" id="xzModeVosk" tabindex="-1" aria-hidden="true"> 🎙 Vosk<span class="mode-in-use" data-i18n="xz.in_use">Đang dùng</span></h4>
+                    <p class="mode-cost" data-i18n="xz.cost_vosk">✅ Miễn phí — không cần key, không cần mạng</p>
                     <ul>
                         <li data-i18n="xz.vosk_li1">STT offline trên robot (thường tiếng Anh).</li>
-                        <li data-i18n="xz.vosk_li2">Xiaozhi cloud tắt; ẩn cấu hình Xiaozhi.</li>
+                        <li data-i18n="xz.vosk_li2">Tắt AI trò chuyện; chỉ nghe các cụm lệnh có sẵn.</li>
                         <li data-i18n="xz.vosk_li3" data-i18n-html="1">Xem cụm lệnh ở tab <b>Lệnh thoại</b>.</li>
                     </ul>
                 </div>
             </div>
-        </div>
-
-        <div class="bot-opt-list xz-mode-radios" style="margin:8px 0 8px;">
-            <label><input type="radio" name="xzListenMode" value="xiaozhi" id="xzModeXiaozhi" onchange="xzOnModeRadio()"> <span data-i18n="xz.radio_xz">Xiaozhi (cloud chat)</span></label>
-            <label><input type="radio" name="xzListenMode" value="vosk" id="xzModeVosk" onchange="xzOnModeRadio()"> <span data-i18n="xz.radio_vosk">Vosk (lệnh offline)</span></label>
         </div>
         <div id="xiaozhiStatus" class="xz-status" style="display:none;"></div>
 
@@ -874,31 +907,290 @@
             </div>
         </div>
 
+        <div id="oaiConfigBlock" class="xz-config-block" style="display:none;">
+            <h3 id="oaiTitle" class="xz-config-title" data-i18n="oai.title">Cấu hình OpenAI</h3>
+            <h3 id="oaiPlTitle" class="xz-config-title" data-i18n="oai.title_pl" style="display:none;">Cấu hình AI giao tiếp 3 bước</h3>
+            <h3 id="glTitle" class="xz-config-title" data-i18n="gl.title" style="display:none;">Cấu hình Gemini Live</h3>
+            <h3 id="gkTitle" class="xz-config-title" data-i18n="gk.title" style="display:none;">Cấu hình Grok Voice</h3>
+            <div class="xz-config-card">
+                <div id="glHelp" class="help-box xz-config-help" style="display:none;">
+                    <p data-i18n="gl.help" data-i18n-html="1">Robot nói chuyện trực tiếp với <b>Gemini Live</b> của Google: nghe và trả lời bằng giọng nói qua một kết nối, phản hồi dưới 1 giây, <b>miễn phí</b> với key Gemini. Nói liên tục, mic tự dừng khi bạn nói xong, nhớ những gì đã nói và điều khiển được robot.</p>
+                    <p data-i18n="gl.key_where" data-i18n-html="1">Lấy key miễn phí (không cần thẻ) tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. Nếu chế độ OpenAI B đã có key Gemini ở ô LLM thì không cần nhập lại.</p>
+                </div>
+                <div id="gkHelp" class="help-box xz-config-help" style="display:none;">
+                    <p data-i18n="gk.help" data-i18n-html="1">Robot nói chuyện trực tiếp với <b>Grok</b> của xAI: nghe và trả lời bằng giọng nói qua một kết nối, phản hồi dưới 1 giây, tự tra web khi cần (tin tức, thời tiết). Nói liên tục, mic tự dừng khi bạn nói xong, nhớ những gì đã nói và điều khiển được robot.</p>
+                    <p data-i18n="gk.key_where" data-i18n-html="1"><b>Tính phí</b> theo phút âm thanh: 0,08 USD/phút (1 giờ nói chuyện khoảng 4,8 USD), mỗi lần tra web thêm 0,005 USD. Lấy key tại <a href="https://console.x.ai" target="_blank" rel="noopener">console.x.ai</a> (cần nạp credit). Key chỉ lưu trên robot.</p>
+                </div>
+                <div id="oaiHelp" class="help-box xz-config-help">
+                    <p data-i18n="oai.help" data-i18n-html="1">Robot gọi thẳng OpenAI bằng <b>API key của bạn</b> — không cần máy chủ riêng. Nói chuyện liên tục, mic tự dừng khi bạn nói xong, nhớ những gì đã nói, và hiểu ý để điều khiển robot (VD: "bắn pháo hoa đi", "về sạc đi").</p>
+                </div>
+                <div id="oaiPlHelp" class="help-box xz-config-help" style="display:none;">
+                    <p data-i18n="oai.pl_help" data-i18n-html="1">Robot trả lời bạn qua <b>3 bước</b>: <b>Nghe</b> (chuyển giọng nói của bạn thành chữ) → <b>Suy nghĩ</b> (trí tuệ nhân tạo đọc chữ và nghĩ câu trả lời) → <b>Nói</b> (đọc câu trả lời thành tiếng). Mỗi bước bạn chọn một dịch vụ bên dưới — chọn toàn dịch vụ <b>miễn phí</b> thì không tốn tiền. Robot vẫn nhớ hội thoại và điều khiển được bằng lời nói.</p>
+                </div>
+
+                <div class="xz-config-fields">
+                    <div id="glFields" class="xz-config-fields" style="display:none;">
+                        <label for="glKey" data-i18n="gl.key">API key Gemini:</label>
+                        <input type="password" id="glKey" autocomplete="off" data-i18n-placeholder="oai.gemini_key_ph" placeholder="AIza… (để trống = giữ key đã lưu)">
+                        <p id="glKeyHint" class="wifi-hint" style="margin:0;"></p>
+                        <label for="glVoice" data-i18n="gl.voice">Giọng nói:</label>
+                        <select id="glVoice">
+                            <option value="Kore">Kore</option>
+                            <option value="Puck">Puck</option>
+                            <option value="Zephyr">Zephyr</option>
+                            <option value="Aoede">Aoede</option>
+                            <option value="Leda">Leda</option>
+                            <option value="Charon">Charon</option>
+                            <option value="Fenrir">Fenrir</option>
+                            <option value="Orus">Orus</option>
+                            <option value="Achird">Achird</option>
+                            <option value="Sulafat">Sulafat</option>
+                        </select>
+                        <p class="xz-code-help" style="margin:0;" data-i18n="gl.voice_help">Giọng Gemini nói được tiếng Việt, Anh, Trung và nhiều thứ tiếng khác — tự đổi theo ngôn ngữ bạn nói.</p>
+                        <label for="glModel" data-i18n="gl.model">Model Gemini Live:</label>
+                        <input type="text" id="glModel" placeholder="gemini-3.8-live">
+                        <p class="xz-code-help" style="margin:0;" data-i18n="gl.model_help">gemini-3.8-live (mặc định): nhanh nhất, nghe chuẩn nhất. Tra Google (tin tức, thời tiết) cần key có bật thanh toán — key miễn phí thì robot tự bỏ phần này. gemini-2.5-flash-native-audio-latest: chậm hơn (2–4 giây) nhưng tra Google được với key miễn phí.</p>
+                    </div>
+
+                    <div id="gkFields" class="xz-config-fields" style="display:none;">
+                        <label for="gkKey" data-i18n="gk.key">API key xAI:</label>
+                        <input type="password" id="gkKey" autocomplete="off" data-i18n-placeholder="gk.key_ph" placeholder="xai-… (để trống = giữ key đã lưu)">
+                        <p id="gkKeyHint" class="wifi-hint" style="margin:0;"></p>
+                        <label for="gkVoice" data-i18n="gl.voice">Giọng nói:</label>
+                        <select id="gkVoice">
+                            <option value="eve" data-i18n="gk.v_eve">Eve — nữ, vui tươi, năng động</option>
+                            <option value="ara" data-i18n="gk.v_ara">Ara — nữ, ấm áp, thân thiện</option>
+                            <option value="sal" data-i18n="gk.v_sal">Sal — trung tính, nhẹ nhàng</option>
+                            <option value="rex" data-i18n="gk.v_rex">Rex — nam, tự tin, rõ ràng</option>
+                            <option value="leo" data-i18n="gk.v_leo">Leo — nam, trầm, uy lực</option>
+                        </select>
+                        <p class="xz-code-help" style="margin:0;" data-i18n="gk.voice_help">Giọng Grok nói được tiếng Việt, Anh, Trung và nhiều thứ tiếng khác — tự đổi theo ngôn ngữ bạn nói.</p>
+                        <label for="gkModel" data-i18n="oai.model">Phiên bản (model) — để mặc định nếu không rõ:</label>
+                        <input type="text" id="gkModel" placeholder="grok-voice-latest">
+                        <p class="xz-code-help" style="margin:0;" data-i18n="gk.model_help">grok-voice-latest luôn dùng bản mới nhất của xAI.</p>
+                    </div>
+
+                    <div id="oaiKeyRow" class="xz-config-fields">
+                    <label for="oaiKey" data-i18n="oai.key">API key OpenAI:</label>
+                    <input type="password" id="oaiKey" autocomplete="off" data-i18n-placeholder="oai.key_ph" placeholder="sk-… (để trống = giữ key đã lưu)">
+                    <p id="oaiKeyHint" class="wifi-hint" style="margin:0;"></p>
+                    <p id="oaiKeyUsedBy" class="xz-code-help" style="margin:0; display:none;"></p>
+                    <p class="xz-code-help" style="margin:0;" data-i18n="oai.key_where" data-i18n-html="1">Lấy key tại <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a> (cần nạp credit). Key chỉ lưu trên robot, trang web chỉ hiện 4 ký tự cuối.</p>
+                    </div>
+
+                    <div id="oaiVoiceRow" class="xz-config-fields">
+                    <label for="oaiVoice" data-i18n="oai.voice">Giọng đọc:</label>
+                    <select id="oaiVoice">
+                        <option value="coral">coral</option>
+                        <option value="alloy">alloy</option>
+                        <option value="ash">ash</option>
+                        <option value="ballad">ballad</option>
+                        <option value="echo">echo</option>
+                        <option value="sage">sage</option>
+                        <option value="shimmer">shimmer</option>
+                        <option value="verse">verse</option>
+                        <option value="marin">marin</option>
+                        <option value="cedar">cedar</option>
+                    </select>
+                    </div>
+
+                    <div id="oaiRtFields" class="xz-config-fields">
+                        <label for="oaiRtModel" data-i18n="oai.rt_model">Model Realtime:</label>
+                        <input type="text" id="oaiRtModel" placeholder="gpt-realtime-mini">
+                        <p class="xz-code-help" data-i18n="oai.rt_model_help" style="margin:0;">gpt-realtime-mini (rẻ, nhanh) hoặc gpt-realtime (hay nhất).</p>
+                    </div>
+
+                    <div id="oaiPlFields" class="xz-config-fields" style="display:none;">
+                        <div class="oai-presets">
+                            <span data-i18n="oai.presets">Điền nhanh:</span>
+                            <button type="button" onclick="oaiPreset('free')" data-i18n="oai.preset_free">Miễn phí hết (Groq + Gemini + Edge)</button>
+                            <button type="button" onclick="oaiPreset('openai')" data-i18n="oai.preset_openai">Tất cả OpenAI</button>
+                        </div>
+
+                        <div id="oaiSttStage" class="xz-config-fields oai-step oai-step-1">
+                            <h4 class="oai-stage" data-i18n="oai.stage_stt">Bước 1 · Nghe</h4>
+                            <p class="xz-code-help oai-stage-sub" style="margin:0;" data-i18n="oai.stage_stt_sub" data-i18n-html="1"><b>Chuyển giọng nói thành văn bản</b> (STT) — robot ghi âm câu bạn nói rồi đổi thành chữ.</p>
+                            <div class="bot-opt-list xz-mode-radios" style="margin:0;">
+                                <label><input type="radio" name="oaiSttProv" value="groq" id="oaiSttProvGroq" onchange="oaiOnProv('stt')"> <span data-i18n="oai.prov_stt_groq" data-i18n-html="1"><b>Groq</b> — miễn phí, nhanh, nghe tốt tiếng Việt (cần key Groq)</span></label>
+                                <label><input type="radio" name="oaiSttProv" value="openai" id="oaiSttProvOpenAI" onchange="oaiOnProv('stt')"> <span data-i18n="oai.prov_openai" data-i18n-html="1"><b>OpenAI</b> — tính phí, dùng key OpenAI</span></label>
+                                <label><input type="radio" name="oaiSttProv" value="custom" id="oaiSttProvCustom" onchange="oaiOnProv('stt')"> <span data-i18n="oai.prov_custom" data-i18n-html="1"><b>Máy chủ khác</b> — tự nhập địa chỉ (dành cho người rành kỹ thuật)</span></label>
+                            </div>
+                            <label data-prov="custom" for="oaiSttBase" data-i18n="oai.server_url">Địa chỉ máy chủ (API tương thích OpenAI):</label>
+                            <input data-prov="custom" type="text" id="oaiSttBase" placeholder="http://192.168.1.10:8000/v1">
+                            <div id="oaiSttKeyBox" data-prov="groq custom" class="xz-config-fields oai-key-box">
+                                <label data-prov="groq" for="oaiSttKey" data-i18n="oai.key_groq">API key Groq:</label>
+                                <label data-prov="custom" for="oaiSttKey" data-i18n="oai.key_server">API key của máy chủ (nếu cần):</label>
+                                <input type="password" id="oaiSttKey" autocomplete="off" data-i18n-placeholder="oai.key_ph_any" placeholder="Dán key vào đây (để trống = giữ key đã lưu)">
+                                <p id="oaiSttKeyHint" class="wifi-hint" style="margin:0;"></p>
+                                <p data-prov="groq" class="xz-code-help" style="margin:0;" data-i18n="oai.groq_where" data-i18n-html="1">Lấy key Groq miễn phí (không cần thẻ) tại <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.</p>
+                            </div>
+                            <p data-prov="openai" class="xz-code-help oai-key-box" style="margin:0;" data-i18n="oai.uses_openai_key">Dùng key OpenAI ở phía trên.</p>
+                            <label for="oaiSttModel" data-i18n="oai.model">Phiên bản (model) — để mặc định nếu không rõ:</label>
+                            <input type="text" id="oaiSttModel" placeholder="whisper-large-v3-turbo">
+                            <p data-prov="groq" class="xz-code-help" style="margin:0;" data-i18n="oai.stt_help_groq">whisper-large-v3-turbo (nhanh) hoặc whisper-large-v3 (chính xác hơn).</p>
+                            <p data-prov="openai" class="xz-code-help" style="margin:0;" data-i18n="oai.stt_help_openai">gpt-4o-mini-transcribe (rẻ) hoặc gpt-4o-transcribe (chính xác hơn).</p>
+                            <p data-prov="custom" class="xz-code-help" style="margin:0;" data-i18n="oai.model_help_custom">Tên model mà máy chủ của bạn hỗ trợ.</p>
+                        </div>
+
+                        <div id="oaiLlmStage" class="xz-config-fields oai-step oai-step-2">
+                            <h4 class="oai-stage" data-i18n="oai.stage_llm">Bước 2 · Suy nghĩ</h4>
+                            <p class="xz-code-help oai-stage-sub" style="margin:0;" data-i18n="oai.stage_llm_sub" data-i18n-html="1"><b>Trí tuệ nhân tạo xử lý</b> (LLM) — đọc câu bạn nói, nghĩ câu trả lời và quyết định điều khiển robot.</p>
+                            <div class="bot-opt-list xz-mode-radios" style="margin:0;">
+                                <label><input type="radio" name="oaiLlmProv" value="gemini" id="oaiLlmProvGemini" onchange="oaiOnProv('llm')"> <span data-i18n="oai.prov_llm_gemini" data-i18n-html="1"><b>Google Gemini</b> — miễn phí, thông minh, trả lời nhanh (cần key Gemini)</span></label>
+                                <label><input type="radio" name="oaiLlmProv" value="groq" id="oaiLlmProvGroq" onchange="oaiOnProv('llm')"> <span data-i18n="oai.prov_llm_groq" data-i18n-html="1"><b>Groq</b> — miễn phí nhưng giới hạn, chỉ khoảng 1–2 câu mỗi phút (cần key Groq)</span></label>
+                                <label><input type="radio" name="oaiLlmProv" value="openai" id="oaiLlmProvOpenAI" onchange="oaiOnProv('llm')"> <span data-i18n="oai.prov_openai" data-i18n-html="1"><b>OpenAI</b> — tính phí, dùng key OpenAI</span></label>
+                                <label><input type="radio" name="oaiLlmProv" value="custom" id="oaiLlmProvCustom" onchange="oaiOnProv('llm')"> <span data-i18n="oai.prov_llm_custom" data-i18n-html="1"><b>Máy chủ khác</b> — Ollama, LM Studio, OpenRouter… (dành cho người rành kỹ thuật)</span></label>
+                            </div>
+                            <label data-prov="custom" for="oaiLlmBase" data-i18n="oai.server_url">Địa chỉ máy chủ (API tương thích OpenAI):</label>
+                            <input data-prov="custom" type="text" id="oaiLlmBase" placeholder="http://192.168.1.10:11434/v1">
+                            <div id="oaiLlmKeyBox" data-prov="gemini groq custom" class="xz-config-fields oai-key-box">
+                                <label data-prov="gemini" for="oaiLlmKey" data-i18n="oai.key_gemini">API key Gemini:</label>
+                                <label data-prov="groq" for="oaiLlmKey" data-i18n="oai.key_groq">API key Groq:</label>
+                                <label data-prov="custom" for="oaiLlmKey" data-i18n="oai.key_server">API key của máy chủ (nếu cần):</label>
+                                <input type="password" id="oaiLlmKey" autocomplete="off" data-i18n-placeholder="oai.key_ph_any" placeholder="Dán key vào đây (để trống = giữ key đã lưu)">
+                                <p id="oaiLlmKeyHint" class="wifi-hint" style="margin:0;"></p>
+                                <p data-prov="gemini" class="xz-code-help" style="margin:0;" data-i18n="oai.gemini_where" data-i18n-html="1">Lấy key Gemini miễn phí (không cần thẻ) tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+                                <p data-prov="groq" class="xz-code-help" style="margin:0;" data-i18n="oai.groq_where" data-i18n-html="1">Lấy key Groq miễn phí (không cần thẻ) tại <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.</p>
+                            </div>
+                            <p id="oaiLlmKeyShared" class="xz-code-help oai-key-box" style="margin:0; display:none;" data-i18n="oai.groq_shared_stt">Dùng chung key Groq ở Bước 1 — không cần nhập lại.</p>
+                            <p data-prov="openai" class="xz-code-help oai-key-box" style="margin:0;" data-i18n="oai.uses_openai_key">Dùng key OpenAI ở phía trên.</p>
+                            <label for="oaiLlmModel" data-i18n="oai.model">Phiên bản (model) — để mặc định nếu không rõ:</label>
+                            <input type="text" id="oaiLlmModel" placeholder="gemini-3.5-flash-lite">
+                            <p data-prov="gemini" class="xz-code-help" style="margin:0;" data-i18n="oai.llm_help_gemini">gemini-3.5-flash-lite (nhanh nhất) hoặc gemini-3.8-flash (thông minh hơn, chậm hơn một chút).</p>
+                            <p data-prov="groq" class="xz-code-help" style="margin:0;" data-i18n="oai.llm_help_groq">openai/gpt-oss-120b — gói miễn phí giới hạn 8K token mỗi phút.</p>
+                            <p data-prov="openai" class="xz-code-help" style="margin:0;" data-i18n="oai.llm_help_openai">gpt-4o-mini (rẻ, nhanh) hoặc gpt-4o (thông minh hơn).</p>
+                            <p data-prov="custom" class="xz-code-help" style="margin:0;" data-i18n="oai.model_help_custom">Tên model mà máy chủ của bạn hỗ trợ.</p>
+                        </div>
+
+                        <div id="oaiTtsStage" class="xz-config-fields oai-step oai-step-3">
+                        <h4 class="oai-stage" data-i18n="oai.stage_tts">Bước 3 · Nói</h4>
+                        <p class="xz-code-help oai-stage-sub" style="margin:0;" data-i18n="oai.stage_tts_sub" data-i18n-html="1"><b>Chuyển văn bản thành giọng nói</b> (TTS) — đọc câu trả lời thành tiếng qua loa robot.</p>
+                        <div class="bot-opt-list xz-mode-radios" style="margin:0;">
+                            <label><input type="radio" name="oaiTts" value="edge" id="oaiTtsEdge" onchange="oaiShowTtsFields()"> <span data-i18n="oai.tts_edge" data-i18n-html="1"><b>Microsoft Edge</b> — miễn phí, không cần key, giọng tự nhiên, đọc lẫn Việt – Anh – Trung trong một câu</span></label>
+                            <label><input type="radio" name="oaiTts" value="google" id="oaiTtsGoogle" onchange="oaiShowTtsFields()"> <span data-i18n="oai.tts_google" data-i18n-html="1"><b>Google Translate</b> — miễn phí, tự chia câu theo từng ngôn ngữ để đọc song ngữ</span></label>
+                            <label><input type="radio" name="oaiTts" value="gemini" id="oaiTtsGemini" onchange="oaiShowTtsFields()"> <span data-i18n="oai.tts_gemini" data-i18n-html="1"><b>Gemini TTS</b> — giọng Google AI rất tự nhiên, cần key Gemini (gói miễn phí giới hạn lượt)</span></label>
+                            <label><input type="radio" name="oaiTts" value="openai" id="oaiTtsOpenAI" checked onchange="oaiShowTtsFields()"> <span data-i18n="oai.tts_openai" data-i18n-html="1"><b>OpenAI</b> — hay, tính phí</span></label>
+                        </div>
+
+                        <div id="oaiTtsEdgeFields" class="xz-config-fields" style="display:none;">
+                            <label for="oaiEdgeVoice" data-i18n="oai.edge_voice">Giọng Edge:</label>
+                            <select id="oaiEdgeVoice">
+                                <option value="en-US-EmmaMultilingualNeural" data-i18n="oai.ev_emma">Emma — nữ, đa ngôn ngữ (Việt/Anh/Trung…)</option>
+                                <option value="en-US-AvaMultilingualNeural" data-i18n="oai.ev_ava">Ava — nữ, đa ngôn ngữ</option>
+                                <option value="en-US-AndrewMultilingualNeural" data-i18n="oai.ev_andrew">Andrew — nam, đa ngôn ngữ</option>
+                                <option value="en-US-BrianMultilingualNeural" data-i18n="oai.ev_brian">Brian — nam, đa ngôn ngữ</option>
+                                <option value="vi-VN-HoaiMyNeural" data-i18n="oai.ev_hoaimy">Hoài My — nữ, tiếng Việt chuẩn</option>
+                                <option value="vi-VN-NamMinhNeural" data-i18n="oai.ev_namminh">Nam Minh — nam, tiếng Việt chuẩn</option>
+                                <option value="zh-CN-XiaoxiaoNeural" data-i18n="oai.ev_xiaoxiao">Xiaoxiao — nữ, tiếng Trung</option>
+                            </select>
+                            <p class="xz-code-help" style="margin:0;" data-i18n="oai.edge_help">Giọng "đa ngôn ngữ" tự nhận và đọc lẫn nhiều thứ tiếng; giọng Hoài My / Nam Minh đọc tiếng Việt chuẩn nhất. Đây là dịch vụ đọc to của trình duyệt Edge (không chính thức) — nếu lỗi robot tự chuyển sang giọng Google.</p>
+                        </div>
+
+                        <div id="oaiTtsGoogleFields" class="xz-config-fields" style="display:none;">
+                            <p class="xz-code-help" style="margin:0;" data-i18n="oai.google_help">Robot nhờ LLM đánh dấu các đoạn tiếng nước ngoài rồi đọc từng đoạn bằng giọng Google của ngôn ngữ đó (chữ Hán/Nhật/Hàn tự nhận). Giọng hơi máy nhưng ổn định.</p>
+                        </div>
+
+                        <div id="oaiTtsGeminiFields" class="xz-config-fields" style="display:none;">
+                            <div id="oaiGeminiKeyRow" class="xz-config-fields oai-key-box">
+                                <label for="oaiGeminiKey" data-i18n="oai.key_gemini">API key Gemini:</label>
+                                <input type="password" id="oaiGeminiKey" autocomplete="off" data-i18n-placeholder="oai.gemini_key_ph" placeholder="AIza… (để trống = giữ key đã lưu)">
+                                <p id="oaiGeminiKeyHint" class="wifi-hint" style="margin:0;"></p>
+                                <p class="xz-code-help" style="margin:0;" data-i18n="oai.gemini_where" data-i18n-html="1">Lấy key Gemini miễn phí (không cần thẻ) tại <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</p>
+                            </div>
+                            <p id="oaiGeminiKeyShared" class="xz-code-help oai-key-box" style="margin:0; display:none;" data-i18n="oai.gemini_key_shared">Dùng chung key Gemini ở Bước 2 — không cần nhập lại.</p>
+                            <label for="oaiGeminiVoice" data-i18n="oai.gemini_voice">Giọng Gemini:</label>
+                            <select id="oaiGeminiVoice">
+                                <option value="Kore">Kore</option>
+                                <option value="Puck">Puck</option>
+                                <option value="Zephyr">Zephyr</option>
+                                <option value="Aoede">Aoede</option>
+                                <option value="Leda">Leda</option>
+                                <option value="Charon">Charon</option>
+                                <option value="Fenrir">Fenrir</option>
+                                <option value="Orus">Orus</option>
+                                <option value="Achird">Achird</option>
+                                <option value="Sulafat">Sulafat</option>
+                            </select>
+                            <label for="oaiGeminiModel" data-i18n="oai.gemini_model">Model Gemini TTS:</label>
+                            <input type="text" id="oaiGeminiModel" placeholder="gemini-2.5-flash-preview-tts">
+                            <p class="xz-code-help" style="margin:0;" data-i18n="oai.gemini_help">Gói miễn phí giới hạn số lần mỗi phút/ngày; hết lượt robot tự chuyển sang giọng Google. Model khác có gói miễn phí: gemini-3.8-flash-tts.</p>
+                        </div>
+
+                        <div id="oaiTtsOpenAIFields" class="xz-config-fields">
+                            <p class="xz-code-help oai-key-box" style="margin:0;" data-i18n="oai.uses_openai_key">Dùng key OpenAI ở phía trên.</p>
+                            <label for="oaiTtsModel" data-i18n="oai.tts_model">Model đọc (TTS):</label>
+                            <input type="text" id="oaiTtsModel" placeholder="gpt-4o-mini-tts">
+                        </div>
+                        </div>
+                    </div>
+
+                    <h4 class="oai-stage oai-common" data-i18n="oai.common">Cài đặt chung</h4>
+
+                    <label for="oaiMemory" data-i18n="oai.memory">Nhớ bao nhiêu lượt hội thoại gần nhất (0 = không nhớ):</label>
+                    <input type="number" id="oaiMemory" min="0" max="50" step="1" placeholder="10">
+
+                    <label for="oaiInstructions" data-i18n="oai.instructions">Tính cách / yêu cầu thêm cho robot (tùy chọn):</label>
+                    <textarea id="oaiInstructions" rows="3" maxlength="2000" data-i18n-placeholder="oai.instructions_ph" placeholder="VD: Gọi tôi là anh Linh, nói ngắn gọn, hay pha trò."></textarea>
+
+                    <details class="oai-advanced">
+                        <summary data-i18n="oai.advanced">Nâng cao</summary>
+                        <div class="xz-config-fields" style="margin-top:8px;">
+                            <div id="oaiBaseURLRow" class="xz-config-fields">
+                            <label for="oaiBaseURL" data-i18n="oai.base_url">Địa chỉ API OpenAI:</label>
+                            <input type="text" id="oaiBaseURL" placeholder="https://api.openai.com/v1">
+                            </div>
+                            <label for="oaiLanguage" data-i18n="oai.language">Ngôn ngữ nhận giọng nói (vi, en, zh… hoặc auto = tự nhận, hợp khi nói lẫn nhiều thứ tiếng):</label>
+                            <input type="text" id="oaiLanguage" maxlength="8" placeholder="vi" list="oaiLanguageList">
+                            <datalist id="oaiLanguageList">
+                                <option value="auto"></option>
+                                <option value="vi"></option>
+                                <option value="en"></option>
+                                <option value="zh"></option>
+                                <option value="ja"></option>
+                                <option value="ko"></option>
+                            </datalist>
+                            <div id="oaiVisionRow" class="xz-config-fields">
+                            <label for="oaiVisionModel" data-i18n="oai.vision_model">Model nhìn ảnh (khi hỏi "bạn thấy gì"):</label>
+                            <input type="text" id="oaiVisionModel" placeholder="gpt-4o-mini">
+                            </div>
+                        </div>
+                    </details>
+
+                    <div class="xz-config-actions">
+                        <button type="button" id="oaiSaveBtn" onclick="oaiSave()" data-i18n="oai.save">Lưu &amp; áp dụng</button>
+                        <button type="button" id="oaiTestBtn" onclick="oaiTest()" data-i18n="oai.test">Kiểm tra key</button>
+                        <button type="button" id="oaiClearMemBtn" onclick="oaiClearMemory()" data-i18n="oai.clear_mem">Xóa trí nhớ</button>
+                    </div>
+                    <div id="oaiStatus" class="xz-status" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="voice" class="container mod-section tab-content">
         <h2 data-i18n="voice.h2">🎙 Lệnh thoại</h2>
         <div class="help-box">
-            <strong data-i18n="voice.two_modes">Hai cách dùng</strong>
+            <strong data-i18n="voice.two_modes">Hai kiểu nghe lệnh</strong>
             <ol>
-                <li data-i18n="voice.mode1" data-i18n-html="1"><b>Xiaozhi bật</b> — nói tự nhiên; AI hiểu rồi điều khiển robot (MCP). Cấu hình ở tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">AI giao tiếp</a>.</li>
-                <li data-i18n="voice.mode2" data-i18n-html="1"><b>Vosk</b> — tab AI giao tiếp chọn radio <b>Vosk</b> (đổi ngay). Nói cụm gần đúng bảng dưới (thường tiếng Anh).</li>
+                <li data-i18n="voice.mode1" data-i18n-html="1"><b>AI trò chuyện</b> (Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime, Grok Voice) — nói tự nhiên bằng tiếng Việt hoặc Anh; AI hiểu ý rồi điều khiển robot. Chọn bằng cách bấm vào thẻ ở tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">AI giao tiếp</a>.</li>
+                <li data-i18n="voice.mode2" data-i18n-html="1"><b>Vosk (offline)</b> — bấm thẻ <b>Vosk</b> ở tab AI giao tiếp. Không trò chuyện; chỉ nghe các cụm lệnh tiếng Anh ở bảng dưới.</li>
             </ol>
             <p class="help-warn" data-i18n="voice.wake_hint" data-i18n-html="1">Wake: nói <b>Hey Vector</b> (hoặc từ tùy chỉnh) rồi ra lệnh. Cube games cần khối + robot xuống dock.</p>
         </div>
 
         <div class="voice-mode-nav" role="tablist" aria-label="Voice guide mode">
-            <button type="button" class="voice-mode-btn active" data-voice-mode="xz" onclick="showVoiceMode('xz')" data-i18n="voice.tab_xz">1 · Xiaozhi (nói chuyện)</button>
-            <button type="button" class="voice-mode-btn" data-voice-mode="vosk" onclick="showVoiceMode('vosk')" data-i18n="voice.tab_vosk">2 · Vosk (tắt Xiaozhi)</button>
+            <button type="button" class="voice-mode-btn active" data-voice-mode="xz" onclick="showVoiceMode('xz')" data-i18n="voice.tab_xz">1 · AI trò chuyện</button>
+            <button type="button" class="voice-mode-btn" data-voice-mode="vosk" onclick="showVoiceMode('vosk')" data-i18n="voice.tab_vosk">2 · Vosk (lệnh offline)</button>
         </div>
 
         <div id="voice-mode-xz" class="voice-mode-panel">
             <div class="help-box">
-                <strong data-i18n="voice.xz_on">Cách 1 — Xiaozhi ON</strong>
+                <strong data-i18n="voice.xz_on">Cách 1 — AI trò chuyện</strong>
                 <ol>
-                    <li data-i18n="voice.xz_s1">Tab AI giao tiếp: bật → Lưu → đã kích hoạt xiaozhi.me.</li>
+                    <li data-i18n="voice.xz_s1">Tab AI giao tiếp: bấm vào thẻ AI muốn dùng (Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime, Grok Voice) — áp dụng ngay. Xiaozhi cần kích hoạt trên xiaozhi.me; các AI khác cần nhập key.</li>
                     <li data-i18n="voice.xz_s2">Hey Vector → nói ý muốn bằng tiếng Việt hoặc Anh (ví dụ “lăn khối lập phương”, “chơi blackjack”).</li>
-                    <li data-i18n="voice.xz_s3">Robot trả lời bằng TTS Xiaozhi rồi làm hành động (có thể im mic đến khi bạn wake lại sau self-control).</li>
+                    <li data-i18n="voice.xz_s3">Robot trả lời bằng giọng của AI đang chọn rồi làm hành động (sau đó mic có thể tắt đến khi bạn gọi “Hey Vector” lại).</li>
                 </ol>
             </div>
 
@@ -924,7 +1216,7 @@
                     <li data-i18n="voice.bj_p3" data-i18n-html="1">Hết ván, hỏi <b>chơi round mới?</b>: <b>yes</b> = ván mới · <b>no</b> = thoát</li>
                     <li data-i18n="voice.bj_p4">Cũng nhận: hit / stand / another card (tiếng Anh)</li>
                 </ul>
-                <p class="help-warn" style="margin-top:8px;" data-i18n="voice.bj_warn">Trong blackjack không chat Xiaozhi; trả lời ngắn yes/no khi mic mở. Hết game tự về Xiaozhi nếu đang bật.</p>
+                <p class="help-warn" style="margin-top:8px;" data-i18n="voice.bj_warn">Trong blackjack không trò chuyện với AI; trả lời ngắn yes/no khi mic mở. Hết game robot tự về chế độ AI đang chọn.</p>
             </div>
 
             <div class="voice-group">
@@ -965,11 +1257,11 @@
         <!-- Vosk: titles/help i18n; phrase lists stay English (STT) -->
         <div id="voice-mode-vosk" class="voice-mode-panel" style="display:none;">
             <div class="help-box">
-                <strong data-i18n="voice.vosk_on">Cách 2 — Tắt Xiaozhi → Vosk</strong>
+                <strong data-i18n="voice.vosk_on">Cách 2 — Vosk (lệnh offline)</strong>
                 <ol>
-                    <li data-i18n="voice.vosk_s1" data-i18n-html="1">Vào tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">AI giao tiếp</a> → chọn radio <b>Vosk</b> (áp dụng ngay).</li>
+                    <li data-i18n="voice.vosk_s1" data-i18n-html="1">Vào tab <a href="#xiaozhi" onclick="activateSection('#xiaozhi'); return false;">AI giao tiếp</a> → bấm vào thẻ <b>Vosk</b> (áp dụng ngay).</li>
                     <li data-i18n="voice.vosk_s2" data-i18n-html="1">Hey Vector → nói <b>tiếng Anh</b> đúng với lệnh ở danh sách bên dưới (Vosk).</li>
-                    <li data-i18n="voice.vosk_s3" data-i18n-html="1">Muốn chat AI lại: chọn radio <b>Xiaozhi</b> trên cùng tab.</li>
+                    <li data-i18n="voice.vosk_s3" data-i18n-html="1">Muốn trò chuyện với AI lại: bấm một thẻ AI bất kỳ (ví dụ <b>Xiaozhi</b>) trên cùng tab.</li>
                 </ol>
                 <p class="help-warn" style="margin-top:8px;" data-i18n="voice.vosk_note" data-i18n-html="1"><b>Bắt buộc tiếng Anh</b> — nói đúng (hoặc rất gần) các lệnh tiếng Anh ở danh sách bên dưới. Tiếng Việt / câu tự do không dùng ở chế độ Vosk.</p>
             </div>
@@ -1368,6 +1660,24 @@
         <div class="news-list">
             <section class="news-card" data-added="2026-10-14">
                 <div class="news-head">
+                    <h3 class="news-title">🤖 <span data-i18n="news.oai_title">AI giao tiếp bằng OpenAI</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
+                </div>
+                <p class="news-where" data-i18n="news.oai_where">AI giao tiếp → OpenAI</p>
+                <ul class="news-points">
+                    <li data-i18n="news.oai_p1" data-i18n-html="1">Thêm lựa chọn <b>OpenAI</b> ngang hàng Xiaozhi: nhập API key là robot gọi thẳng OpenAI, không cần máy chủ.</li>
+                    <li data-i18n="news.oai_p2" data-i18n-html="1"><b>A · Realtime</b>: nói chuyện giọng nói trực tiếp, nhanh nhất. <b>B · STT → LLM → TTS</b> (kiểu wire-pod): rẻ hơn, dùng được LLM local.</li>
+                    <li data-i18n="news.oai_p3">Nói liên tục, mic tự dừng khi bạn nói xong, nhớ các câu trước, và hiểu ý để điều khiển robot (VD: "bắn pháo hoa đi").</li>
+                    <li data-i18n="news.pl_p1" data-i18n-html="1"><b>Tự chọn AI</b> và <b>OpenAI Realtime</b> giờ là 2 lựa chọn riêng trong AI giao tiếp. Mỗi dịch vụ (Groq, Gemini…) chỉ cần nhập key một lần — đổi dịch vụ ở bước nào thì key và model tự theo.</li>
+                    <li data-i18n="news.gk_p1" data-i18n-html="1">Thêm lựa chọn <b>Grok Voice</b> (xAI): nói chuyện giọng nói trực tiếp với Grok, phản hồi dưới 1 giây, tự tra web cho tin tức / thời tiết — tính phí 0,08 USD/phút. Chế độ B được sắp lại thành 3 bước dễ hiểu: Nghe → Suy nghĩ → Nói.</li>
+                    <li data-i18n="news.gl_p1" data-i18n-html="1">Thêm lựa chọn <b>Gemini Live</b> ngang hàng Xiaozhi và OpenAI: nói chuyện giọng nói trực tiếp với Google Gemini, phản hồi dưới 1 giây, <b>miễn phí</b> với key Gemini — điều khiển được robot và nhớ hội thoại.</li>
+                    <li data-i18n="news.oai_p4" data-i18n-html="1">Chế độ B giờ chạy được <b>miễn phí</b>: nghe bằng Groq Whisper, trả lời bằng Gemini, đọc bằng giọng Microsoft Edge đa ngôn ngữ (đọc lẫn Việt – Anh – Trung), hoặc Google song ngữ / Gemini TTS.</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#xiaozhi')" data-i18n="news.oai_btn">Mở AI giao tiếp</button>
+            </section>
+
+            <section class="news-card" data-added="2026-10-14">
+                <div class="news-head">
                     <h3 class="news-title">👋 <span data-i18n="news.face_title">Tự chào khi thấy người</span></h3>
                     <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
                 </div>
@@ -1483,6 +1793,7 @@
     <script src="js/faces.js"></script>
     <script src="js/photos.js"></script>
     <script src="js/xiaozhi.js"></script>
+    <script src="js/openai.js"></script>
     <script src="js/alexa.js"></script>
     <script src="js/control.js"></script>
     <script src="js/freetime.js"></script>

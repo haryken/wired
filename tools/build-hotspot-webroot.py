@@ -35,6 +35,7 @@ scripts = [
     "faces.js",
     "photos.js",
     "xiaozhi.js",
+    "openai.js",
     "alexa.js",
     "control.js",
     "stim-stats.js",

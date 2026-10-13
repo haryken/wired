@@ -53,6 +53,9 @@ func FixPersistentOwnership(dir string) {
 	}
 }
 
+// AnkiIDs returns the anki uid/gid (fallback 2901).
+func AnkiIDs() (int, int) { return ankiIDs() }
+
 func ankiIDs() (int, int) {
 	uid, gid := ankiFallbackID, ankiFallbackID
 	if u, err := user.Lookup("anki"); err == nil {
