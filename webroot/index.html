@@ -76,6 +76,7 @@
                 <option value="#freetime" data-i18n="nav.freetime">Thời gian tự do</option>
                 <option value="#games" data-i18n="nav.games">Trò chơi</option>
                 <option value="#logs" data-i18n="nav.logs">Nhật ký</option>
+                <option value="#news" data-i18n="nav.news">✨ Tính năng mới</option>
                 <option value="#about" data-i18n="nav.about">Giới thiệu</option>
             </select>
         </label>
@@ -88,6 +89,7 @@
             <button type="button" data-target="#freetime" data-i18n="nav.freetime">Thời gian tự do</button>
             <button type="button" data-target="#games" id="navGamesBtn" data-i18n="nav.games">Trò chơi</button>
             <button type="button" data-target="#logs" data-i18n="nav.logs">Nhật ký</button>
+            <button type="button" data-target="#news" data-i18n="nav.news">✨ Tính năng mới</button>
             <button type="button" data-target="#about" data-i18n="nav.about">Giới thiệu</button>
         </div>
     </nav>
@@ -1338,6 +1340,46 @@
         <div id="logsStatus" class="logs-status"></div>
     </div>
 
+    <div id="news" class="container mod-section tab-content">
+        <h2 data-i18n="news.h2">✨ Tính năng mới</h2>
+        <p class="bot-intro" data-i18n="news.intro">Những gì vừa thêm vào robot. Bấm nút trong từng mục để tới chỗ cài đặt.</p>
+        <div class="news-list">
+            <section class="news-card">
+                <h3 class="news-title">🎙 <span data-i18n="news.mic_title">Đổi cách bật micro</span></h3>
+                <p class="news-where" data-i18n="news.mic_where">Cài đặt bot → Mở micro</p>
+                <ul class="news-points">
+                    <li data-i18n="news.mic_p1" data-i18n-html="1"><b>Cố định ~6 giây</b> (như cũ): đánh thức xong micro mở khoảng 6 giây rồi tự đóng.</li>
+                    <li data-i18n="news.mic_p2" data-i18n-html="1"><b>Theo giọng nói</b>: micro mở tới khi bạn <b>ngưng nói</b> — nói câu dài không bị cắt. Lưng sáng xanh lúc đang nghe; im lặng 10 giây thì tự tắt, nói liên tục tối đa 30 giây.</li>
+                    <li data-i18n="news.mic_p3">Áp dụng từ lần đánh thức tiếp theo, không cần khởi động lại. Chỉ dùng khi đang bật AI giao tiếp (Xiaozhi).</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-listen')" data-i18n="news.mic_btn">Mở cài đặt micro</button>
+            </section>
+
+            <section class="news-card">
+                <h3 class="news-title">🔋 <span data-i18n="news.batt_title">Tắt hiện pin cho máy nhẹ hơn</span></h3>
+                <p class="news-where" data-i18n="news.batt_where">Cài đặt bot → Pin</p>
+                <ul class="news-points">
+                    <li data-i18n="news.batt_p1" data-i18n-html="1">Thanh pin ở đầu trang giờ <b>mặc định tắt</b> — trang không hỏi robot liên tục nữa, robot đỡ phải xử lý.</li>
+                    <li data-i18n="news.batt_p2">Bật lại khi cần: trang hỏi pin mỗi 3 giây và tự ngưng khi bạn chuyển sang tab khác.</li>
+                    <li data-i18n="news.batt_p3">Lựa chọn lưu riêng trên từng trình duyệt / điện thoại.</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-battery')" data-i18n="news.batt_btn">Mở cài đặt pin</button>
+            </section>
+
+            <section class="news-card">
+                <h3 class="news-title">📚 <span data-i18n="news.course_title">Robot dạy tiếng Anh</span></h3>
+                <p class="news-where" data-i18n="news.course_where">AI giao tiếp → Dạy tiếng Anh (khóa học)</p>
+                <ul class="news-points">
+                    <li data-i18n="news.course_p1" data-i18n-html="1">5 khóa học: <b>Explorers, Young Innovators, Future Leaders, IELTS, TOEIC</b>.</li>
+                    <li data-i18n="news.course_p2">Mỗi khóa có 2 giọng (song ngữ Anh – Việt hoặc chỉ tiếng Anh), chọn sách, bài (unit) và tên học sinh.</li>
+                    <li data-i18n="news.course_p3" data-i18n-html="1">Bấm <b>Lưu &amp; áp dụng</b>: robot kết nối lại và <b>tự chào</b> sau vài giây — không cần khởi động lại.</li>
+                    <li data-i18n="news.course_p4">Khung "Đang học" cho biết robot đang dạy khóa / sách / bài nào.</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#xiaozhi', 'course')" data-i18n="news.course_btn">Mở cấu hình dạy tiếng Anh</button>
+            </section>
+        </div>
+    </div>
+
     <div id="about" class="container mod-section tab-content">
         <h2 data-i18n="about.h2">Giới thiệu</h2>
         <div class="about-card">
@@ -1370,6 +1412,7 @@
     <script src="js/i18n.js"></script>
     <script src="js/main.js"></script>
     <script src="js/battery.js"></script>
+    <script src="js/whats-new.js"></script>
     <script src="js/freq.js"></script>
     <script src="js/wake-engine.js"></script>
     <script src="js/wakeword-pv.js"></script>
