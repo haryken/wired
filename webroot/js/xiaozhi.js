@@ -31,21 +31,30 @@ function xzSelectedMode() {
     return (vosk && vosk.checked) ? 'vosk' : 'xiaozhi';
 }
 
+function xzT(key, fallback) {
+    return (typeof t === 'function') ? t(key, fallback) : fallback;
+}
+
 function xzSelectedPreset() {
     const custom = document.getElementById('xzPresetCustom');
-    return (custom && custom.checked) ? 'custom' : 'vi_pool';
+    if (custom && custom.checked) return 'custom';
+    const course = document.getElementById('xzPresetCourse');
+    if (course && course.checked) return 'course';
+    return 'vi_pool';
 }
 
 function xzShowPresetUI(preset) {
-    const isPool = preset !== 'custom';
-    const vi = document.getElementById('xzPresetVi');
-    const cu = document.getElementById('xzPresetCustom');
-    if (vi) vi.checked = isPool;
-    if (cu) cu.checked = !isPool;
-    const pool = document.getElementById('xzPoolHelp');
-    const custom = document.getElementById('xzCustomFields');
-    if (pool) pool.style.display = isPool ? 'block' : 'none';
-    if (custom) custom.style.display = isPool ? 'none' : 'block';
+    if (preset !== 'custom' && preset !== 'course') preset = 'vi_pool';
+    const radios = { vi_pool: 'xzPresetVi', course: 'xzPresetCourse', custom: 'xzPresetCustom' };
+    const blocks = { vi_pool: 'xzPoolHelp', course: 'xzCourseFields', custom: 'xzCustomFields' };
+    Object.keys(radios).forEach(function (p) {
+        const r = document.getElementById(radios[p]);
+        if (r) r.checked = (p === preset);
+        const b = document.getElementById(blocks[p]);
+        if (b) b.style.display = (p === preset) ? 'block' : 'none';
+    });
+    if (preset === 'course') xzRenderCourse();
+    xzSetCoursePolling(preset === 'course');
 }
 
 function xzShowConfigForMode(mode) {
@@ -88,8 +97,11 @@ function xzApplyCfg(cfg) {
         gviOff.checked = !on;
     }
 
-    const preset = (cfg.identity_mode === 'vi_pool') ? 'vi_pool'
-        : (cfg.identity_mode === 'custom') ? 'custom'
+    xzLastCfg = cfg;
+    xzCourseSel = null;
+    xzCourseDirty = false;
+    const preset = (cfg.identity_mode === 'vi_pool' || cfg.identity_mode === 'course'
+        || cfg.identity_mode === 'custom') ? cfg.identity_mode
         : (cfg.device_id ? 'custom' : 'vi_pool');
     xzShowPresetUI(preset);
 
@@ -117,10 +129,266 @@ async function xzLoad() {
 }
 
 async function xzOnPresetRadio() {
-    xzShowPresetUI(xzSelectedPreset());
+    const preset = xzSelectedPreset();
+    xzShowPresetUI(preset);
     if (xzSelectedMode() !== 'xiaozhi') return;
+    if (preset === 'course' && !(xzLastCfg && xzLastCfg.identity_mode === 'course')) {
+        // Pick the lesson first; "Lưu & áp dụng" switches (one reconnect).
+        xzSetElStatus('xzCourseStatus', xzT('xz.course_pick', 'Chọn khóa học, giọng, bài rồi bấm Lưu & áp dụng.'), false);
+        return;
+    }
     xzAppliedMode = null;
     await xzSetListenMode('xiaozhi');
+}
+
+// --- English-teaching course preset ---
+
+let xzLastCfg = null;
+let xzCourses = null;
+let xzCourseSel = null; // {idx, voice, book, unit} being edited
+let xzCourseDirty = false; // form edited since the last load — polling must not overwrite it
+let xzCoursePollTimer = null;
+const XZ_COURSE_POLL_MS = 4000;
+
+async function xzLoadCourses() {
+    if (xzCourses) return xzCourses;
+    try {
+        const resp = await fetch('/api/mods/Xiaozhi/courses');
+        if (!resp.ok) return null;
+        const j = await resp.json();
+        xzCourses = Array.isArray(j.courses) ? j.courses : null;
+    } catch (e) {
+        xzCourses = null;
+    }
+    return xzCourses;
+}
+
+function xzCourseByIdx(idx) {
+    return (xzCourses || []).find(function (c) { return c.idx === idx; }) || null;
+}
+
+/** Stored lesson for a course from the last loaded config (clamped like the backend). */
+function xzStoredLesson(idx) {
+    const cfg = xzLastCfg || {};
+    const c = xzCourseByIdx(idx) || (xzCourses || [])[0];
+    if (!c) return null;
+    const key = String(c.idx);
+    const voice = (cfg.course_voice && cfg.course_voice[key] === 1) ? 1 : 0;
+    let book = (cfg.course_book && cfg.course_book[key]) || 0;
+    if (book < 0 || book >= c.books.length) book = 0;
+    return { idx: c.idx, voice: voice, book: book, unit: xzStoredUnit(c, book) };
+}
+
+function xzStoredUnit(c, book) {
+    const cfg = xzLastCfg || {};
+    let unit = (cfg.course_unit && cfg.course_unit[c.idx + '.' + book]) || 1;
+    if (unit < 1 || unit > c.books[book].units.length) unit = 1;
+    return unit;
+}
+
+/** Lesson the robot is using now (saved config), or null when not in course mode. */
+function xzActiveLesson() {
+    const cfg = xzLastCfg || {};
+    if (cfg.identity_mode !== 'course' || !xzCourses) return null;
+    return xzStoredLesson(cfg.course_idx || 1);
+}
+
+/** Radio card; label may be a string or a DOM node. */
+function xzRadio(name, value, checked, label, onchange) {
+    const lbl = document.createElement('label');
+    const inp = document.createElement('input');
+    inp.type = 'radio';
+    inp.name = name;
+    inp.value = String(value);
+    inp.checked = checked;
+    inp.addEventListener('change', function () {
+        xzCourseDirty = true;
+        onchange();
+    });
+    lbl.appendChild(inp);
+    if (typeof label === 'string') {
+        const span = document.createElement('span');
+        span.textContent = label;
+        lbl.appendChild(span);
+    } else {
+        lbl.appendChild(label);
+    }
+    return lbl;
+}
+
+function xzRenderCourseActive() {
+    const box = document.getElementById('xzCourseActive');
+    const lessonEl = document.getElementById('xzCourseActiveLesson');
+    const metaEl = document.getElementById('xzCourseActiveMeta');
+    const using = document.getElementById('xzCourseUsing');
+    const cfg = xzLastCfg || {};
+    const a = xzActiveLesson();
+    const c = a && xzCourseByIdx(a.idx);
+    if (box) box.style.display = c ? 'block' : 'none';
+    if (c) {
+        const parts = [c.name];
+        if (c.books.length > 1) parts.push(c.books[a.book].name);
+        parts.push(c.books[a.book].units[a.unit - 1]);
+        if (lessonEl) lessonEl.textContent = parts.join(' → ');
+        const meta = [xzT('xz.course_voice', 'Giọng:') + ' ' + c.voices[a.voice].label];
+        if (cfg.student_name) meta.push(xzT('xz.course_student', 'Tên học sinh:') + ' ' + cfg.student_name);
+        if (metaEl) metaEl.textContent = meta.join(' · ');
+    }
+    if (using) {
+        using.textContent = (c && cfg.device_id)
+            ? (xzT('xz.course_using', 'Đang dùng: ') + 'MAC ' + cfg.device_id + ' · client ' + (cfg.client_id || '—'))
+            : '';
+    }
+}
+
+function xzRenderCourseUnits() {
+    const el = document.getElementById('xzCourseUnits');
+    const sel = xzCourseSel;
+    const c = sel && xzCourseByIdx(sel.idx);
+    if (!el || !c) return;
+    const a = xzActiveLesson();
+    el.innerHTML = '';
+    c.books[sel.book].units.forEach(function (name, i) {
+        const body = document.createElement('span');
+        const num = document.createElement('span');
+        num.className = 'xz-unit-num';
+        num.textContent = '#' + (i + 1);
+        if (a && a.idx === sel.idx && a.book === sel.book && a.unit === i + 1) {
+            const now = document.createElement('span');
+            now.className = 'xz-unit-now';
+            now.textContent = xzT('xz.course_now', 'đang học');
+            num.appendChild(now);
+        }
+        body.appendChild(num);
+        body.appendChild(document.createTextNode(name));
+        el.appendChild(xzRadio('xzCourseUnit', i + 1, i + 1 === sel.unit, body, function () {
+            xzCourseSel.unit = i + 1;
+        }));
+    });
+}
+
+async function xzRenderCourse() {
+    if (!(await xzLoadCourses())) {
+        xzSetElStatus('xzCourseStatus', xzT('xz.course_load_err', 'Không tải được danh sách khóa học.'), true);
+        return;
+    }
+    if (!xzCourseSel) {
+        xzCourseSel = xzStoredLesson((xzLastCfg && xzLastCfg.course_idx) || 1);
+        xzCourseDirty = false;
+        const stu = document.getElementById('xzCourseStudent');
+        if (stu) stu.value = (xzLastCfg && xzLastCfg.student_name) || '';
+    }
+    const sel = xzCourseSel;
+    const c = xzCourseByIdx(sel.idx);
+    if (!c) return;
+
+    const list = document.getElementById('xzCourseList');
+    if (list) {
+        list.innerHTML = '';
+        xzCourses.forEach(function (co) {
+            list.appendChild(xzRadio('xzCourseIdx', co.idx, co.idx === sel.idx, co.name, function () {
+                xzCourseSel = xzStoredLesson(co.idx);
+                xzRenderCourse();
+            }));
+        });
+    }
+    const voices = document.getElementById('xzCourseVoices');
+    if (voices) {
+        voices.innerHTML = '';
+        c.voices.forEach(function (v, i) {
+            voices.appendChild(xzRadio('xzCourseVoice', i, i === sel.voice, v.label, function () {
+                xzCourseSel.voice = i;
+            }));
+        });
+    }
+    const books = document.getElementById('xzCourseBooks');
+    const bookLbl = document.getElementById('xzCourseBookLbl');
+    const multiBook = c.books.length > 1;
+    if (bookLbl) bookLbl.style.display = multiBook ? '' : 'none';
+    if (books) {
+        books.style.display = multiBook ? '' : 'none';
+        books.innerHTML = '';
+        c.books.forEach(function (b, i) {
+            books.appendChild(xzRadio('xzCourseBook', i, i === sel.book, b.name, function () {
+                xzCourseSel.book = i;
+                xzCourseSel.unit = xzStoredUnit(c, i);
+                xzRenderCourseUnits();
+            }));
+        });
+    }
+    xzRenderCourseUnits();
+    xzRenderCourseActive();
+}
+
+function xzCourseSignature(cfg) {
+    return JSON.stringify([cfg.identity_mode, cfg.enabled, cfg.course_idx, cfg.course_voice,
+        cfg.course_book, cfg.course_unit, cfg.student_name, cfg.device_id, cfg.client_id]);
+}
+
+/** Picks up lesson changes made on the robot (voice "next unit" via MCP shift_unit). */
+async function xzPollCourse() {
+    const block = document.getElementById('xzCourseFields');
+    if (document.hidden || !block || block.offsetParent === null || xzSaveBusy) return;
+    try {
+        const resp = await fetch('/api/mods/Xiaozhi/get', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const cfg = await resp.json();
+        if (xzLastCfg && xzCourseSignature(cfg) === xzCourseSignature(xzLastCfg)) return;
+        xzLastCfg = cfg;
+        if (!xzCourseDirty) xzCourseSel = null;
+        if (xzCourseSel) {
+            xzRenderCourseUnits();
+            xzRenderCourseActive();
+        } else {
+            xzRenderCourse();
+        }
+    } catch (e) {
+        /* next tick */
+    }
+}
+
+function xzSetCoursePolling(on) {
+    if (on && !xzCoursePollTimer) {
+        xzCoursePollTimer = setInterval(xzPollCourse, XZ_COURSE_POLL_MS);
+    } else if (!on && xzCoursePollTimer) {
+        clearInterval(xzCoursePollTimer);
+        xzCoursePollTimer = null;
+    }
+}
+
+async function xzSaveCourse() {
+    if (xzSaveBusy || !xzCourseSel) return;
+    xzSaveBusy = true;
+    const btn = document.getElementById('xzCourseSaveBtn');
+    if (btn) btn.disabled = true;
+    xzSetElStatus('xzCourseStatus', xzT('xz.course_saving', 'Đang lưu…'), false);
+    try {
+        const params = new URLSearchParams({
+            course_idx: String(xzCourseSel.idx),
+            voice: String(xzCourseSel.voice),
+            book: String(xzCourseSel.book),
+            unit: String(xzCourseSel.unit),
+            student_name: (document.getElementById('xzCourseStudent') || { value: '' }).value.trim(),
+        });
+        const resp = await fetch('/api/mods/Xiaozhi/set_course?' + params.toString(), { method: 'POST' });
+        const j = await resp.json();
+        if (j.status !== 'success') {
+            xzSetElStatus('xzCourseStatus', xzT('xz.course_err', 'Lỗi lưu: ') + (j.message || 'unknown'), true);
+            return;
+        }
+        if (j.config) xzApplyCfg(j.config);
+        let msg;
+        if (!j.identity_changed) msg = xzT('xz.course_saved_lesson', 'Đã lưu bài / tên — dùng ngay ở câu nói sau.');
+        else if (j.applied) msg = xzT('xz.course_saved_apply', 'Đã lưu. Robot đang kết nối lại và sẽ tự chào.');
+        else msg = xzT('xz.course_saved_restart', 'Đã lưu. Cloud khởi động lại — đợi ~10s rồi Hey Vector.');
+        xzSetElStatus('xzCourseStatus', msg, false);
+        xzSetModeStatus('', false);
+    } catch (e) {
+        xzSetElStatus('xzCourseStatus', 'Lỗi: ' + e.message, true);
+    } finally {
+        xzSaveBusy = false;
+        if (btn) btn.disabled = false;
+    }
 }
 
 /** Persist config fields. Returns {ok, config?, message?}. Does not set UI status. */
@@ -223,7 +491,9 @@ async function xzRenewPool() {
             return;
         }
         if (j.config) xzApplyCfg(j.config);
-        xzSetPoolStatus(typeof t === 'function' ? t('xz.pool_renewed', 'Đã làm mới. Đánh thức robot (Hey Vector).') : 'Đã làm mới. Đánh thức robot (Hey Vector).', false);
+        xzSetPoolStatus(j.applied
+            ? xzT('xz.pool_renewed_live', 'Đã làm mới — robot kết nối lại và sẽ tự chào.')
+            : xzT('xz.pool_renewed', 'Đã làm mới. Đánh thức robot (Hey Vector).'), false);
     } catch (e) {
         xzSetPoolStatus('Lỗi: ' + e.message, true);
     } finally {
@@ -242,8 +512,8 @@ async function xzSetListenMode(mode) {
     xzModeBusy = true;
     xzShowConfigForMode(mode);
     xzSetModeStatus(wantXz
-        ? 'Đang bật Xiaozhi (tắt Vosk)… đang restart cloud…'
-        : 'Đang bật Vosk (tắt Xiaozhi)… đang restart cloud…', false);
+        ? xzT('xz.switching_xz', 'Đang bật Xiaozhi (tắt Vosk)…')
+        : xzT('xz.switching_vosk', 'Đang bật Vosk (tắt Xiaozhi)…'), false);
     try {
         const params = new URLSearchParams({ enabled: wantXz ? 'true' : 'false' });
         if (wantXz) params.set('identity_mode', xzSelectedPreset());
@@ -259,9 +529,19 @@ async function xzSetListenMode(mode) {
             xzAppliedMode = mode;
             xzShowConfigForMode(mode);
         }
-        xzSetModeStatus(wantXz
-            ? (typeof t === 'function' ? t('xz.on_xiaozhi', 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.') : 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.')
-            : (typeof t === 'function' ? t('xz.on_vosk', 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.') : 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.'), false);
+        let msg;
+        if (j.restarted) {
+            msg = wantXz
+                ? xzT('xz.on_xiaozhi', 'Đã chuyển sang Xiaozhi. Đợi ~5–10s rồi Hey Vector.')
+                : xzT('xz.on_vosk', 'Đã chuyển sang Vosk. Đợi ~5–10s rồi Hey Vector.');
+        } else if (j.applied) {
+            msg = wantXz
+                ? xzT('xz.on_xiaozhi_live', 'Đã chuyển sang Xiaozhi — robot kết nối lại và sẽ tự chào.')
+                : xzT('xz.on_vosk_live', 'Đã chuyển sang Vosk. Lần Hey Vector đầu có thể chậm vài giây (nạp Vosk).');
+        } else {
+            msg = xzT('xz.on_saved', 'Đã lưu.');
+        }
+        xzSetModeStatus(msg, false);
     } catch (e) {
         xzSetModeStatus('Lỗi đổi chế độ: ' + e.message, true);
         await xzLoad();

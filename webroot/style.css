@@ -888,6 +888,85 @@ input.xz-readonly:disabled {
     margin-top: 10px;
 }
 
+.bot-opt-list.xz-chip-grid,
+.bot-opt-list.xz-unit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+    gap: 6px;
+    margin: 2px 0 6px;
+}
+
+.bot-opt-list.xz-chip-grid label,
+.bot-opt-list.xz-unit-grid label {
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.bot-opt-list.xz-unit-grid label {
+    align-items: flex-start;
+}
+
+.xz-unit-grid label input[type="radio"] {
+    flex: 0 0 auto;
+    margin-top: 1px;
+}
+
+.xz-unit-num {
+    display: block;
+    color: #8a8a8a;
+    font-size: 11px;
+    margin-bottom: 1px;
+}
+
+.xz-unit-grid label:has(input:checked) .xz-unit-num {
+    color: #67e8f9;
+}
+
+.xz-unit-now {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.xz-course-active {
+    margin: 4px 0 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.08);
+    text-align: left;
+}
+
+.xz-course-active-title {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.xz-course-active-lesson {
+    margin-top: 4px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.xz-course-active-meta {
+    margin-top: 4px;
+    color: #a3a3a3;
+    font-size: 13px;
+}
+
 .xz-conv-block > strong {
     color: #67e8f9;
     font-size: 15px;

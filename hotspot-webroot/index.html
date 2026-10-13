@@ -32,14 +32,14 @@
         <nav class="nav-drawer-list">
             <a href="/wifi">📶 Bắt WiFi</a>
             <button type="button" data-target="#botsettings">⚙️ Cài đặt bot</button>
-            <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+            <button type="button" data-target="#xiaozhi">💜 AI giao tiếp</button>
             <button type="button" data-target="#control">🎮 Điều khiển</button>
         </nav>
     </aside>
     <nav class="site-nav portal-tabs" aria-label="Chức năng hotspot">
         <a href="/wifi">📶 Bắt WiFi</a>
         <button type="button" class="active" data-target="#botsettings">⚙️ Cài đặt bot</button>
-        <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+        <button type="button" data-target="#xiaozhi">💜 AI giao tiếp</button>
         <button type="button" data-target="#control">🎮 Điều khiển</button>
     </nav>
 
@@ -94,7 +94,7 @@
             </button>
             <button type="button" class="bot-nav-item" id="navLocale" onclick="showBotSection('bot-locale')">
                 <span class="bot-ico" aria-hidden="true">🗣</span>
-                <span data-i18n="bot.thf">Giọng THF</span>
+                <span data-i18n="bot.thf">Độ nhạy Hey Vector</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-stim')">
                 <span class="bot-ico" aria-hidden="true">😊</span>
@@ -123,6 +123,10 @@
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-music')">
                 <span class="bot-ico" aria-hidden="true">🎵</span>
                 <span data-i18n="bot.music">Nhạc</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-battery')">
+                <span class="bot-ico" aria-hidden="true">🔋</span>
+                <span data-i18n="bot.battery">Pin</span>
             </button>
         </div>
         <hr class="smallhr">
@@ -359,7 +363,7 @@
                 <strong data-i18n="wake.choose">Chọn engine</strong>
                 <ul>
                     <li><b>Picovoice</b> — mở khóa <b>Từ đánh thức</b> + <b>Độ nhạy</b>.</li>
-                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Giọng THF</b> (model giọng / độ nhạy wake).</li>
+                    <li><b>Hey Vector (THF)</b> — Sensory stock; mở khóa <b>Độ nhạy Hey Vector</b> (model giọng / độ nhạy wake).</li>
                 </ul>
                 <p class="help-warn">Chọn radio rồi bấm <b>Lưu engine + restart</b> để áp dụng. Tile khóa/mở phía trên chỉ đổi sau khi lưu (đổi radio chưa lưu không ảnh hưởng).</p>
             </div>
@@ -372,8 +376,8 @@
                 <button type="button" onclick="saveWakeEngine()" data-i18n="wake.save">Lưu engine + restart</button>
             </div>
             <div id="wakeThfHint" class="help-box" style="display:none;">
-                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Giọng THF</b> (không phải đổi ngôn ngữ robot).</p>
-                <p><em>Use Giọng THF for accent/wake sensitivity — not UI language.</em></p>
+                <p>THF đang bật — chỉnh model giọng / độ nhạy wake ở mục <b>Độ nhạy Hey Vector</b> (không phải đổi ngôn ngữ robot).</p>
+                <p><em>Use “Hey Vector sensitivity” for accent/wake sensitivity — not UI language.</em></p>
             </div>
         </div>
 
@@ -429,7 +433,7 @@
         </div>
 
         <div id="bot-locale" class="bot-section" style="display:none;">
-            <h3>🗣 <span data-i18n="sec.thf">Giọng THF</span></h3>
+            <h3>🗣 <span data-i18n="sec.thf">Độ nhạy từ đánh thức (Hey Vector)</span></h3>
             <div id="localeEngineLock" class="help-box" style="display:none;">
                 <p class="help-warn">Chỉ dùng với engine <b>Hey Vector (THF)</b>. Đang Picovoice — mục này bị khóa.</p>
             </div>
@@ -552,6 +556,17 @@
             </div>
         </div>
 
+        <div id="bot-battery" class="bot-section" style="display:none;">
+            <h3>🔋 <span data-i18n="sec.battery">Hiện pin trên trang</span></h3>
+            <div class="help-box">
+                <p data-i18n="battery.help" data-i18n-html="1">Khi bật, đầu trang hiện thanh pin và hỏi robot <b>mỗi 3 giây</b> (tạm ngưng khi tab bị ẩn). Mặc định tắt để robot không bị gọi liên tục. Chỉ lưu trên trình duyệt này.</p>
+            </div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="headerBatteryMode" value="off" checked onchange="setHeaderBattery(false)"> <span data-i18n="battery.off">Tắt — không kiểm tra pin</span></label>
+                <label><input type="radio" name="headerBatteryMode" value="on" onchange="setHeaderBattery(true)"> <span data-i18n="battery.on">Bật — hiện pin ở đầu trang</span></label>
+            </div>
+        </div>
+
         <div id="bot-music" class="bot-section" style="display:none;">
             <h3>🎵 <span data-i18n="sec.music">Nguồn nhạc (Xiaozhi)</span></h3>
             <div class="help-box">
@@ -604,10 +619,10 @@
     </div>
 
     <div id="xiaozhi" class="container mod-section tab-content">
-        <h2 data-i18n="xz.h2">💜 Xiaozhi AI</h2>
+        <h2 data-i18n="xz.h2">💜 Cấu hình AI giao tiếp</h2>
         <div class="help-box mode-switch-box">
             <strong data-i18n="xz.listen_title">Chế độ nghe lệnh</strong>
-            <p style="margin:8px 0 6px;" data-i18n="xz.listen_intro" data-i18n-html="1">Chọn bên dưới — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot khởi động lại cloud vài giây.</p>
+            <p style="margin:8px 0 6px;" data-i18n="xz.listen_intro" data-i18n-html="1">Chọn bên dưới — <b>đổi là áp dụng ngay</b> (không cần Lưu). Robot kết nối lại và tự chào sau vài giây.</p>
             <div class="mode-compare">
                 <div class="mode-card mode-on">
                     <h4>💜 Xiaozhi</h4>
@@ -643,6 +658,10 @@
                         <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
                     </label>
                     <label>
+                        <input type="radio" name="xzPreset" value="course" id="xzPresetCourse" onchange="xzOnPresetRadio()">
+                        <span data-i18n="xz.preset_course" data-i18n-html="1"><b>Dạy tiếng Anh (khóa học)</b> — Explorers, Young Innovators, Future Leaders, IELTS, TOEIC</span>
+                    </label>
+                    <label>
                         <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
                         <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
                     </label>
@@ -656,6 +675,37 @@
                     </div>
                     <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
                     <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
+                </div>
+
+                <div id="xzCourseFields" class="help-box xz-config-help" style="display:none;">
+                    <p data-i18n="xz.course_help" data-i18n-html="1">Robot thành <b>giáo viên tiếng Anh</b> theo khóa học. Chọn khóa, giọng, bài rồi bấm <b>Lưu &amp; áp dụng</b> — robot kết nối lại và tự chào.</p>
+                    <div id="xzCourseActive" class="xz-course-active" style="display:none;">
+                        <div class="xz-course-active-title" data-i18n="xz.course_active">📖 Đang học</div>
+                        <div id="xzCourseActiveLesson" class="xz-course-active-lesson"></div>
+                        <div id="xzCourseActiveMeta" class="xz-course-active-meta"></div>
+                    </div>
+                    <div class="xz-config-fields">
+                        <label for="xzCourseStudent" data-i18n="xz.course_student">Tên học sinh:</label>
+                        <input type="text" id="xzCourseStudent" maxlength="40" data-i18n-placeholder="xz.course_student_ph" placeholder="VD: Minh" oninput="xzCourseDirty = true">
+
+                        <label data-i18n="xz.course_course">Khóa học:</label>
+                        <div id="xzCourseList" class="bot-opt-list xz-chip-grid"></div>
+
+                        <label data-i18n="xz.course_voice">Giọng:</label>
+                        <div id="xzCourseVoices" class="bot-opt-list xz-chip-grid"></div>
+
+                        <label id="xzCourseBookLbl" data-i18n="xz.course_book">Sách:</label>
+                        <div id="xzCourseBooks" class="bot-opt-list xz-chip-grid"></div>
+
+                        <label data-i18n="xz.course_unit">Bài (unit):</label>
+                        <div id="xzCourseUnits" class="bot-opt-list xz-unit-grid"></div>
+                    </div>
+                    <p id="xzCourseUsing" class="wifi-hint" style="margin:8px 0;"></p>
+                    <div class="xz-config-actions" style="margin-top:10px;">
+                        <button type="button" id="xzCourseSaveBtn" onclick="xzSaveCourse()" data-i18n="xz.course_save">Lưu &amp; áp dụng</button>
+                    </div>
+                    <p class="xz-code-help" data-i18n="xz.course_save_help" style="margin-top:8px;">Đổi khóa / giọng: robot đổi MAC, kết nối lại và tự chào. Đổi bài / tên: dùng ngay ở câu sau.</p>
+                    <div id="xzCourseStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
                 </div>
 
                 <div id="xzCustomFields" style="display:none;">

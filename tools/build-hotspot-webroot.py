@@ -81,14 +81,14 @@ document = f"""<!doctype html>
         <nav class="nav-drawer-list">
             <a href="/wifi">📶 Bắt WiFi</a>
             <button type="button" data-target="#botsettings">⚙️ Cài đặt bot</button>
-            <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+            <button type="button" data-target="#xiaozhi">💜 AI giao tiếp</button>
             <button type="button" data-target="#control">🎮 Điều khiển</button>
         </nav>
     </aside>
     <nav class="site-nav portal-tabs" aria-label="Chức năng hotspot">
         <a href="/wifi">📶 Bắt WiFi</a>
         <button type="button" class="active" data-target="#botsettings">⚙️ Cài đặt bot</button>
-        <button type="button" data-target="#xiaozhi">💜 Xiaozhi</button>
+        <button type="button" data-target="#xiaozhi">💜 AI giao tiếp</button>
         <button type="button" data-target="#control">🎮 Điều khiển</button>
     </nav>
 

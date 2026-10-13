@@ -36,8 +36,16 @@ type XiaozhiCfg struct {
 	GameGoogleTTSVI bool `json:"game_google_tts_vi"`
 	// GameGoogleTTSLang is Google Translate TTS language (vi, en, zh-CN, …). Default vi.
 	GameGoogleTTSLang string `json:"game_google_tts_lang,omitempty"`
-	// IdentityMode: "vi_pool" = shared Vietnamese preset; "custom" = xiaozhi.me pair.
+	// IdentityMode: "vi_pool" = shared Vietnamese preset; "course" = English
+	// teaching course pool; "custom" = xiaozhi.me pair.
 	IdentityMode string `json:"identity_mode,omitempty"`
+	// English-teaching course (see xiaozhi_course.go). Maps keyed by course
+	// index; CourseUnit by "<course>.<book>" (unit 1-based).
+	CourseIdx   int            `json:"course_idx,omitempty"`
+	CourseVoice map[string]int `json:"course_voice,omitempty"`
+	CourseBook  map[string]int `json:"course_book,omitempty"`
+	CourseUnit  map[string]int `json:"course_unit,omitempty"`
+	StudentName string         `json:"student_name,omitempty"`
 	// ListenMode: "fixed" (default, ~6s mic) or "vad" (mic open until server STT).
 	ListenMode string `json:"listen_mode,omitempty"`
 	// MusicSource: "server" (default, Xiaozhi server music) or "youtube"
@@ -281,6 +289,17 @@ func applyXiaozhiViPool(cfg *XiaozhiCfg) {
 	cfg.Token = ""
 }
 
+// ensureXiaozhiViPool switches to vi_pool, drawing a pool MAC when the current
+// one belongs elsewhere (e.g. a course pool) — vic-cloud no longer restarts to
+// rotate it at boot.
+func ensureXiaozhiViPool(cfg *XiaozhiCfg) {
+	if macInXiaozhiViPool(cfg.DeviceID) && strings.TrimSpace(cfg.ClientID) != "" {
+		applyXiaozhiViPoolDefaults(cfg)
+		return
+	}
+	applyXiaozhiViPool(cfg)
+}
+
 func markXiaozhiSkipRotate() {
 	_ = os.WriteFile(xiaozhiSkipRotatePath, []byte("1"), 0644)
 }
@@ -396,18 +415,15 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	case vars.IsEndpoint(r, "save"):
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
+		before := cfg
 		ident := strings.ToLower(strings.TrimSpace(r.FormValue("identity_mode")))
 		if ident == "" {
 			ident = strings.ToLower(strings.TrimSpace(cfg.IdentityMode))
 		}
 		if ident == xiaozhiIdentityViPool || (ident == "" && isXiaozhiViPool(cfg)) {
-			applyXiaozhiViPoolDefaults(&cfg)
-			if strings.TrimSpace(cfg.DeviceID) == "" {
-				cfg.DeviceID = pickXiaozhiPoolMAC("")
-			}
-			if strings.TrimSpace(cfg.ClientID) == "" {
-				cfg.ClientID = genUUIDv4()
-			}
+			ensureXiaozhiViPool(&cfg)
+		} else if ident == xiaozhiIdentityCourse {
+			applyXiaozhiCourseIdentity(&cfg, false)
 		} else {
 			cfg.IdentityMode = xiaozhiIdentityCustom
 			if v := r.FormValue("ota_base_url"); v != "" {
@@ -442,10 +458,15 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
+		applied := false
+		if xiaozhiConnectionChanged(before, cfg) {
+			applied = applyVicCloudConfig()
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": "success",
-			"config": cfg,
+			"status":  "success",
+			"config":  cfg,
+			"applied": applied,
 		})
 		return
 
@@ -470,8 +491,12 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// Always auto-apply websocket url + token from OTA.
+		before := cfg
 		applyWebsocketFromOTAResult(&cfg, result)
 		saveXiaozhiCfg(cfg)
+		if xiaozhiConnectionChanged(before, cfg) {
+			applyVicCloudConfig()
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"code":      code,
@@ -492,12 +517,16 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, err.Error())
 			return
 		}
+		before := cfg
 		applyWebsocketFromOTAResult(&cfg, result)
 		saveXiaozhiCfg(cfg)
+		if xiaozhiConnectionChanged(before, cfg) {
+			applyVicCloudConfig()
+		}
 		vars.HTTPSuccess(w, r)
 
-	// set_enabled: Xiaozhi ↔ Vosk mode switch. Applies immediately and restarts
-	// vic-cloud so Vosk is loaded/unloaded correctly (boot-time InitVosk path).
+	// set_enabled: Xiaozhi ↔ Vosk mode / identity preset switch, applied by
+	// vic-cloud in place (Vosk is loaded lazily / unloaded there).
 	case vars.IsEndpoint(r, "set_enabled"):
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
@@ -522,8 +551,9 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		cfg.AutoApplyOTAWebsocket = true
 		if want {
 			if ident == xiaozhiIdentityViPool {
-				// Defaults only — boot rotates MAC/UUID (unless skip file).
-				applyXiaozhiViPoolDefaults(&cfg)
+				ensureXiaozhiViPool(&cfg)
+			} else if ident == xiaozhiIdentityCourse {
+				applyXiaozhiCourseIdentity(&cfg, identChanged)
 			} else {
 				cfg.IdentityMode = xiaozhiIdentityCustom
 				if cfg.DeviceID == "" {
@@ -541,15 +571,16 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
-		restarted := false
+		applied, restarted := false, false
 		if changed || identChanged {
-			restartVicCloud()
-			restarted = true
+			applied = applyVicCloudConfig()
+			restarted = !applied
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "success",
 			"config":    cfg,
+			"applied":   applied,
 			"restarted": restarted,
 		})
 		return
@@ -566,13 +597,68 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
-		markXiaozhiSkipRotate()
-		restartVicCloud()
+		applied := applyVicCloudConfig()
+		if !applied {
+			// Restart fallback: keep the MAC just picked instead of rotating at boot.
+			markXiaozhiSkipRotate()
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":    "success",
 			"config":    cfg,
-			"restarted": true,
+			"applied":   applied,
+			"restarted": !applied,
+		})
+		return
+
+	case vars.IsEndpoint(r, "courses"):
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"courses": xzCourses})
+		return
+
+	// set_course: English-teaching lesson (course, voice, book, unit, student
+	// name). Course/voice changes draw a new pool MAC and re-apply vic-cloud
+	// (robot greets); book/unit/name are read live by the MCP tools.
+	case vars.IsEndpoint(r, "set_course"):
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		var u xzCourseUpdate
+		intArg := func(name string) *int {
+			v := strings.TrimSpace(r.FormValue(name))
+			if v == "" {
+				return nil
+			}
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return nil
+			}
+			return &n
+		}
+		u.Idx, u.Voice, u.Book, u.Unit = intArg("course_idx"), intArg("voice"), intArg("book"), intArg("unit")
+		if _, ok := r.Form["student_name"]; ok {
+			name := r.FormValue("student_name")
+			u.StudentName = &name
+		}
+		before := cfg
+		identityChanged := applyXiaozhiCourseUpdate(&cfg, u)
+		if !identityChanged && xiaozhiConnectionChanged(before, cfg) {
+			identityChanged = true
+		}
+		// vic-cloud runs the OTA check for the new MAC when it applies.
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		applied := false
+		if identityChanged {
+			applied = applyVicCloudConfig()
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":           "success",
+			"config":           cfg,
+			"identity_changed": identityChanged,
+			"applied":          applied,
 		})
 		return
 

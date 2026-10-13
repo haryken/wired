@@ -1,4 +1,6 @@
-/* Header battery — Option 3 horizontal segmented bar. Same /api/mods/Battery/get poll. */
+/* Header battery — Option 3 horizontal segmented bar. Same /api/mods/Battery/get poll.
+ * Off by default (each poll is a gRPC BatteryState round trip on the robot);
+ * toggled per browser from Cài đặt bot → Pin. */
 (function () {
     'use strict';
 
@@ -10,6 +12,8 @@
     const tipEl = root.querySelector('.hbatt-tip');
     const SEGMENTS = segs.length || 6;
     const POLL_MS = 3000;
+    const STORE_KEY = 'wireos.headerBattery';
+    let timer = null;
 
     function batteryTone(percent) {
         if (percent < 20) return 'level-low';
@@ -77,6 +81,46 @@
         root.title = (data.summary || (percent + '%')).trim();
     }
 
-    refresh();
-    setInterval(refresh, POLL_MS);
+    function isEnabled() {
+        try {
+            return localStorage.getItem(STORE_KEY) === 'on';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function tick() {
+        if (!document.hidden) refresh();
+    }
+
+    function syncRadios(on) {
+        document.querySelectorAll('input[name="headerBatteryMode"]').forEach(function (el) {
+            el.checked = (el.value === (on ? 'on' : 'off'));
+        });
+    }
+
+    function apply(on) {
+        root.style.display = on ? '' : 'none';
+        if (on && !timer) {
+            refresh();
+            timer = setInterval(tick, POLL_MS);
+        } else if (!on && timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+        syncRadios(on);
+    }
+
+    window.setHeaderBattery = function (on) {
+        try {
+            localStorage.setItem(STORE_KEY, on ? 'on' : 'off');
+        } catch (e) { /* private mode: applies to this page only */ }
+        apply(!!on);
+    };
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && timer) refresh();
+    });
+
+    apply(isEnabled());
 })();

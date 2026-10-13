@@ -268,7 +268,7 @@ function showBotSection(id) {
     }
     if (id === 'bot-locale' && typeof isWakeThf === 'function' && !isWakeThf()) {
         if (typeof setJdocStatus === 'function') {
-            setJdocStatus('Giọng THF chỉ dùng khi engine = Hey Vector (THF).');
+            setJdocStatus('Độ nhạy Hey Vector chỉ dùng khi engine = Hey Vector (THF).');
         }
         return;
     }
