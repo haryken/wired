@@ -1342,21 +1342,28 @@
 
     <div id="news" class="container mod-section tab-content">
         <h2 data-i18n="news.h2">✨ Tính năng mới</h2>
-        <p class="bot-intro" data-i18n="news.intro">Những gì vừa thêm vào robot. Bấm nút trong từng mục để tới chỗ cài đặt.</p>
+        <p class="bot-intro" data-i18n="news.intro">Những gì vừa thêm vào robot, mới nhất ở trên. Bấm nút trong từng mục để tới chỗ cài đặt.</p>
         <div class="news-list">
-            <section class="news-card">
-                <h3 class="news-title">🎙 <span data-i18n="news.mic_title">Đổi cách bật micro</span></h3>
-                <p class="news-where" data-i18n="news.mic_where">Cài đặt bot → Mở micro</p>
+            <section class="news-card" data-added="2026-10-14">
+                <div class="news-head">
+                    <h3 class="news-title">📚 <span data-i18n="news.course_title">Robot dạy tiếng Anh</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
+                </div>
+                <p class="news-where" data-i18n="news.course_where">AI giao tiếp → Dạy tiếng Anh (khóa học)</p>
                 <ul class="news-points">
-                    <li data-i18n="news.mic_p1" data-i18n-html="1"><b>Cố định ~6 giây</b> (như cũ): đánh thức xong micro mở khoảng 6 giây rồi tự đóng.</li>
-                    <li data-i18n="news.mic_p2" data-i18n-html="1"><b>Theo giọng nói</b>: micro mở tới khi bạn <b>ngưng nói</b> — nói câu dài không bị cắt. Lưng sáng xanh lúc đang nghe; im lặng 10 giây thì tự tắt, nói liên tục tối đa 30 giây.</li>
-                    <li data-i18n="news.mic_p3">Áp dụng từ lần đánh thức tiếp theo, không cần khởi động lại. Chỉ dùng khi đang bật AI giao tiếp (Xiaozhi).</li>
+                    <li data-i18n="news.course_p1" data-i18n-html="1">5 khóa học: <b>Explorers, Young Innovators, Future Leaders, IELTS, TOEIC</b>.</li>
+                    <li data-i18n="news.course_p2">Mỗi khóa có 2 giọng (song ngữ Anh – Việt hoặc chỉ tiếng Anh), chọn sách, bài (unit) và tên học sinh.</li>
+                    <li data-i18n="news.course_p3" data-i18n-html="1">Bấm <b>Lưu &amp; áp dụng</b>: robot kết nối lại và <b>tự chào</b> sau vài giây — không cần khởi động lại.</li>
+                    <li data-i18n="news.course_p4">Khung "Đang học" cho biết robot đang dạy khóa / sách / bài nào.</li>
                 </ul>
-                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-listen')" data-i18n="news.mic_btn">Mở cài đặt micro</button>
+                <button type="button" class="news-go" onclick="newsGo('#xiaozhi', 'course')" data-i18n="news.course_btn">Mở cấu hình dạy tiếng Anh</button>
             </section>
 
-            <section class="news-card">
-                <h3 class="news-title">🔋 <span data-i18n="news.batt_title">Tắt hiện pin cho máy nhẹ hơn</span></h3>
+            <section class="news-card" data-added="2026-10-14">
+                <div class="news-head">
+                    <h3 class="news-title">🔋 <span data-i18n="news.batt_title">Tắt hiện pin cho máy nhẹ hơn</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
+                </div>
                 <p class="news-where" data-i18n="news.batt_where">Cài đặt bot → Pin</p>
                 <ul class="news-points">
                     <li data-i18n="news.batt_p1" data-i18n-html="1">Thanh pin ở đầu trang giờ <b>mặc định tắt</b> — trang không hỏi robot liên tục nữa, robot đỡ phải xử lý.</li>
@@ -1366,16 +1373,18 @@
                 <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-battery')" data-i18n="news.batt_btn">Mở cài đặt pin</button>
             </section>
 
-            <section class="news-card">
-                <h3 class="news-title">📚 <span data-i18n="news.course_title">Robot dạy tiếng Anh</span></h3>
-                <p class="news-where" data-i18n="news.course_where">AI giao tiếp → Dạy tiếng Anh (khóa học)</p>
+            <section class="news-card" data-added="2026-10-12">
+                <div class="news-head">
+                    <h3 class="news-title">🎙 <span data-i18n="news.mic_title">Đổi cách bật micro</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-12"></time></span>
+                </div>
+                <p class="news-where" data-i18n="news.mic_where">Cài đặt bot → Mở micro</p>
                 <ul class="news-points">
-                    <li data-i18n="news.course_p1" data-i18n-html="1">5 khóa học: <b>Explorers, Young Innovators, Future Leaders, IELTS, TOEIC</b>.</li>
-                    <li data-i18n="news.course_p2">Mỗi khóa có 2 giọng (song ngữ Anh – Việt hoặc chỉ tiếng Anh), chọn sách, bài (unit) và tên học sinh.</li>
-                    <li data-i18n="news.course_p3" data-i18n-html="1">Bấm <b>Lưu &amp; áp dụng</b>: robot kết nối lại và <b>tự chào</b> sau vài giây — không cần khởi động lại.</li>
-                    <li data-i18n="news.course_p4">Khung "Đang học" cho biết robot đang dạy khóa / sách / bài nào.</li>
+                    <li data-i18n="news.mic_p1" data-i18n-html="1"><b>Cố định ~6 giây</b> (như cũ): đánh thức xong micro mở khoảng 6 giây rồi tự đóng.</li>
+                    <li data-i18n="news.mic_p2" data-i18n-html="1"><b>Theo giọng nói</b>: micro mở tới khi bạn <b>ngưng nói</b> — nói câu dài không bị cắt. Lưng sáng xanh lúc đang nghe; im lặng 10 giây thì tự tắt, nói liên tục tối đa 30 giây.</li>
+                    <li data-i18n="news.mic_p3">Áp dụng từ lần đánh thức tiếp theo, không cần khởi động lại. Chỉ dùng khi đang bật AI giao tiếp (Xiaozhi).</li>
                 </ul>
-                <button type="button" class="news-go" onclick="newsGo('#xiaozhi', 'course')" data-i18n="news.course_btn">Mở cấu hình dạy tiếng Anh</button>
+                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-listen')" data-i18n="news.mic_btn">Mở cài đặt micro</button>
             </section>
         </div>
     </div>
