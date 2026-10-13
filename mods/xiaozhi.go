@@ -52,6 +52,8 @@ type XiaozhiCfg struct {
 	// (vic-cloud self.music.play streaming from MusicServerURL).
 	MusicSource    string `json:"music_source,omitempty"`
 	MusicServerURL string `json:"music_server_url,omitempty"`
+	// FaceGreet: vic-cloud greets ("xin chào" detect) when Vector sees a person arrive.
+	FaceGreet bool `json:"face_greet,omitempty"`
 }
 
 const (
@@ -304,8 +306,10 @@ func markXiaozhiSkipRotate() {
 	_ = os.WriteFile(xiaozhiSkipRotatePath, []byte("1"), 0644)
 }
 
+// vic-switchboard keeps its gateway datagram socket peered to the dead
+// vic-cloud, so the new gateway gets EPERM (no :443) until it restarts too.
 func restartVicCloud() {
-	_ = exec.Command("/bin/systemctl", "restart", "vic-cloud").Start()
+	_ = exec.Command("/bin/systemctl", "restart", "vic-cloud", "vic-switchboard").Start()
 }
 
 // buildOTABody builds the JSON body sent to /xiaozhi/ota/ (ESP32-style).
@@ -690,6 +694,28 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
 		cfg.ListenMode = mode
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	// set_face_greet: vic-cloud reads face_greet from disk when a person
+	// arrives, so no reload (which would itself greet) is needed.
+	case vars.IsEndpoint(r, "set_face_greet"):
+		v := strings.TrimSpace(r.FormValue("enabled"))
+		if v == "" {
+			vars.HTTPError(w, r, "enabled required")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.FaceGreet = v == "true" || v == "1" || v == "on"
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

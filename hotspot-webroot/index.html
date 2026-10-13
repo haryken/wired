@@ -128,6 +128,10 @@
                 <span class="bot-ico" aria-hidden="true">🔋</span>
                 <span data-i18n="bot.battery">Pin</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-facegreet')">
+                <span class="bot-ico" aria-hidden="true">👋</span>
+                <span data-i18n="bot.facegreet">Chào khi thấy người</span>
+            </button>
         </div>
         <hr class="smallhr">
 
@@ -567,6 +571,24 @@
             </div>
         </div>
 
+        <div id="bot-facegreet" class="bot-section" style="display:none;">
+            <h3>👋 <span data-i18n="sec.facegreet">Chào khi thấy người</span></h3>
+            <div class="help-box">
+                <p data-i18n="facegreet.help" data-i18n-html="1">Khi bật, lúc Vector <b>nhìn thấy có người xuất hiện</b>, robot tự gửi lời chào tới AI giao tiếp (giống lúc đổi cấu hình) rồi trò chuyện luôn.</p>
+                <ul>
+                    <li data-i18n="facegreet.rule_busy">Không chào khi đang trò chuyện, đang phát nhạc hoặc đang chơi game; trò chuyện xong phải đợi ít nhất 30 giây.</li>
+                    <li data-i18n="facegreet.rule_repeat">Hai lần chào cách nhau ít nhất 5 phút. Người ngồi trước robot liên tục sẽ không bị chào lại — chỉ chào khi người đó rời đi khoảng 1 phút rồi quay lại.</li>
+                    <li data-i18n="facegreet.rule_awake">Robot phải đang thức (mắt mở) mới thấy người; lúc ngủ trên đế sạc thì không chào.</li>
+                </ul>
+                <p class="help-warn" data-i18n="facegreet.warn">Chỉ có tác dụng khi đang bật AI giao tiếp. Bật/tắt có hiệu lực ngay, không cần khởi động lại.</p>
+            </div>
+            <div id="faceGreetStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="faceGreetMode" value="off" checked onchange="setFaceGreet(false)"> <span data-i18n="facegreet.off">Tắt — không tự chào</span></label>
+                <label><input type="radio" name="faceGreetMode" value="on" onchange="setFaceGreet(true)"> <span data-i18n="facegreet.on">Bật — tự chào khi thấy người</span></label>
+            </div>
+        </div>
+
         <div id="bot-music" class="bot-section" style="display:none;">
             <h3>🎵 <span data-i18n="sec.music">Nguồn nhạc (Xiaozhi)</span></h3>
             <div class="help-box">
@@ -919,6 +941,7 @@
     <script src="/portal-assets/js/petting.js"></script>
     <script src="/portal-assets/js/wifi-mode.js"></script>
     <script src="/portal-assets/js/listen-mode.js"></script>
+    <script src="/portal-assets/js/face-greet.js"></script>
     <script src="/portal-assets/js/music-settings.js"></script>
 </body>
 </html>

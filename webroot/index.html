@@ -179,6 +179,10 @@
                 <span class="bot-ico" aria-hidden="true">🔋</span>
                 <span data-i18n="bot.battery">Pin</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-facegreet')">
+                <span class="bot-ico" aria-hidden="true">👋</span>
+                <span data-i18n="bot.facegreet">Chào khi thấy người</span>
+            </button>
         </div>
         <hr class="smallhr">
 
@@ -615,6 +619,24 @@
             <div class="bot-opt-list">
                 <label><input type="radio" name="headerBatteryMode" value="off" checked onchange="setHeaderBattery(false)"> <span data-i18n="battery.off">Tắt — không kiểm tra pin</span></label>
                 <label><input type="radio" name="headerBatteryMode" value="on" onchange="setHeaderBattery(true)"> <span data-i18n="battery.on">Bật — hiện pin ở đầu trang</span></label>
+            </div>
+        </div>
+
+        <div id="bot-facegreet" class="bot-section" style="display:none;">
+            <h3>👋 <span data-i18n="sec.facegreet">Chào khi thấy người</span></h3>
+            <div class="help-box">
+                <p data-i18n="facegreet.help" data-i18n-html="1">Khi bật, lúc Vector <b>nhìn thấy có người xuất hiện</b>, robot tự gửi lời chào tới AI giao tiếp (giống lúc đổi cấu hình) rồi trò chuyện luôn.</p>
+                <ul>
+                    <li data-i18n="facegreet.rule_busy">Không chào khi đang trò chuyện, đang phát nhạc hoặc đang chơi game; trò chuyện xong phải đợi ít nhất 30 giây.</li>
+                    <li data-i18n="facegreet.rule_repeat">Hai lần chào cách nhau ít nhất 5 phút. Người ngồi trước robot liên tục sẽ không bị chào lại — chỉ chào khi người đó rời đi khoảng 1 phút rồi quay lại.</li>
+                    <li data-i18n="facegreet.rule_awake">Robot phải đang thức (mắt mở) mới thấy người; lúc ngủ trên đế sạc thì không chào.</li>
+                </ul>
+                <p class="help-warn" data-i18n="facegreet.warn">Chỉ có tác dụng khi đang bật AI giao tiếp. Bật/tắt có hiệu lực ngay, không cần khởi động lại.</p>
+            </div>
+            <div id="faceGreetStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="faceGreetMode" value="off" checked onchange="setFaceGreet(false)"> <span data-i18n="facegreet.off">Tắt — không tự chào</span></label>
+                <label><input type="radio" name="faceGreetMode" value="on" onchange="setFaceGreet(true)"> <span data-i18n="facegreet.on">Bật — tự chào khi thấy người</span></label>
             </div>
         </div>
 
@@ -1346,6 +1368,20 @@
         <div class="news-list">
             <section class="news-card" data-added="2026-10-14">
                 <div class="news-head">
+                    <h3 class="news-title">👋 <span data-i18n="news.face_title">Tự chào khi thấy người</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
+                </div>
+                <p class="news-where" data-i18n="news.face_where">Cài đặt bot → Chào khi thấy người</p>
+                <ul class="news-points">
+                    <li data-i18n="news.face_p1" data-i18n-html="1">Vector <b>nhìn thấy bạn</b> là tự chào và bắt chuyện qua AI giao tiếp — không cần gọi "Hey Vector".</li>
+                    <li data-i18n="news.face_p2">Không chào chen ngang khi đang trò chuyện, phát nhạc hay chơi game; mỗi lần chào cách nhau ít nhất 5 phút.</li>
+                    <li data-i18n="news.face_p3">Mặc định tắt — bật trong Cài đặt bot khi muốn dùng.</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-facegreet')" data-i18n="news.face_btn">Mở cài đặt chào</button>
+            </section>
+
+            <section class="news-card" data-added="2026-10-14">
+                <div class="news-head">
                     <h3 class="news-title">📚 <span data-i18n="news.course_title">Robot dạy tiếng Anh</span></h3>
                     <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-14"></time></span>
                 </div>
@@ -1371,6 +1407,21 @@
                     <li data-i18n="news.batt_p3">Lựa chọn lưu riêng trên từng trình duyệt / điện thoại.</li>
                 </ul>
                 <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-battery')" data-i18n="news.batt_btn">Mở cài đặt pin</button>
+            </section>
+
+            <section class="news-card" data-added="2026-10-12">
+                <div class="news-head">
+                    <h3 class="news-title">🎵 <span data-i18n="news.music_title">Phát nhạc Việt từ YouTube</span></h3>
+                    <span class="news-meta"><span class="news-new" hidden data-i18n="news.badge_new">Mới</span><time class="news-date" datetime="2026-10-12"></time></span>
+                </div>
+                <p class="news-where" data-i18n="news.music_where">Cài đặt bot → Nhạc → Nhạc YouTube</p>
+                <ul class="news-points">
+                    <li data-i18n="news.music_p1" data-i18n-html="1">Bảo robot <b>"mở bài …"</b> (ví dụ "mở bài Nơi này có anh") — robot tự tìm bài trên YouTube qua server nhạc riêng và phát ngay trên loa.</li>
+                    <li data-i18n="news.music_p2">Tìm được thì robot đọc tên bài rồi phát; không tìm được thì robot báo và hỏi bạn có muốn thử bài khác không.</li>
+                    <li data-i18n="news.music_p3" data-i18n-html="1">Phát hết bài robot tự quay lại trò chuyện. Nói <b>"Hey Vector"</b> khi đang phát để dừng nhạc.</li>
+                    <li data-i18n="news.music_p4">Có nút "Thử server" để kiểm tra server nhạc; mặc định vẫn là nhạc của máy chủ Xiaozhi.</li>
+                </ul>
+                <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-music')" data-i18n="news.music_btn">Mở cài đặt nhạc</button>
             </section>
 
             <section class="news-card" data-added="2026-10-12">
@@ -1422,6 +1473,7 @@
     <script src="js/main.js"></script>
     <script src="js/battery.js"></script>
     <script src="js/whats-new.js"></script>
+    <script src="js/face-greet.js"></script>
     <script src="js/freq.js"></script>
     <script src="js/wake-engine.js"></script>
     <script src="js/wakeword-pv.js"></script>

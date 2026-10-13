@@ -297,6 +297,7 @@ function showBotSection(id) {
     if (id === 'bot-wifi-setup' && typeof loadWifiSetupMode === 'function') loadWifiSetupMode();
     if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
     if (id === 'bot-listen' && typeof loadListenMode === 'function') loadListenMode();
+    if (id === 'bot-facegreet' && typeof loadFaceGreet === 'function') loadFaceGreet();
     if (id === 'bot-music' && typeof loadMusicSettings === 'function') loadMusicSettings();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {
         GetCurrent('FreqChange').then((data) => {

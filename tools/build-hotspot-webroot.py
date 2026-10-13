@@ -41,6 +41,7 @@ scripts = [
     "petting.js",
     "wifi-mode.js",
     "listen-mode.js",
+    "face-greet.js",
     "music-settings.js",
 ]
 script_tags = "\n".join(
