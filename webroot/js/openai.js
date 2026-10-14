@@ -468,7 +468,7 @@ async function oaiSave() {
         }
         oaiApply(j.config);
         let msg = j.applied
-            ? oaiT('oai.saved_live', 'Đã lưu — robot kết nối lại và sẽ tự chào.')
+            ? oaiT('oai.saved_live', 'Đã lưu — áp dụng từ lượt nói tiếp theo (không ngắt cuộc trò chuyện đang diễn ra).')
             : oaiT('oai.saved', 'Đã lưu.');
         if (oaiLayout === 'gemini') {
             const noKey = !j.config.has_gemini_live_key;

@@ -56,6 +56,8 @@ type XiaozhiCfg struct {
 	FaceGreet bool `json:"face_greet,omitempty"`
 	// FaceGreetEveryMin: minimum minutes between face greetings; unset = 5, 0 = no wait.
 	FaceGreetEveryMin *int `json:"face_greet_every_min,omitempty"`
+	// TTSGainPct boosts every AI voice in vic-cloud (100 = as received).
+	TTSGainPct int `json:"tts_gain_pct,omitempty"`
 	// Backend: "" / "xiaozhi" (default) or "openai" (settings in openai.json).
 	Backend string `json:"backend,omitempty"`
 }
@@ -65,6 +67,9 @@ const (
 	xiaozhiListenVAD   = "vad"
 
 	faceGreetEveryMaxMin = 240
+
+	ttsGainMinPct = 100
+	ttsGainMaxPct = 1000
 
 	xiaozhiBackendXiaozhi = "xiaozhi"
 	xiaozhiBackendOpenAI  = "openai"
@@ -817,6 +822,27 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "success",
 			"config": cfg,
+		})
+		return
+
+	// set_tts_gain: vic-cloud reloads xiaozhi.json at the next turn.
+	case vars.IsEndpoint(r, "set_tts_gain"):
+		pct, err := strconv.Atoi(strings.TrimSpace(r.FormValue("pct")))
+		if err != nil || pct < ttsGainMinPct || pct > ttsGainMaxPct {
+			vars.HTTPError(w, r, fmt.Sprintf("pct must be %d-%d", ttsGainMinPct, ttsGainMaxPct))
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.TTSGainPct = pct
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": xiaozhiCfgView(cfg),
 		})
 		return
 

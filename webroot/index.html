@@ -193,8 +193,11 @@
                 <ol>
                     <li data-i18n="vol.help1">Chọn mức âm lượng — thay đổi áp dụng ngay.</li>
                     <li data-i18n="vol.help2">Tắt (Mute) = robot không phát tiếng.</li>
+                    <li data-i18n="vol.help3">Giọng AI chỉnh riêng ở phần dưới — âm lượng robot không làm giọng AI to hay nhỏ đi.</li>
                 </ol>
             </div>
+            <div class="vol-part-title" data-i18n="vol.robot_title">🤖 Âm thanh robot</div>
+            <p class="vol-part-help" data-i18n="vol.robot_help">Tiếng động, biểu cảm, tiếng “ting” và các âm thanh có sẵn của robot.</p>
             <div class="bot-opt-list">
                 <label><input type="radio" name="vol" value="0" onchange="setMasterVolumeVal(0)"> <span data-i18n="vol.mute">Tắt</span></label>
                 <label><input type="radio" name="vol" value="1" onchange="setMasterVolumeVal(1)"> <span data-i18n="vol.low">Thấp</span></label>
@@ -203,6 +206,10 @@
                 <label><input type="radio" name="vol" value="4" onchange="setMasterVolumeVal(4)"> <span data-i18n="vol.medhigh">Trung cao</span></label>
                 <label><input type="radio" name="vol" value="5" onchange="setMasterVolumeVal(5)"> <span data-i18n="vol.high">Cao</span></label>
             </div>
+            <div class="vol-part-title" data-i18n="vol.ai_title">💬 Giọng AI</div>
+            <p class="vol-part-help" data-i18n="vol.ai_help">Giọng nói khi trò chuyện với AI (Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime, Grok Voice). Áp dụng từ lần gọi “Hey Vector” tiếp theo; ở mức cao, các đoạn quá to được hạ êm để không vỡ tiếng.</p>
+            <div id="volGainChips" class="face-greet-chips vol-gain-chips" role="radiogroup"></div>
+            <div id="volGainStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
         </div>
 
         <div id="bot-eyes" class="bot-section" style="display:none;">
@@ -791,6 +798,12 @@
             </div>
         </div>
         <div id="xiaozhiStatus" class="xz-status" style="display:none;"></div>
+        <div id="xzGainBox" class="face-greet-every xz-gain-box">
+            <div class="face-greet-every-title" data-i18n="xz.gain_title">🔊 Âm lượng giọng AI</div>
+            <p class="xz-gain-help" data-i18n="xz.gain_help">Làm giọng nói của mọi chế độ AI to hơn. Áp dụng từ lần gọi “Hey Vector” tiếp theo; ở mức cao, các đoạn quá to được hạ êm để không vỡ tiếng.</p>
+            <div id="xzGainChips" class="face-greet-chips" role="radiogroup"></div>
+            <div id="xzGainStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
+        </div>
 
         <div id="xzConfigBlock" class="xz-config-block" style="display:none;">
             <h3 class="xz-config-title" data-i18n="xz.cfg_title">Cấu hình Xiaozhi</h3>

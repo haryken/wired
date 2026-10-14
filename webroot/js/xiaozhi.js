@@ -49,6 +49,74 @@ function xzT(key, fallback) {
     return (typeof t === 'function') ? t(key, fallback) : fallback;
 }
 
+const XZ_GAIN_CHOICES = [100, 130, 160, 200, 250, 300, 400, 500, 600, 800, 1000];
+// Chip row id -> its status line; both rows edit the same tts_gain_pct.
+const XZ_GAIN_BOXES = { xzGainChips: 'xzGainStatus', volGainChips: 'volGainStatus' };
+
+function xzRenderGain(pct) {
+    const cur = pct > 0 ? pct : 100;
+    const choices = XZ_GAIN_CHOICES.includes(cur)
+        ? XZ_GAIN_CHOICES
+        : XZ_GAIN_CHOICES.concat([cur]).sort((a, b) => a - b);
+    Object.entries(XZ_GAIN_BOXES).forEach(([boxId, statusId]) => {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        box.innerHTML = '';
+        choices.forEach((n) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'face-greet-chip' + (n === cur ? ' selected' : '');
+            chip.setAttribute('role', 'radio');
+            chip.setAttribute('aria-checked', n === cur ? 'true' : 'false');
+            chip.textContent = n + '%';
+            if (n === 100) {
+                const tag = document.createElement('span');
+                tag.className = 'face-greet-chip-tag';
+                tag.textContent = xzT('xz.gain_orig', 'gốc');
+                chip.appendChild(tag);
+            }
+            chip.onclick = () => {
+                if (n !== cur) xzSetGain(n, statusId);
+            };
+            box.appendChild(chip);
+        });
+    });
+}
+
+function xzGainStatus(statusId, msg, isErr) {
+    Object.values(XZ_GAIN_BOXES).forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const show = id === statusId && !!msg;
+        el.style.display = show ? 'block' : 'none';
+        el.textContent = show ? msg : '';
+        el.classList.toggle('error', show && !!isErr);
+    });
+}
+
+async function xzLoadGain() {
+    try {
+        const r = await fetch('/api/mods/Xiaozhi/get', { cache: 'no-store' });
+        if (!r.ok) return;
+        const cfg = await r.json();
+        xzRenderGain(cfg.tts_gain_pct);
+    } catch (e) {
+        // Chips keep their last state; the AI tab reloads the full config.
+    }
+}
+
+async function xzSetGain(pct, statusId) {
+    try {
+        const r = await fetch('/api/mods/Xiaozhi/set_tts_gain?' + new URLSearchParams({ pct: String(pct) }).toString(), { method: 'POST' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
+        xzRenderGain(j.config ? j.config.tts_gain_pct : pct);
+        xzGainStatus(statusId, xzT('xz.gain_saved', 'Đã lưu {n}% — áp dụng từ lần gọi “Hey Vector” tiếp theo.').replace('{n}', pct), false);
+    } catch (e) {
+        xzGainStatus(statusId, xzT('xz.gain_err', 'Lỗi lưu âm lượng:') + ' ' + (e.message || e), true);
+    }
+}
+
 function xzSelectedPreset() {
     const custom = document.getElementById('xzPresetCustom');
     if (custom && custom.checked) return 'custom';
@@ -87,6 +155,8 @@ function xzShowConfigForMode(mode) {
         card.setAttribute('aria-checked', on ? 'true' : 'false');
     });
     if (typeof showVoiceMode === 'function') showVoiceMode(mode === 'vosk' ? 'vosk' : 'xz');
+    const gainBox = document.getElementById('xzGainBox');
+    if (gainBox) gainBox.style.display = mode === 'vosk' ? 'none' : '';
     if (mode === 'xiaozhi') xzShowPresetUI(xzSelectedPreset());
     if (direct && typeof oaiSetLayout === 'function') oaiSetLayout(mode);
     if (direct && typeof oaiLoad === 'function') oaiLoad();
@@ -99,6 +169,7 @@ function xzSelectedConvMode() {
 
 function xzApplyCfg(cfg) {
     if (!cfg) return;
+    xzRenderGain(cfg.tts_gain_pct);
     const ota = document.getElementById('xzOTABaseURL');
     const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');

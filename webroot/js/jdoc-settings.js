@@ -287,7 +287,10 @@ function showBotSection(id) {
     });
     if (id === 'bot-faces') facesRefresh();
     if (id === 'bot-photos' && typeof photosRefresh === 'function') photosRefresh();
-    if (id === 'bot-volume') getMasterVolume();
+    if (id === 'bot-volume') {
+        getMasterVolume();
+        if (typeof xzLoadGain === 'function') xzLoadGain();
+    }
     if (id === 'bot-eyes') getEyePreset();
     if (id === 'bot-sens' && typeof setSensitivity === 'function') setSensitivity();
     if (id === 'bot-locale' && typeof loadWakeLocale === 'function') loadWakeLocale();

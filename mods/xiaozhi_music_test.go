@@ -107,3 +107,21 @@ func TestXiaozhiSetFaceGreetInterval(t *testing.T) {
 		t.Fatalf("no-wait (0) not saved: %s", data)
 	}
 }
+
+func TestXiaozhiSetTTSGain(t *testing.T) {
+	withTempXiaozhiPaths(t)
+	if r := postXiaozhi(t, "set_tts_gain", url.Values{"pct": {"160"}}); r["status"] != "success" {
+		t.Fatalf("resp %v", r)
+	}
+	if cfg, _ := loadXiaozhiCfg(); cfg.TTSGainPct != 160 {
+		t.Fatalf("tts_gain_pct = %d", cfg.TTSGainPct)
+	}
+	for _, bad := range []string{"", "99", "1001", "x"} {
+		if r := postXiaozhi(t, "set_tts_gain", url.Values{"pct": {bad}}); r["status"] == "success" {
+			t.Fatalf("pct=%q accepted", bad)
+		}
+	}
+	if cfg, _ := loadXiaozhiCfg(); cfg.TTSGainPct != 160 {
+		t.Fatalf("rejected value changed gain to %d", cfg.TTSGainPct)
+	}
+}

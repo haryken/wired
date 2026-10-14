@@ -894,6 +894,11 @@ input.xz-readonly:disabled {
     white-space: pre-wrap;
 }
 
+.xz-status.error {
+    border-color: #a33;
+    color: #f99;
+}
+
 .xz-config-block {
     display: flex;
     flex-direction: column;
@@ -1044,6 +1049,36 @@ input.xz-readonly:disabled {
 .face-greet-chip.selected .face-greet-chip-tag {
     background: #22d3ee;
     color: #0b1f24;
+}
+
+.vol-part-title {
+    margin: 18px 0 4px;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.vol-part-help {
+    margin: 0 0 10px;
+    color: #a3a3a3;
+    font-size: 13px;
+}
+
+.vol-gain-chips {
+    justify-content: flex-start;
+}
+
+.xz-gain-box {
+    margin: 12px 0 4px;
+}
+
+.xz-gain-box .face-greet-chips {
+    justify-content: center;
+}
+
+.xz-gain-help {
+    margin: 0 0 10px;
+    color: #a3a3a3;
+    font-size: 13px;
 }
 
 .xz-advanced {
