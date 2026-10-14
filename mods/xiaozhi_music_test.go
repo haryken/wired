@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -79,5 +81,29 @@ func TestMusicServerProbe(t *testing.T) {
 	res = testMusicServer(srv.URL, "lac troi")
 	if !res.SearchOK || res.StreamOK || res.Error != "stream HTTP 500: No supported JavaScript runtime" {
 		t.Fatalf("stream 500: %+v", res)
+	}
+}
+
+func TestXiaozhiSetFaceGreetInterval(t *testing.T) {
+	withTempXiaozhiPaths(t)
+	postXiaozhi(t, "set_face_greet", url.Values{"enabled": {"true"}})
+	resp := postXiaozhi(t, "set_face_greet", url.Values{"every_min": {"15"}})
+	cfg, _ := loadXiaozhiCfg()
+	if resp["status"] != "success" || !cfg.FaceGreet || cfg.FaceGreetEveryMin == nil || *cfg.FaceGreetEveryMin != 15 {
+		t.Fatalf("resp %v cfg face_greet=%v every=%v", resp, cfg.FaceGreet, cfg.FaceGreetEveryMin)
+	}
+	for _, bad := range []string{"-3", "abc", "241"} {
+		if r := postXiaozhi(t, "set_face_greet", url.Values{"every_min": {bad}}); r["status"] == "success" {
+			t.Fatalf("every_min=%q accepted", bad)
+		}
+	}
+	if cfg, _ := loadXiaozhiCfg(); *cfg.FaceGreetEveryMin != 15 {
+		t.Fatalf("rejected values changed the interval to %d", *cfg.FaceGreetEveryMin)
+	}
+	postXiaozhi(t, "set_face_greet", url.Values{"every_min": {"0"}})
+	data, _ := os.ReadFile(xiaozhiConfigPath)
+	if cfg, _ := loadXiaozhiCfg(); cfg.FaceGreetEveryMin == nil || *cfg.FaceGreetEveryMin != 0 ||
+		!strings.Contains(string(data), `"face_greet_every_min"`) {
+		t.Fatalf("no-wait (0) not saved: %s", data)
 	}
 }

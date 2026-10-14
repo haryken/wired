@@ -46,7 +46,7 @@ type XiaozhiCfg struct {
 	CourseBook  map[string]int `json:"course_book,omitempty"`
 	CourseUnit  map[string]int `json:"course_unit,omitempty"`
 	StudentName string         `json:"student_name,omitempty"`
-	// ListenMode: "fixed" (default, ~6s mic) or "vad" (mic open until server STT).
+	// ListenMode: "vad" (default, also when empty: mic open until server STT) or "fixed" (~6s mic).
 	ListenMode string `json:"listen_mode,omitempty"`
 	// MusicSource: "server" (default, Xiaozhi server music) or "youtube"
 	// (vic-cloud self.music.play streaming from MusicServerURL).
@@ -54,6 +54,8 @@ type XiaozhiCfg struct {
 	MusicServerURL string `json:"music_server_url,omitempty"`
 	// FaceGreet: vic-cloud greets ("xin chào" detect) when Vector sees a person arrive.
 	FaceGreet bool `json:"face_greet,omitempty"`
+	// FaceGreetEveryMin: minimum minutes between face greetings; unset = 5, 0 = no wait.
+	FaceGreetEveryMin *int `json:"face_greet_every_min,omitempty"`
 	// Backend: "" / "xiaozhi" (default) or "openai" (settings in openai.json).
 	Backend string `json:"backend,omitempty"`
 }
@@ -61,6 +63,8 @@ type XiaozhiCfg struct {
 const (
 	xiaozhiListenFixed = "fixed"
 	xiaozhiListenVAD   = "vad"
+
+	faceGreetEveryMaxMin = 240
 
 	xiaozhiBackendXiaozhi = "xiaozhi"
 	xiaozhiBackendOpenAI  = "openai"
@@ -94,7 +98,7 @@ var xiaozhiListenVADFlagPath = "/run/vic-cloud/xiaozhi-listen-vad"
 // waiting for vic-cloud to reload xiaozhi.json.
 // The direct-API backends always end the listen on end-of-speech.
 func syncXiaozhiListenVADFlag(cfg XiaozhiCfg) {
-	if cfg.Enabled && (cfg.ListenMode == xiaozhiListenVAD || isDirectAPIBackend(cfg.Backend)) {
+	if cfg.Enabled && (cfg.ListenMode != xiaozhiListenFixed || isDirectAPIBackend(cfg.Backend)) {
 		if err := os.MkdirAll(filepath.Dir(xiaozhiListenVADFlagPath), 0775); err == nil {
 			_ = os.WriteFile(xiaozhiListenVADFlagPath, []byte("1"), 0664)
 		}
@@ -490,14 +494,17 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 				cfg.OTABaseURL = normalizeOTABaseURL(v)
 			}
 			if v := strings.TrimSpace(r.FormValue("device_id")); v == "" {
+				// A cleared MAC means a fresh identity: the server blocks a reused client ID.
 				cfg.DeviceID = genRandomMAC()
+				cfg.ClientID = genUUIDv4()
+				cfg.Token = ""
 			} else {
 				cfg.DeviceID = v
-			}
-			if v := strings.TrimSpace(r.FormValue("client_id")); v == "" {
-				cfg.ClientID = genUUIDv4()
-			} else {
-				cfg.ClientID = v
+				if c := strings.TrimSpace(r.FormValue("client_id")); c == "" {
+					cfg.ClientID = genUUIDv4()
+				} else {
+					cfg.ClientID = c
+				}
 			}
 		}
 		if v := r.FormValue("enabled"); v != "" {
@@ -784,13 +791,24 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	// arrives, so no reload (which would itself greet) is needed.
 	case vars.IsEndpoint(r, "set_face_greet"):
 		v := strings.TrimSpace(r.FormValue("enabled"))
-		if v == "" {
-			vars.HTTPError(w, r, "enabled required")
+		every := strings.TrimSpace(r.FormValue("every_min"))
+		if v == "" && every == "" {
+			vars.HTTPError(w, r, "enabled or every_min required")
 			return
 		}
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
-		cfg.FaceGreet = v == "true" || v == "1" || v == "on"
+		if v != "" {
+			cfg.FaceGreet = v == "true" || v == "1" || v == "on"
+		}
+		if every != "" {
+			n, err := strconv.Atoi(every)
+			if err != nil || n < 0 || n > faceGreetEveryMaxMin {
+				vars.HTTPError(w, r, fmt.Sprintf("every_min must be 0-%d", faceGreetEveryMaxMin))
+				return
+			}
+			cfg.FaceGreetEveryMin = &n
+		}
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

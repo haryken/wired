@@ -149,3 +149,17 @@ func TestXiaozhiConnectionChanged(t *testing.T) {
 		t.Fatal("device id change missed")
 	}
 }
+
+func TestApplyXiaozhiViPoolRenewsIdentity(t *testing.T) {
+	cfg := XiaozhiCfg{DeviceID: xiaozhiViPoolMACs[0], ClientID: "old-client", Token: "tok"}
+	applyXiaozhiViPool(&cfg)
+	if cfg.DeviceID == xiaozhiViPoolMACs[0] || !macInXiaozhiViPool(cfg.DeviceID) {
+		t.Fatalf("MAC = %q, want another pool MAC", cfg.DeviceID)
+	}
+	if cfg.ClientID == "" || cfg.ClientID == "old-client" {
+		t.Fatalf("client ID = %q, want a fresh one", cfg.ClientID)
+	}
+	if cfg.Token != "" {
+		t.Fatalf("token = %q, want cleared", cfg.Token)
+	}
+}

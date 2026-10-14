@@ -90,3 +90,15 @@ func TestXiaozhiSaveKeepsListenMode(t *testing.T) {
 		t.Fatalf("Xiaozhi save dropped listen_mode: %q flag %v", cfg.ListenMode, flagExists())
 	}
 }
+
+func TestXiaozhiListenModeDefaultsToVAD(t *testing.T) {
+	withTempXiaozhiPaths(t)
+	syncXiaozhiListenVADFlag(XiaozhiCfg{Enabled: true})
+	if !flagExists() {
+		t.Fatal("empty listen_mode must default to end-of-speech (vad)")
+	}
+	syncXiaozhiListenVADFlag(XiaozhiCfg{Enabled: true, ListenMode: xiaozhiListenFixed})
+	if flagExists() {
+		t.Fatal("explicit fixed must keep the ~6s window")
+	}
+}

@@ -607,7 +607,7 @@
             <div id="listenModeStatus" class="faces-status" style="display:none;"></div>
             <div class="bot-opt-list">
                 <label><input type="radio" name="listenMode" value="fixed" onchange="setListenMode('fixed')"> Cố định ~6 giây (như cũ)</label>
-                <label><input type="radio" name="listenMode" value="vad" onchange="setListenMode('vad')"> Theo giọng nói (gửi khi ngưng nói)</label>
+                <label><input type="radio" name="listenMode" value="vad" onchange="setListenMode('vad')" checked> Theo giọng nói (gửi khi ngưng nói) — mặc định</label>
             </div>
         </div>
 
@@ -628,15 +628,19 @@
                 <p data-i18n="facegreet.help" data-i18n-html="1">Khi bật, lúc Vector <b>nhìn thấy có người xuất hiện</b>, robot tự gửi lời chào tới AI giao tiếp (giống lúc đổi cấu hình) rồi trò chuyện luôn.</p>
                 <ul>
                     <li data-i18n="facegreet.rule_busy">Không chào khi đang trò chuyện, đang phát nhạc hoặc đang chơi game; trò chuyện xong phải đợi ít nhất 30 giây.</li>
-                    <li data-i18n="facegreet.rule_repeat">Hai lần chào cách nhau ít nhất 5 phút. Người ngồi trước robot liên tục sẽ không bị chào lại — chỉ chào khi người đó rời đi khoảng 1 phút rồi quay lại.</li>
+                    <li data-i18n="facegreet.rule_repeat">Hai lần chào cách nhau ít nhất theo mốc bạn chọn bên dưới (mặc định 5 phút; chọn “Không chờ” thì cứ đang không trò chuyện là chào). Người ngồi trước robot liên tục sẽ không bị chào lại — chỉ chào khi người đó rời đi khoảng 1 phút rồi quay lại.</li>
                     <li data-i18n="facegreet.rule_awake">Robot phải đang thức (mắt mở) mới thấy người; lúc ngủ trên đế sạc thì không chào.</li>
                 </ul>
-                <p class="help-warn" data-i18n="facegreet.warn">Chỉ có tác dụng khi đang bật AI giao tiếp. Bật/tắt có hiệu lực ngay, không cần khởi động lại.</p>
+                <p class="help-warn" data-i18n="facegreet.warn">Có tác dụng với mọi chế độ AI giao tiếp (Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime, Grok Voice); chế độ Vosk thì không chào. Thay đổi có hiệu lực ngay, không cần khởi động lại.</p>
             </div>
             <div id="faceGreetStatus" class="faces-status" style="display:none;"></div>
             <div class="bot-opt-list">
                 <label><input type="radio" name="faceGreetMode" value="off" checked onchange="setFaceGreet(false)"> <span data-i18n="facegreet.off">Tắt — không tự chào</span></label>
                 <label><input type="radio" name="faceGreetMode" value="on" onchange="setFaceGreet(true)"> <span data-i18n="facegreet.on">Bật — tự chào khi thấy người</span></label>
+            </div>
+            <div class="face-greet-every">
+                <div class="face-greet-every-title" data-i18n="facegreet.every_lbl">Khoảng cách giữa hai lần chào:</div>
+                <div id="faceGreetEvery" class="face-greet-chips" role="radiogroup"></div>
             </div>
         </div>
 
@@ -794,7 +798,7 @@
                 <div class="bot-opt-list xz-mode-radios" style="margin:0 0 12px;">
                     <label>
                         <input type="radio" name="xzPreset" value="vi_pool" id="xzPresetVi" checked onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b> — OTA tenclass, MAC trong nhóm 20, client ID tự tạo</span>
+                        <span data-i18n="xz.preset_vi" data-i18n-html="1"><b>Cấu hình có sẵn (tiếng Việt)</b></span>
                     </label>
                     <label>
                         <input type="radio" name="xzPreset" value="course" id="xzPresetCourse" onchange="xzOnPresetRadio()">
@@ -802,17 +806,16 @@
                     </label>
                     <label>
                         <input type="radio" name="xzPreset" value="custom" id="xzPresetCustom" onchange="xzOnPresetRadio()">
-                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tùy chỉnh</b> — ghép agent xiaozhi.me của bạn</span>
+                        <span data-i18n="xz.preset_custom" data-i18n-html="1"><b>Tự cấu hình AI của riêng bạn</b> — trên xiaozhi.me</span>
                     </label>
                 </div>
 
                 <div id="xzPoolHelp" class="help-box xz-config-help">
-                    <p data-i18n="xz.pool_help" data-i18n-html="1">Chọn cái này rồi <b>đánh thức robot</b> (Hey Vector) là nói chuyện được luôn — không cần mã 6 số.</p>
-                    <p id="xzPoolUsing" class="wifi-hint" style="margin:8px 0;"></p>
+                    <p id="xzPoolUsing" class="wifi-hint" style="margin:0 0 8px;"></p>
                     <div class="xz-config-actions" style="margin-top:10px;">
                         <button type="button" id="xzRenewBtn" onclick="xzRenewPool()" data-i18n="xz.pool_renew">Làm mới MAC</button>
                     </div>
-                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC khác trong nhóm 20 nếu slot hết hạn / lỗi.</p>
+                    <p class="xz-code-help" data-i18n="xz.pool_renew_help" style="margin-top:8px;">Đổi sang MAC và client ID mới — dùng khi robot bị chặn hoặc không kết nối được.</p>
                     <div id="xzPoolStatus" class="xz-status" style="display:none; margin-top:8px;"></div>
                 </div>
 
@@ -850,27 +853,27 @@
                 <div id="xzCustomFields" style="display:none;">
                 <div class="help-box xz-config-help">
                     <ol>
-                        <li data-i18n="xz.cfg_1" data-i18n-html="1"><b>Máy chủ OTA:</b> lần đầu để mặc định <code>https://api.tenclass.net/</code>. Đã lưu rồi thì giữ nguyên.</li>
-                        <li data-i18n="xz.cfg_2" data-i18n-html="1"><b>WebSocket:</b> ô xám — hệ thống tự lấy từ OTA, chỉ xem, không cần sửa.</li>
-                        <li data-i18n="xz.cfg_3" data-i18n-html="1"><b>ID thiết bị / client:</b> lần đầu để trống để robot tự tạo MAC / UUID.</li>
                         <li data-i18n="xz.cfg_4" data-i18n-html="1"><b>Lấy mã 6 số:</b> bấm <b>Lưu &amp; kích hoạt</b>. Robot hiện mã (hoặc báo đã ghép).</li>
                         <li data-i18n="xz.cfg_5" data-i18n-html="1"><b>Ghép trên web:</b> vào <a href="https://xiaozhi.me" target="_blank" rel="noopener">xiaozhi.me</a> → tạo agent → cấu hình agent → thêm mã 6 số vào agent vừa tạo.</li>
-                        <li data-i18n="xz.cfg_6" data-i18n-html="1"><b>Muốn cấu hình lại / lấy mã mới:</b> xóa hết ô <b>ID thiết bị (MAC)</b> hiện tại → bấm lại <b>Lưu &amp; kích hoạt</b> → làm tiếp bước 5 với mã mới.</li>
+                        <li data-i18n="xz.cfg_6" data-i18n-html="1"><b>Muốn cấu hình lại:</b> chỉ cần xóa ô <b>MAC</b> rồi bấm <b>Lưu &amp; kích hoạt</b> là được — robot tự tạo MAC và client ID mới, sau đó làm lại bước 2 với mã mới.</li>
                     </ol>
                 </div>
 
                 <div class="xz-config-fields">
-                    <label data-i18n="xz.lbl_ota">Máy chủ OTA:</label>
-                    <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/">
-
-                    <label data-i18n="xz.lbl_ws">Đầu cuối WebSocket:</label>
-                    <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly data-i18n-placeholder="xz.ph_ws" placeholder="(tự lấy sau Lưu &amp; kích hoạt)">
-
-                    <label data-i18n="xz.lbl_did">ID thiết bị (để trống = MAC ngẫu nhiên):</label>
+                    <label data-i18n="xz.lbl_did">MAC thiết bị (để trống = tạo mới):</label>
                     <input type="text" id="xzDeviceID" placeholder="auto = random MAC">
 
-                    <label data-i18n="xz.lbl_cid">ID client (để trống = UUID ngẫu nhiên):</label>
-                    <input type="text" id="xzClientID" placeholder="auto = UUID">
+                    <details class="oai-advanced xz-advanced">
+                        <summary data-i18n="oai.advanced">Nâng cao</summary>
+                        <label data-i18n="xz.lbl_ota">Máy chủ OTA:</label>
+                        <input type="text" id="xzOTABaseURL" placeholder="https://api.tenclass.net/">
+
+                        <label data-i18n="xz.lbl_ws">Đầu cuối WebSocket:</label>
+                        <input type="text" id="xzEndpoint" class="xz-readonly" disabled readonly data-i18n-placeholder="xz.ph_ws" placeholder="(tự lấy sau Lưu &amp; kích hoạt)">
+
+                        <label data-i18n="xz.lbl_cid">ID client (để trống = UUID ngẫu nhiên):</label>
+                        <input type="text" id="xzClientID" placeholder="auto = UUID">
+                    </details>
 
                     <div class="xz-conv-block">
                         <strong data-i18n="xz.conv_title">Cách hội thoại</strong>
@@ -1684,7 +1687,7 @@
                 <p class="news-where" data-i18n="news.face_where">Cài đặt bot → Chào khi thấy người</p>
                 <ul class="news-points">
                     <li data-i18n="news.face_p1" data-i18n-html="1">Vector <b>nhìn thấy bạn</b> là tự chào và bắt chuyện qua AI giao tiếp — không cần gọi "Hey Vector".</li>
-                    <li data-i18n="news.face_p2">Không chào chen ngang khi đang trò chuyện, phát nhạc hay chơi game; mỗi lần chào cách nhau ít nhất 5 phút.</li>
+                    <li data-i18n="news.face_p2">Không chào chen ngang khi đang trò chuyện, phát nhạc hay chơi game; khoảng cách giữa hai lần chào tự chọn được (mặc định 5 phút).</li>
                     <li data-i18n="news.face_p3">Mặc định tắt — bật trong Cài đặt bot khi muốn dùng.</li>
                 </ul>
                 <button type="button" class="news-go" onclick="newsGo('#botsettings', 'bot-facegreet')" data-i18n="news.face_btn">Mở cài đặt chào</button>

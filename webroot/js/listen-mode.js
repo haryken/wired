@@ -8,7 +8,7 @@ function listenModeStatus(msg) {
 }
 
 function listenModeShow(cfg) {
-    const mode = cfg.listen_mode === 'vad' ? 'vad' : 'fixed';
+    const mode = cfg.listen_mode === 'fixed' ? 'fixed' : 'vad';
     document.querySelectorAll('input[name="listenMode"]').forEach((el) => {
         el.checked = el.value === mode;
     });

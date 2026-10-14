@@ -182,6 +182,32 @@ func TestXiaozhiSetEnabledPipelineChoice(t *testing.T) {
 	}
 }
 
+func TestXiaozhiSaveClearedMACRenewsClientID(t *testing.T) {
+	withTempOpenAIPaths(t)
+	_ = saveXiaozhiCfg(defaultXiaozhiCfg())
+	save := func(mac string) XiaozhiCfg {
+		w := httptest.NewRecorder()
+		q := "identity_mode=custom&device_id=" + mac + "&client_id=keep-client-id"
+		NewXiaozhi().HTTP(w, httptest.NewRequest("POST", "/api/mods/Xiaozhi/save?"+q, nil))
+		if w.Code != 200 {
+			t.Fatalf("HTTP %d %s", w.Code, w.Body.String())
+		}
+		cfg, _ := loadXiaozhiCfg()
+		return cfg
+	}
+	cfg := save("02:11:22:33:44:55")
+	if cfg.DeviceID != "02:11:22:33:44:55" || cfg.ClientID != "keep-client-id" {
+		t.Fatalf("kept identity: %q %q", cfg.DeviceID, cfg.ClientID)
+	}
+	cfg = save("")
+	if cfg.DeviceID == "" || cfg.DeviceID == "02:11:22:33:44:55" {
+		t.Fatalf("MAC not renewed: %q", cfg.DeviceID)
+	}
+	if cfg.ClientID == "" || cfg.ClientID == "keep-client-id" {
+		t.Fatalf("client ID not renewed: %q", cfg.ClientID)
+	}
+}
+
 func TestXiaozhiBackendFor(t *testing.T) {
 	cases := []struct{ cur, arg, ident, want string }{
 		{"", "openai", "", "openai"},

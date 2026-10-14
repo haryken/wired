@@ -132,8 +132,8 @@ function xzApplyCfg(cfg) {
 
     const using = document.getElementById('xzPoolUsing');
     if (using && preset === 'vi_pool') {
-        using.textContent = (cfg.device_id || cfg.client_id)
-            ? ('Đang dùng: MAC ' + (cfg.device_id || '—') + ' · client ' + (cfg.client_id || '—'))
+        using.textContent = cfg.device_id
+            ? (xzT('xz.pool_mac', 'MAC đang dùng: ') + cfg.device_id)
             : '';
     }
 
