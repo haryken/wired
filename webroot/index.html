@@ -49,6 +49,12 @@
         </div>
     </header>
 
+    <div id="otaUpdateBanner" class="ota-update-banner" hidden>
+        <span class="ota-update-banner-icon" aria-hidden="true">🆕</span>
+        <span id="otaUpdateBannerText" class="ota-update-banner-text">Có bản cập nhật mới cho robot!</span>
+        <button type="button" class="ota-update-now" onclick="otaOfficialFromBanner()" data-i18n="aud.off_update_now">⬇️ CẬP NHẬT NGAY</button>
+    </div>
+
     <div id="navBackdrop" class="nav-backdrop" hidden></div>
     <aside id="navDrawer" class="nav-drawer" aria-hidden="true" aria-label="Navigation">
         <div class="nav-drawer-head">
@@ -716,7 +722,14 @@
                 Liên hệ lấy URL chuẩn: <b>Võ Duy Linh</b> — SĐT <a href="tel:0394273773" style="color:#c4a0ff;">0394273773</a>.
             </p>
         </div>
+        <div id="otaOfficialCard" class="ota-official" data-state="checking">
+            <div id="otaOfficialTitle" class="ota-official-title">Đang kiểm tra bản cập nhật…</div>
+            <div id="otaOfficialDetail" class="ota-official-detail"></div>
+            <button type="button" id="otaOfficialBtn" class="ota-update-now" onclick="startOfficialOta()" hidden data-i18n="aud.off_update_now">⬇️ CẬP NHẬT NGAY</button>
+            <button type="button" id="otaOfficialRecheck" class="ota-official-recheck" onclick="checkOfficialOta(true)" data-i18n="aud.off_recheck">🔍 Kiểm tra lại</button>
+        </div>
         <div id="autoUpdateStatus"></div>
+        <h4 class="ota-other-title" data-i18n="aud.off_other">Hoặc cập nhật từ link khác</h4>
         <div class="button-container" style="align-items:stretch;">
             <label for="otaUrl" data-i18n="aud.ota_url">URL file OTA:</label>
             <input type="url" id="otaUrl" data-i18n-placeholder="aud.ota_ph" placeholder="URL chuẩn từ Võ Duy Linh…"

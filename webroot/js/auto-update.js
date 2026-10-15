@@ -88,17 +88,128 @@ async function checkAutoUpdateStatus() {
 async function autoUpdateInhibit() {}
 async function autoUpdateAllow() {}
 
-async function startOtaFromURL() {
+function otaSetStartDisabled(disabled) {
+    ['otaStartBtn', 'otaOfficialBtn'].forEach((id) => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = disabled;
+    });
+}
+
+/* --- Official OTA (fixed GitHub link) --- */
+let otaOfficialLast = null;
+let otaOfficialChecking = false;
+
+function otaTr(key, fallback, vars) {
+    let s = typeof t === 'function' ? t(key, fallback) : fallback;
+    Object.entries(vars || {}).forEach(([k, v]) => {
+        s = s.split('{' + k + '}').join(v);
+    });
+    return s;
+}
+
+function otaSetUpdateBadge(on) {
+    document.querySelectorAll('[data-target="#aud"]').forEach((b) => b.classList.toggle('has-update', on));
+    const burger = document.getElementById('navBurger');
+    if (burger) burger.classList.toggle('has-update', on);
+}
+
+function renderOfficialOta() {
+    const card = document.getElementById('otaOfficialCard');
+    if (!card) return;
+    const title = document.getElementById('otaOfficialTitle');
+    const detail = document.getElementById('otaOfficialDetail');
+    const btn = document.getElementById('otaOfficialBtn');
+    const banner = document.getElementById('otaUpdateBanner');
+    const bannerText = document.getElementById('otaUpdateBannerText');
+    const j = otaOfficialLast;
+    const unknown = otaTr('aud.off_unknown_ver', 'không rõ');
+    const cur = (j && j.current_version) || unknown;
+    const ver = (j && j.update_version) || unknown;
+
+    let state = 'checking';
+    if (!otaOfficialChecking && j) {
+        if (!j.reachable) state = 'offline';
+        else if (!j.exists) state = 'none';
+        else if (j.newer) state = 'new';
+        else state = 'latest';
+    }
+    card.dataset.state = state;
+
+    const curLine = otaTr('aud.off_current', 'Robot đang chạy: {cur}', { cur });
+    if (state === 'checking') {
+        title.textContent = '🔍 ' + otaTr('aud.off_checking', 'Đang kiểm tra bản cập nhật…');
+        detail.textContent = '';
+    } else if (state === 'offline') {
+        title.textContent = '⚠️ ' + otaTr('aud.off_offline_title', 'Không kiểm tra được bản cập nhật');
+        detail.textContent = otaTr('aud.off_offline_detail', 'Robot chưa vào được Internet. Thử lại sau.') + '\n' + curLine;
+    } else if (state === 'none') {
+        title.textContent = 'ℹ️ ' + otaTr('aud.off_none_title', 'Chưa có bản cập nhật mới');
+        detail.textContent = curLine;
+    } else if (state === 'latest') {
+        title.textContent = '✅ ' + otaTr('aud.off_latest_title', 'Robot đang chạy bản mới nhất');
+        detail.textContent = curLine + (j.same ? '' : '\n' + otaTr('aud.off_server_older', 'Bản trên máy chủ: {new}', { new: ver }));
+    } else {
+        title.textContent = '🆕 ' + otaTr('aud.off_new_title', 'Có bản cập nhật mới!');
+        let d = otaTr('aud.off_new_detail', 'Phiên bản mới: {new}\nRobot đang chạy: {cur}', { new: ver, cur });
+        const size = formatBytes(j.size);
+        if (size) d += '\n' + otaTr('aud.off_size', 'Dung lượng: {size}', { size });
+        detail.textContent = d;
+    }
+
+    const isNew = state === 'new' && !otaPollTimer;
+    btn.hidden = !isNew;
+    otaSetUpdateBadge(isNew);
+    if (banner) {
+        banner.hidden = !isNew;
+        if (isNew && bannerText) {
+            bannerText.textContent = otaTr('aud.off_banner', 'Có bản cập nhật mới cho robot: {new}', { new: ver });
+        }
+    }
+    const recheck = document.getElementById('otaOfficialRecheck');
+    if (recheck) recheck.disabled = otaOfficialChecking;
+}
+
+async function checkOfficialOta(force) {
+    if (otaOfficialChecking) return;
+    otaOfficialChecking = true;
+    renderOfficialOta();
+    try {
+        const res = await fetch('/api/mods/AutoUpdate/checkOfficial' + (force ? '?force=1' : ''));
+        otaOfficialLast = await res.json();
+    } catch (e) {
+        otaOfficialLast = { reachable: false, error: e.message };
+    }
+    otaOfficialChecking = false;
+    renderOfficialOta();
+}
+
+async function startOfficialOta() {
+    const j = otaOfficialLast;
+    if (!j || !j.url || !j.exists) return;
+    const msg = otaTr('aud.off_confirm',
+        'Cập nhật robot lên bản {new}?\nMắt robot sẽ tắt trong lúc tải và cài (vài phút), xong robot tự khởi động lại. Đừng tắt nguồn robot.',
+        { new: j.update_version || otaTr('aud.off_unknown_ver', 'không rõ') });
+    if (!confirm(msg)) return;
+    await startOtaFromURL(j.url, true);
+}
+
+function otaOfficialFromBanner() {
+    if (typeof activateSection === 'function') activateSection('#aud');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    startOfficialOta();
+}
+
+async function startOtaFromURL(officialUrl, confirmed) {
     const input = document.getElementById('otaUrl');
-    const v = validateOtaUrlClient(input.value);
+    const v = officialUrl ? { ok: true, url: officialUrl } : validateOtaUrlClient(input.value);
     if (!v.ok) {
         markOtaUrlField(false);
         setAutoUpdateStatus(v.msg);
         return;
     }
-    markOtaUrlField(true);
+    if (!officialUrl) markOtaUrlField(true);
 
-    const ok = confirm(
+    const ok = confirmed || confirm(
         'Bắt đầu cập nhật OS từ URL này?\nRobot sẽ tắt mắt trong lúc tải/cài, rồi có thể tự khởi động lại.\n\nStart OS update from this URL?\nEyes will go dark; robot may reboot when done.\n\n' + v.url
     );
     if (!ok) return;
@@ -114,7 +225,7 @@ async function startOtaFromURL() {
     otaSetProgress(0, 'starting', v.url, '');
     setAutoUpdateStatus('Đang kiểm tra URL rồi khởi động... (Checking URL, then starting...)');
     otaLogAppend('Kiểm tra URL... (Probing URL)');
-    document.getElementById('otaStartBtn').disabled = true;
+    otaSetStartDisabled(true);
     try {
         const qs = new URLSearchParams({ url: v.url });
         const res = await fetch(`/api/mods/AutoUpdate/startFromURL?${qs.toString()}`, { method: 'POST' });
@@ -124,7 +235,7 @@ async function startOtaFromURL() {
             otaSetProgress(0, 'rejected', j.message || String(res.status), 'err');
             setAutoUpdateStatus(`Không cập nhật: ${j.message || res.status} (Rejected)`);
             otaLogAppend('Từ chối: ' + (j.message || res.status));
-            document.getElementById('otaStartBtn').disabled = false;
+            otaSetStartDisabled(false);
             return;
         }
         setAutoUpdateStatus('Đã bắt đầu — xem thanh tiến trình + log bên dưới. (Started — watch progress + log.)');
@@ -134,7 +245,7 @@ async function startOtaFromURL() {
         otaSetProgress(0, 'error', e.message, 'err');
         setAutoUpdateStatus(`Lỗi mạng: ${e.message} (Network error)`);
         otaLogAppend('Lỗi mạng: ' + e.message);
-        document.getElementById('otaStartBtn').disabled = false;
+        otaSetStartDisabled(false);
     }
 }
 
@@ -142,11 +253,13 @@ function startOtaPoll() {
     if (otaPollTimer) clearInterval(otaPollTimer);
     otaPollTimer = setInterval(pollOtaStatus, 1500);
     pollOtaStatus();
+    renderOfficialOta();
 }
 
 function stopOtaPoll() {
     if (otaPollTimer) clearInterval(otaPollTimer);
     otaPollTimer = null;
+    renderOfficialOta();
 }
 
 async function pollOtaStatus() {
@@ -194,7 +307,7 @@ async function pollOtaStatus() {
             setAutoUpdateStatus(`<span style="color:#f87171">Thất bại: ${j.error}</span> (Failed)`);
             otaLogAppend('ERROR: ' + j.error);
             stopOtaPoll();
-            document.getElementById('otaStartBtn').disabled = false;
+            otaSetStartDisabled(false);
             await refreshOtaLogOnly();
             return;
         }
@@ -214,7 +327,7 @@ async function pollOtaStatus() {
         setAutoUpdateStatus('Mất kết nối (robot có thể đang reboot). Giữ trang; thử F5 sau 1–2 phút. (Lost connection — maybe rebooting.)');
         if (otaFailStreak >= 8) {
             stopOtaPoll();
-            document.getElementById('otaStartBtn').disabled = false;
+            otaSetStartDisabled(false);
             otaSetProgress(100, 'offline', 'Không còn phản hồi từ robot', 'ok');
         }
     }
@@ -250,4 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
     otaShowProgress(true);
     const box = document.getElementById('otaLogBox');
     if (box) box.style.display = 'block';
+    checkOfficialOta(false);
 });
+
+// Language switch rewrites labels and may rebuild the mobile drawer.
+document.addEventListener('wireos-i18n', () => renderOfficialOta());

@@ -2544,3 +2544,173 @@ html.i18n-pure small.sub {
     line-height: 1.25;
 }
 
+
+/* Official OTA: new-version banner, card and tab badge */
+.ota-update-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    width: 94%;
+    max-width: 900px;
+    box-sizing: border-box;
+    margin: 8px auto 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #14532d, #166534);
+    border: 2px solid #4ade80;
+    box-shadow: 0 0 18px rgba(74, 222, 128, 0.35);
+    color: #fff;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: center;
+}
+
+.ota-update-banner[hidden] {
+    display: none;
+}
+
+.ota-update-banner-icon {
+    font-size: 22px;
+}
+
+.ota-update-now {
+    background: #22c55e;
+    border: 2px solid #bbf7d0;
+    color: #052e16;
+    font-weight: bold;
+    font-size: 17px;
+    padding: 12px 22px;
+    border-radius: 12px;
+    animation: ota-pulse 1.6s ease-in-out infinite;
+}
+
+.ota-update-now:hover {
+    background: #4ade80;
+    border-color: #fff;
+    color: #052e16;
+}
+
+.ota-update-now:disabled {
+    animation: none;
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.ota-update-now[hidden],
+.ota-official .ota-update-now[hidden] {
+    display: none;
+}
+
+@keyframes ota-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+    50% { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+}
+
+.ota-official {
+    margin: 4px 0 14px;
+    padding: 16px 14px;
+    border-radius: 12px;
+    border: 1px solid #3a3a3a;
+    background: #2a2a2a;
+}
+
+.ota-official-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.ota-official-detail {
+    color: #c8c8c8;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.ota-official .ota-update-now {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    margin: 14px auto 6px;
+    font-size: 20px;
+    padding: 16px 20px;
+}
+
+.ota-official-recheck {
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+.ota-official[data-state="new"] {
+    background: linear-gradient(135deg, rgba(20, 83, 45, 0.85), rgba(22, 101, 52, 0.6));
+    border: 2px solid #4ade80;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.25);
+}
+
+.ota-official[data-state="new"] .ota-official-title {
+    color: #4ade80;
+    font-size: 22px;
+}
+
+.ota-official[data-state="new"] .ota-official-detail {
+    color: #fff;
+}
+
+.ota-official[data-state="latest"] .ota-official-title {
+    color: #67e8f9;
+}
+
+.ota-official[data-state="offline"] .ota-official-title {
+    color: #e8b86d;
+}
+
+.ota-other-title {
+    color: #aaa;
+    font-weight: normal;
+    margin: 14px 0 4px;
+}
+
+.tabs button.has-update,
+.nav-drawer-list button.has-update,
+.nav-burger.has-update {
+    position: relative;
+}
+
+.tabs button.has-update::after,
+.nav-drawer-list button.has-update::after {
+    content: "MỚI";
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+html[lang="en"] .tabs button.has-update::after,
+html[lang="en"] .nav-drawer-list button.has-update::after,
+html[lang="it"] .tabs button.has-update::after,
+html[lang="it"] .nav-drawer-list button.has-update::after {
+    content: "NEW";
+}
+
+html[lang="zh"] .tabs button.has-update::after,
+html[lang="zh"] .nav-drawer-list button.has-update::after {
+    content: "新";
+}
+
+.nav-burger.has-update::after {
+    content: "";
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid #050505;
+}

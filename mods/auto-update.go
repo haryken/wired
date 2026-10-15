@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/os-vector/wired/vars"
@@ -71,6 +72,11 @@ func (m *AutoUpdate) HTTP(w http.ResponseWriter, r *http.Request) {
 		m.startFromURL(w, r)
 	case vars.IsEndpoint(r, "status"):
 		m.writeStatus(w)
+	case vars.IsEndpoint(r, "checkOfficial"):
+		res := checkOfficialOta(r.FormValue("force") == "1")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		_ = json.NewEncoder(w).Encode(res)
 	case vars.IsEndpoint(r, "log"):
 		data, err := os.ReadFile(otaLogPath)
 		if err != nil {
@@ -199,6 +205,158 @@ func probeOtaURL(raw string) error {
 		return fmt.Errorf("url not reachable (HTTP %d)", resp.StatusCode)
 	}
 	return nil
+}
+
+// The release asset name never changes; a new build replaces the file.
+const officialOtaURL = "https://github.com/haryken/wirepodxiaozhi/releases/download/robot/vector.ota"
+
+const (
+	officialOtaCacheTTL = 10 * time.Minute
+	// manifest.ini is the first tar member and only a few hundred bytes.
+	otaHeadBytes = 4096
+)
+
+type officialOtaCheck struct {
+	URL            string `json:"url"`
+	Reachable      bool   `json:"reachable"`
+	Exists         bool   `json:"exists"`
+	HTTPStatus     int    `json:"http_status"`
+	UpdateVersion  string `json:"update_version"`
+	CurrentVersion string `json:"current_version"`
+	// Newer is true when the file is a newer build, or when its version
+	// cannot be read (the user can still decide to install it).
+	Newer     bool   `json:"newer"`
+	Same      bool   `json:"same"`
+	Size      int64  `json:"size"`
+	CheckedAt string `json:"checked_at"`
+	Error     string `json:"error,omitempty"`
+}
+
+var (
+	officialOtaMu     sync.Mutex
+	officialOtaCached *officialOtaCheck
+	officialOtaTime   time.Time
+	// Overridable in tests.
+	officialOtaFetch     = fetchOtaHead
+	currentAnkiVersionFn = currentAnkiVersion
+)
+
+func checkOfficialOta(force bool) officialOtaCheck {
+	officialOtaMu.Lock()
+	defer officialOtaMu.Unlock()
+	if !force && officialOtaCached != nil && time.Since(officialOtaTime) < officialOtaCacheTTL {
+		return *officialOtaCached
+	}
+	res := officialOtaCheck{
+		URL:            officialOtaURL,
+		CurrentVersion: currentAnkiVersionFn(),
+		CheckedAt:      time.Now().Format(time.RFC3339),
+	}
+	status, total, head, err := officialOtaFetch(officialOtaURL)
+	res.HTTPStatus = status
+	if err != nil {
+		res.Error = err.Error()
+	} else {
+		res.Reachable = true
+		res.Exists = status == http.StatusOK || status == http.StatusPartialContent
+	}
+	if res.Exists {
+		res.Size = total
+		res.UpdateVersion = otaManifestVersion(head)
+		cmp := compareOSVersions(res.UpdateVersion, res.CurrentVersion)
+		res.Same = res.UpdateVersion != "" && cmp == 0
+		res.Newer = res.UpdateVersion == "" || res.CurrentVersion == "" || cmp > 0
+	}
+	officialOtaCached = &res
+	officialOtaTime = time.Now()
+	return res
+}
+
+func fetchOtaHead(raw string) (status int, total int64, head []byte, err error) {
+	client := &http.Client{Timeout: 20 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, raw, nil)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", otaHeadBytes-1))
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	defer resp.Body.Close()
+	head, _ = io.ReadAll(io.LimitReader(resp.Body, otaHeadBytes))
+	total = resp.ContentLength
+	if cr := resp.Header.Get("Content-Range"); cr != "" {
+		if i := strings.LastIndex(cr, "/"); i >= 0 {
+			if n, err := strconv.ParseInt(cr[i+1:], 10, 64); err == nil {
+				total = n
+			}
+		}
+	}
+	return resp.StatusCode, total, head, nil
+}
+
+// otaManifestVersion reads update_version from manifest.ini, the first member
+// of the .ota tar archive.
+func otaManifestVersion(head []byte) string {
+	if len(head) < 512 {
+		return ""
+	}
+	name := strings.TrimRight(string(head[0:100]), "\x00")
+	if filepath.Base(name) != "manifest.ini" {
+		return ""
+	}
+	size, err := strconv.ParseInt(strings.Trim(string(head[124:136]), "\x00 "), 8, 64)
+	if err != nil || size <= 0 {
+		return ""
+	}
+	end := 512 + int(size)
+	if end > len(head) {
+		end = len(head)
+	}
+	for _, line := range strings.Split(string(head[512:end]), "\n") {
+		k, v, ok := strings.Cut(strings.TrimSpace(line), "=")
+		if ok && strings.EqualFold(strings.TrimSpace(k), "update_version") {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
+// compareOSVersions compares dotted versions like 3.0.1.999d numerically per
+// part, then by any suffix letters.
+func compareOSVersions(a, b string) int {
+	pa, pb := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(pa) || i < len(pb); i++ {
+		var sa, sb string
+		if i < len(pa) {
+			sa = pa[i]
+		}
+		if i < len(pb) {
+			sb = pb[i]
+		}
+		na, ra := splitVersionPart(sa)
+		nb, rb := splitVersionPart(sb)
+		if na != nb {
+			if na > nb {
+				return 1
+			}
+			return -1
+		}
+		if c := strings.Compare(ra, rb); c != 0 {
+			return c
+		}
+	}
+	return 0
+}
+
+func splitVersionPart(s string) (int, string) {
+	i := 0
+	for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+		i++
+	}
+	n, _ := strconv.Atoi(s[:i])
+	return n, s[i:]
 }
 
 type otaStatus struct {
