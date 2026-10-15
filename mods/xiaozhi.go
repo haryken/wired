@@ -465,7 +465,10 @@ func NewXiaozhi() *Xiaozhi { return &Xiaozhi{} }
 
 func (m *Xiaozhi) Name() string        { return "Xiaozhi" }
 func (m *Xiaozhi) Description() string { return "Xiaozhi AI voice assistant integration." }
-func (m *Xiaozhi) Load() error         { return nil }
+func (m *Xiaozhi) Load() error {
+	StartAIConfigBackup()
+	return nil
+}
 
 func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
