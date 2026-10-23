@@ -55,6 +55,19 @@
         <button type="button" class="ota-update-now" onclick="otaOfficialFromBanner()" data-i18n="aud.off_update_now">⬇️ CẬP NHẬT NGAY</button>
     </div>
 
+    <div id="otaConfirmModal" class="wos-modal-backdrop" hidden>
+        <div class="wos-modal" role="dialog" aria-modal="true" aria-labelledby="otaConfirmTitle">
+            <div class="wos-modal-icon" id="otaConfirmIcon"></div>
+            <h3 class="wos-modal-title" id="otaConfirmTitle"></h3>
+            <div class="wos-modal-sub" id="otaConfirmSub"></div>
+            <ul class="wos-modal-list" id="otaConfirmList"></ul>
+            <div class="wos-modal-actions">
+                <button type="button" class="wos-modal-cancel" id="otaConfirmCancel">Huỷ</button>
+                <button type="button" class="wos-modal-ok" id="otaConfirmOk">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div id="navBackdrop" class="nav-backdrop" hidden></div>
     <aside id="navDrawer" class="nav-drawer" aria-hidden="true" aria-label="Navigation">
         <div class="nav-drawer-head">
@@ -710,42 +723,90 @@
 
     <div id="aud" class="container mod-section tab-content">
         <h2>🔄 <span data-i18n="aud.h2">Cập nhật OS</span></h2>
-        <div class="help-box">
-            <strong data-i18n="common.howto">Cách dùng</strong>
-            <ol>
-                <li data-i18n="aud.help1">Chỉ dùng URL OTA do bên mình cung cấp.</li>
-                <li data-i18n="aud.help2" data-i18n-html="1">Dán URL đầy đủ vào ô bên dưới → bấm <b>Cập nhật</b>.</li>
-                <li data-i18n="aud.help3">Đợi thanh tiến trình / log → xong robot tự khởi động lại.</li>
+
+        <div class="ota-status-card">
+            <h3 class="ota-status-title" data-i18n="aud.status_h">📊 Tình trạng cập nhật</h3>
+            <div id="otaCurrentLine" class="ota-current"></div>
+            <div id="autoUpdateStatus"></div>
+            <div id="otaProgressWrap" class="ota-progress-wrap">
+                <div class="ota-progress-meta">
+                    <span id="otaPhaseLabel" data-i18n="aud.waiting">chờ bắt đầu</span>
+                    <span id="otaPctLabel">0%</span>
+                </div>
+                <div class="ota-progress-bar"><div id="otaProgressFill" class="ota-progress-fill"></div></div>
+                <div id="otaDetailLine" class="ota-detail" data-i18n="aud.progress_hint">Thanh tiến trình hiện khi đang tải/cài OTA.</div>
+            </div>
+            <p class="ota-safe" data-i18n="aud.safe" data-i18n-html="1">🔒 Nếu cập nhật lỗi, robot <b>vẫn giữ hệ điều hành cũ</b> và chạy bình thường. Cập nhật xong robot tự khởi động lại.</p>
+        </div>
+
+        <div id="otaOfficialCard" class="ota-way ota-official" data-state="checking">
+            <div class="ota-way-head">
+                <span class="ota-way-num">1</span>
+                <div>
+                    <h3 data-i18n="aud.auto_h">Cập nhật tự động</h3>
+                    <span class="ota-tag" data-i18n="aud.auto_tag">⭐ Khuyên dùng · Dễ nhất</span>
+                </div>
+            </div>
+            <ol class="ota-steps">
+                <li data-i18n="aud.auto_s1" data-i18n-html="1">Robot phải đang kết nối <b>WiFi có Internet</b>.</li>
+                <li data-i18n="aud.auto_s2" data-i18n-html="1">Trang tự kiểm tra khi bạn mở mục này. Muốn kiểm tra lại thì bấm <b>🔍 Kiểm tra lại</b>.</li>
+                <li data-i18n="aud.auto_s3" data-i18n-html="1">Nếu có bản mới, bấm nút xanh <b>⬇️ CẬP NHẬT NGAY</b>.</li>
+                <li data-i18n="aud.auto_s4" data-i18n-html="1">Chờ khoảng <b>5–10 phút</b> (mắt robot tắt), <b>không tắt nguồn</b>. Xong robot tự khởi động lại.</li>
             </ol>
+            <div class="ota-check-box">
+                <div id="otaOfficialTitle" class="ota-official-title">Đang kiểm tra bản cập nhật…</div>
+                <div id="otaOfficialDetail" class="ota-official-detail"></div>
+            </div>
+            <button type="button" id="otaOfficialBtn" class="ota-update-now" onclick="startOfficialOta()" hidden data-i18n="aud.off_update_now">⬇️ CẬP NHẬT NGAY</button>
+            <button type="button" id="otaOfficialRecheck" class="ota-official-recheck" onclick="checkOfficialOta(true)" data-i18n="aud.off_recheck">🔍 Kiểm tra lại</button>
+        </div>
+
+        <div class="ota-way ota-manual-card">
+            <div class="ota-way-head">
+                <span class="ota-way-num ota-way-num-manual">2</span>
+                <div>
+                    <h3 data-i18n="aud.man_h">Cập nhật thủ công</h3>
+                    <span class="ota-tag ota-tag-manual" data-i18n="aud.man_tag">🛠️ Khi bạn có file .ota riêng</span>
+                </div>
+            </div>
+            <p class="ota-hint" data-i18n="aud.man_hint" data-i18n-html="1">Chọn một trong hai cách bên dưới. Chỉ dùng file <b>.ota</b> của WireOS từ nguồn tin cậy.</p>
             <p class="help-warn" data-i18n="aud.warn" data-i18n-html="1">
                 <b>Quan trọng:</b> Không dùng OTA lạ / nguồn không rõ — dễ làm hỏng robot.<br>
                 Liên hệ lấy URL chuẩn: <b>Võ Duy Linh</b> — SĐT <a href="tel:0394273773" style="color:#c4a0ff;">0394273773</a>.
             </p>
-        </div>
-        <div id="otaOfficialCard" class="ota-official" data-state="checking">
-            <div id="otaOfficialTitle" class="ota-official-title">Đang kiểm tra bản cập nhật…</div>
-            <div id="otaOfficialDetail" class="ota-official-detail"></div>
-            <button type="button" id="otaOfficialBtn" class="ota-update-now" onclick="startOfficialOta()" hidden data-i18n="aud.off_update_now">⬇️ CẬP NHẬT NGAY</button>
-            <button type="button" id="otaOfficialRecheck" class="ota-official-recheck" onclick="checkOfficialOta(true)" data-i18n="aud.off_recheck">🔍 Kiểm tra lại</button>
-        </div>
-        <div id="autoUpdateStatus"></div>
-        <h4 class="ota-other-title" data-i18n="aud.off_other">Hoặc cập nhật từ link khác</h4>
-        <div class="button-container" style="align-items:stretch;">
-            <label for="otaUrl" data-i18n="aud.ota_url">URL file OTA:</label>
-            <input type="url" id="otaUrl" data-i18n-placeholder="aud.ota_ph" placeholder="URL chuẩn từ Võ Duy Linh…"
-                style="width:100%; box-sizing:border-box; min-height:44px; font-size:15px;">
-            <button type="button" id="otaStartBtn" onclick="startOtaFromURL()" data-i18n="aud.update_btn">Cập nhật từ URL</button>
-            <button type="button" id="otaRefreshLogBtn" onclick="refreshOtaLogOnly()" data-i18n="aud.refresh_log">Làm mới log</button>
-        </div>
-        <div id="otaProgressWrap" class="ota-progress-wrap">
-            <div class="ota-progress-meta">
-                <span id="otaPhaseLabel" data-i18n="aud.waiting">chờ bắt đầu</span>
-                <span id="otaPctLabel">0%</span>
+            <div class="ota-switch" role="tablist">
+                <button type="button" id="otaModeFile" class="ota-switch-btn active" onclick="otaSetManualMode('file')" data-i18n="aud.mode_file">📤 Từ file trên máy</button>
+                <button type="button" id="otaModeUrl" class="ota-switch-btn" onclick="otaSetManualMode('url')" data-i18n="aud.mode_url">🔗 Từ link</button>
             </div>
-            <div class="ota-progress-bar"><div id="otaProgressFill" class="ota-progress-fill"></div></div>
-            <div id="otaDetailLine" class="ota-detail" data-i18n="aud.progress_hint">Thanh tiến trình hiện khi đang tải/cài OTA.</div>
+            <div id="otaManualFile" class="ota-manual">
+                <ol class="ota-steps">
+                    <li data-i18n="aud.file_s1" data-i18n-html="1">Tải file <b>.ota</b> về máy tính hoặc điện thoại (khoảng 250 MB).</li>
+                    <li data-i18n="aud.file_s2" data-i18n-html="1">Bấm <b>Chọn file .ota</b> bên dưới và chọn file đó.</li>
+                    <li data-i18n="aud.file_s3" data-i18n-html="1">Bấm <b>📤 Tải lên và cập nhật</b>.</li>
+                    <li data-i18n="aud.file_s4" data-i18n-html="1"><b>Giữ trang này mở</b> đến khi tải lên xong. Sau đó robot tự cài và khởi động lại.</li>
+                </ol>
+                <label class="ota-file-pick" id="otaFilePick">
+                    <input type="file" id="otaFile" accept=".ota" onchange="otaFilePicked()">
+                    <span id="otaFileLabel" data-i18n="aud.file_pick">📁 Chọn file .ota</span>
+                </label>
+                <button type="button" id="otaUploadBtn" class="ota-action-btn" onclick="startOtaUpload()" data-i18n="aud.upload_btn">📤 Tải lên và cập nhật</button>
+            </div>
+            <div id="otaManualUrl" class="ota-manual" hidden>
+                <ol class="ota-steps">
+                    <li data-i18n="aud.url_s1" data-i18n-html="1">Dán <b>link trực tiếp</b> tới file .ota (bắt đầu bằng http:// hoặc https://, kết thúc bằng .ota).</li>
+                    <li data-i18n="aud.url_s2" data-i18n-html="1">Bấm <b>⬇️ Cập nhật từ link</b>.</li>
+                    <li data-i18n="aud.url_s3">Robot tự tải về và cài, bạn có thể đóng trang.</li>
+                </ol>
+                <input type="url" id="otaUrl" class="ota-url-input" data-i18n-placeholder="aud.ota_ph" placeholder="URL chuẩn từ Võ Duy Linh…">
+                <button type="button" id="otaStartBtn" class="ota-action-btn" onclick="startOtaFromURL()" data-i18n="aud.update_btn">⬇️ Cập nhật từ link</button>
+            </div>
         </div>
-        <pre id="otaLogBox" class="ota-log" aria-live="polite">Log cập nhật sẽ hiện ở đây (timeline + journalctl update-engine).</pre>
+
+        <details class="ota-log-details">
+            <summary data-i18n="aud.log_h">📜 Nhật ký cập nhật (dành cho kỹ thuật)</summary>
+            <button type="button" id="otaRefreshLogBtn" onclick="refreshOtaLogOnly()" data-i18n="aud.refresh_log">Làm mới log</button>
+            <pre id="otaLogBox" class="ota-log" aria-live="polite">Log cập nhật sẽ hiện ở đây (timeline + journalctl update-engine).</pre>
+        </details>
     </div>
 
     <div id="xiaozhi" class="container mod-section tab-content">

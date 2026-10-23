@@ -89,10 +89,148 @@ async function autoUpdateInhibit() {}
 async function autoUpdateAllow() {}
 
 function otaSetStartDisabled(disabled) {
-    ['otaStartBtn', 'otaOfficialBtn'].forEach((id) => {
+    ['otaStartBtn', 'otaOfficialBtn', 'otaUploadBtn'].forEach((id) => {
         const b = document.getElementById(id);
         if (b) b.disabled = disabled;
     });
+}
+
+function otaConfirm(opts) {
+    const modal = document.getElementById('otaConfirmModal');
+    const box = modal.querySelector('.wos-modal');
+    const okBtn = document.getElementById('otaConfirmOk');
+    const cancelBtn = document.getElementById('otaConfirmCancel');
+    box.classList.toggle('warn', !!opts.warn);
+    document.getElementById('otaConfirmIcon').textContent = opts.icon || '⬇️';
+    document.getElementById('otaConfirmTitle').textContent = opts.title || '';
+    const sub = document.getElementById('otaConfirmSub');
+    sub.textContent = opts.sub || '';
+    sub.hidden = !opts.sub;
+    const list = document.getElementById('otaConfirmList');
+    list.innerHTML = '';
+    (opts.items || []).forEach((it) => {
+        const li = document.createElement('li');
+        if (it.warn) li.className = 'warn';
+        const ic = document.createElement('span');
+        ic.textContent = it.icon || '•';
+        const tx = document.createElement('span');
+        tx.textContent = it.text;
+        li.append(ic, tx);
+        list.appendChild(li);
+    });
+    okBtn.textContent = opts.okText || 'OK';
+    cancelBtn.textContent = otaTr('aud.cf_cancel', 'Huỷ');
+    modal.hidden = false;
+    okBtn.focus();
+    return new Promise((resolve) => {
+        const close = (result) => {
+            modal.hidden = true;
+            okBtn.onclick = cancelBtn.onclick = modal.onclick = null;
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        };
+        const onKey = (e) => { if (e.key === 'Escape') close(false); };
+        okBtn.onclick = () => close(true);
+        cancelBtn.onclick = () => close(false);
+        modal.onclick = (e) => { if (e.target === modal) close(false); };
+        document.addEventListener('keydown', onKey);
+    });
+}
+
+function otaConfirmItems() {
+    return [
+        { icon: '⏱️', text: otaTr('aud.cf_time', 'Robot tải và cài trong khoảng 5–10 phút, mắt robot tắt trong lúc cài.') },
+        { icon: '🔒', text: otaTr('aud.cf_safe', 'Nếu cập nhật lỗi, robot vẫn giữ hệ điều hành cũ.') },
+        { icon: '🔌', text: otaTr('aud.cf_power', 'Không tắt nguồn robot trong lúc cập nhật.'), warn: true },
+    ];
+}
+
+function otaSetManualMode(mode) {
+    document.getElementById('otaManualFile').hidden = mode !== 'file';
+    document.getElementById('otaManualUrl').hidden = mode !== 'url';
+    document.getElementById('otaModeFile').classList.toggle('active', mode === 'file');
+    document.getElementById('otaModeUrl').classList.toggle('active', mode === 'url');
+}
+
+function otaFilePicked() {
+    const input = document.getElementById('otaFile');
+    const file = input.files && input.files[0];
+    const label = document.getElementById('otaFileLabel');
+    document.getElementById('otaFilePick').classList.toggle('picked', !!file);
+    label.textContent = file
+        ? otaTr('aud.file_picked', '✅ {name} ({size}) — bấm để đổi file', { name: file.name, size: formatBytes(file.size) })
+        : otaTr('aud.file_pick', '📁 Chọn file .ota');
+}
+
+function startOtaUpload() {
+    const input = document.getElementById('otaFile');
+    const file = input.files && input.files[0];
+    if (!file) {
+        setAutoUpdateStatus(otaTr('aud.up_none', 'Chọn file .ota trước.'));
+        return;
+    }
+    if (!/\.ota$/i.test(file.name)) {
+        setAutoUpdateStatus(otaTr('aud.up_bad_name', 'Chọn file có đuôi .ota.'));
+        return;
+    }
+    otaConfirm({
+        icon: '📤',
+        title: otaTr('aud.cf_title_file', 'Tải file này lên robot?'),
+        sub: file.name + ' · ' + formatBytes(file.size),
+        items: [
+            { icon: '🖥️', text: otaTr('aud.cf_keep_open', 'Giữ trang này mở đến khi tải lên xong.') },
+            { icon: '⚠️', text: otaTr('aud.cf_trust', 'Chỉ dùng file .ota từ nguồn tin cậy.') },
+        ].concat(otaConfirmItems()),
+        okText: otaTr('aud.cf_ok_file', '📤 Tải lên'),
+        warn: true,
+    }).then((ok) => { if (ok) uploadOtaFile(file); });
+}
+
+function uploadOtaFile(file) {
+    const box = document.getElementById('otaLogBox');
+    if (box) box.textContent = '';
+    otaLastPhase = '';
+    otaLastPct = -1;
+    otaFailStreak = 0;
+    otaSetStartDisabled(true);
+    otaLogAppend(`Upload ${file.name} (${formatBytes(file.size)})`);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/mods/AutoUpdate/uploadOta');
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded * 100) / e.total);
+        const line = otaTr('aud.up_progress', 'Đang tải file lên robot: {pct}% ({done}/{total})',
+            { pct, done: formatBytes(e.loaded), total: formatBytes(e.total) });
+        otaSetProgress(pct, 'upload', line, '');
+        setAutoUpdateStatus(line);
+    };
+    xhr.upload.onload = () => {
+        otaSetProgress(100, 'upload', otaTr('aud.up_verify', 'Đã tải lên, robot đang kiểm tra file…'), '');
+        setAutoUpdateStatus(otaTr('aud.up_verify', 'Đã tải lên, robot đang kiểm tra file…'));
+    };
+    const fail = (msg) => {
+        const line = otaTr('aud.up_failed', 'Tải lên thất bại: {msg}', { msg });
+        otaSetProgress(0, 'error', line, 'err');
+        setAutoUpdateStatus(`<span style="color:#f87171">${line.replace(/</g, '&lt;')}</span>`);
+        otaLogAppend(line);
+        otaSetStartDisabled(false);
+    };
+    xhr.onload = () => {
+        let j = {};
+        try { j = JSON.parse(xhr.responseText); } catch (_) {}
+        if (xhr.status !== 200 || j.status !== 'success') {
+            fail(j.message || `HTTP ${xhr.status}`);
+            return;
+        }
+        const line = otaTr('aud.up_started', 'File hợp lệ ({ver}) — robot bắt đầu cài.', { ver: j.update_version || '?' });
+        setAutoUpdateStatus(line.replace(/</g, '&lt;'));
+        otaLogAppend(line);
+        startOtaPoll();
+    };
+    xhr.onerror = () => fail(otaTr('aud.up_network', 'mất kết nối tới robot'));
+    xhr.send(file);
 }
 
 /* --- Official OTA (fixed GitHub link) --- */
@@ -130,12 +268,14 @@ function renderOfficialOta() {
     if (!otaOfficialChecking && j) {
         if (!j.reachable) state = 'offline';
         else if (!j.exists) state = 'none';
-        else if (j.newer) state = 'new';
-        else state = 'latest';
+        else if (j.same) state = 'latest';
+        else state = 'new';
     }
     card.dataset.state = state;
 
     const curLine = otaTr('aud.off_current', 'Robot đang chạy: {cur}', { cur });
+    const curEl = document.getElementById('otaCurrentLine');
+    if (curEl && j && j.current_version) curEl.textContent = curLine;
     if (state === 'checking') {
         title.textContent = '🔍 ' + otaTr('aud.off_checking', 'Đang kiểm tra bản cập nhật…');
         detail.textContent = '';
@@ -146,8 +286,8 @@ function renderOfficialOta() {
         title.textContent = 'ℹ️ ' + otaTr('aud.off_none_title', 'Chưa có bản cập nhật mới');
         detail.textContent = curLine;
     } else if (state === 'latest') {
-        title.textContent = '✅ ' + otaTr('aud.off_latest_title', 'Robot đang chạy bản mới nhất');
-        detail.textContent = curLine + (j.same ? '' : '\n' + otaTr('aud.off_server_older', 'Bản trên máy chủ: {new}', { new: ver }));
+        title.textContent = '✅ ' + otaTr('aud.off_latest_title', 'Robot đã cài bản cập nhật này rồi');
+        detail.textContent = curLine;
     } else {
         title.textContent = '🆕 ' + otaTr('aud.off_new_title', 'Có bản cập nhật mới!');
         let d = otaTr('aud.off_new_detail', 'Phiên bản mới: {new}\nRobot đang chạy: {cur}', { new: ver, cur });
@@ -186,10 +326,14 @@ async function checkOfficialOta(force) {
 async function startOfficialOta() {
     const j = otaOfficialLast;
     if (!j || !j.url || !j.exists) return;
-    const msg = otaTr('aud.off_confirm',
-        'Cập nhật robot lên bản {new}?\nMắt robot sẽ tắt trong lúc tải và cài (vài phút), xong robot tự khởi động lại. Đừng tắt nguồn robot.',
-        { new: j.update_version || otaTr('aud.off_unknown_ver', 'không rõ') });
-    if (!confirm(msg)) return;
+    const ok = await otaConfirm({
+        icon: '🚀',
+        title: otaTr('aud.cf_title_auto', 'Cập nhật robot ngay?'),
+        sub: otaTr('aud.cf_version', 'Phiên bản {ver}', { ver: j.update_version || otaTr('aud.off_unknown_ver', 'không rõ') }),
+        items: otaConfirmItems(),
+        okText: otaTr('aud.cf_ok_auto', '⬇️ Cập nhật ngay'),
+    });
+    if (!ok) return;
     await startOtaFromURL(j.url, true);
 }
 
@@ -209,9 +353,14 @@ async function startOtaFromURL(officialUrl, confirmed) {
     }
     if (!officialUrl) markOtaUrlField(true);
 
-    const ok = confirmed || confirm(
-        'Bắt đầu cập nhật OS từ URL này?\nRobot sẽ tắt mắt trong lúc tải/cài, rồi có thể tự khởi động lại.\n\nStart OS update from this URL?\nEyes will go dark; robot may reboot when done.\n\n' + v.url
-    );
+    const ok = confirmed || await otaConfirm({
+        icon: '🔗',
+        title: otaTr('aud.cf_title_url', 'Cập nhật từ link này?'),
+        sub: v.url.length > 70 ? v.url.slice(0, 67) + '…' : v.url,
+        items: [{ icon: '⚠️', text: otaTr('aud.cf_trust', 'Chỉ dùng file .ota từ nguồn tin cậy.') }].concat(otaConfirmItems()),
+        okText: otaTr('aud.cf_ok_url', '⬇️ Cập nhật'),
+        warn: true,
+    });
     if (!ok) return;
 
     const box = document.getElementById('otaLogBox');
@@ -367,4 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Language switch rewrites labels and may rebuild the mobile drawer.
-document.addEventListener('wireos-i18n', () => renderOfficialOta());
+document.addEventListener('wireos-i18n', () => {
+    renderOfficialOta();
+    otaFilePicked();
+});

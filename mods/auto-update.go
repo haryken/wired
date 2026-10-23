@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/os-vector/wired/vars"
@@ -45,6 +47,7 @@ func (modu *AutoUpdate) Description() string {
 
 func (modu *AutoUpdate) Load() error {
 	_ = os.MkdirAll(filepath.Dir(otaLogPath), 0777)
+	cleanupOtaUpload()
 	return nil
 }
 
@@ -68,6 +71,10 @@ func (m *AutoUpdate) HTTP(w http.ResponseWriter, r *http.Request) {
 	case vars.IsEndpoint(r, "setAllowed"):
 		_ = os.Remove(userInhibitPath)
 		vars.HTTPSuccess(w, r)
+	case vars.IsEndpoint(r, "localOta"):
+		serveLocalOta(w, r)
+	case vars.IsEndpoint(r, "uploadOta"):
+		m.uploadOta(w, r)
 	case vars.IsEndpoint(r, "startFromURL"):
 		m.startFromURL(w, r)
 	case vars.IsEndpoint(r, "status"):
@@ -113,7 +120,15 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	otaLogAppend(fmt.Sprintf("startFromURL url=%s", raw))
+	if err := beginOta(raw); err != nil {
+		vars.HTTPError(w, r, err.Error())
+		return
+	}
+	vars.HTTPSuccess(w, r)
+}
 
+// beginOta hands url to update-engine, which streams it with curl.
+func beginOta(raw string) error {
 	// Clear switchboard guard so update-engine.service can start.
 	_ = os.Remove(disableUpdateEngine)
 	// Drop stale status from a prior inhibited auto-update so the UI does not
@@ -134,8 +149,7 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 		"",
 	}, "\n")
 	if err := os.WriteFile(updateEngineEnvPath, []byte(env), 0644); err != nil {
-		vars.HTTPError(w, r, "cannot write update-engine.env: "+err.Error())
-		return
+		return fmt.Errorf("cannot write update-engine.env: %v", err)
 	}
 	// Also seed oneshot.env — systemd reads it before vic-switchboard env.
 	_ = os.WriteFile("/run/update-engine-oneshot.env", []byte(env), 0644)
@@ -149,11 +163,158 @@ func (m *AutoUpdate) startFromURL(w http.ResponseWriter, r *http.Request) {
 			msg = err.Error()
 		}
 		otaLogAppend("restart update-engine failed: " + msg)
-		vars.HTTPError(w, r, "failed to start update-engine: "+msg)
-		return
+		return fmt.Errorf("failed to start update-engine: %s", msg)
 	}
 	otaLogAppend("update-engine restarted")
-	vars.HTTPSuccess(w, r)
+	return nil
+}
+
+const (
+	// update-engine appends ?emresn=... to the URL, which rules out file://.
+	otaLocalURL = "http://127.0.0.1:8080/api/mods/AutoUpdate/localOta/upload.ota"
+	// A full WireOS .ota is ~260 MB; /data is ~700 MB.
+	otaUploadMax     = 600 << 20
+	otaUploadReserve = 64 << 20
+)
+
+var (
+	otaUploadMu   sync.Mutex
+	otaUploadBusy bool
+	// Overridable in tests.
+	otaUploadDir   = "/data/wired/ota-upload"
+	otaFreeBytesFn = freeBytes
+)
+
+func otaUploadFile() string {
+	return filepath.Join(otaUploadDir, "upload.ota")
+}
+
+func (m *AutoUpdate) uploadOta(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		vars.HTTPError(w, r, "POST the .ota file as the request body")
+		return
+	}
+	otaUploadMu.Lock()
+	if otaUploadBusy {
+		otaUploadMu.Unlock()
+		vars.HTTPError(w, r, "another upload is in progress")
+		return
+	}
+	otaUploadBusy = true
+	otaUploadMu.Unlock()
+	defer func() {
+		otaUploadMu.Lock()
+		otaUploadBusy = false
+		otaUploadMu.Unlock()
+	}()
+
+	if a := unitActive("update-engine.service"); a == "active" || a == "activating" {
+		vars.HTTPError(w, r, "an update is already running")
+		return
+	}
+	version, err := receiveOtaUpload(r.Body, r.ContentLength)
+	if err != nil {
+		otaLogAppend("uploadOta rejected: " + err.Error())
+		vars.HTTPError(w, r, err.Error())
+		return
+	}
+	otaLogAppend(fmt.Sprintf("uploadOta stored %d bytes, update_version=%s", r.ContentLength, version))
+	if err := beginOta(otaLocalURL); err != nil {
+		_ = os.RemoveAll(otaUploadDir)
+		vars.HTTPError(w, r, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "success", "update_version": version})
+}
+
+// receiveOtaUpload stores body as otaUploadFile and returns its manifest
+// update_version. Nothing is left on disk when it fails.
+func receiveOtaUpload(body io.Reader, size int64) (string, error) {
+	if size <= 0 {
+		return "", fmt.Errorf("file size unknown")
+	}
+	if size > otaUploadMax {
+		return "", fmt.Errorf("file too large (%d MB, max %d MB)", size>>20, otaUploadMax>>20)
+	}
+	_ = os.RemoveAll(otaUploadDir)
+	if err := os.MkdirAll(otaUploadDir, 0700); err != nil {
+		return "", fmt.Errorf("cannot create upload dir: %v", err)
+	}
+	if free := otaFreeBytesFn(otaUploadDir); free < size+otaUploadReserve {
+		_ = os.RemoveAll(otaUploadDir)
+		return "", fmt.Errorf("not enough space on robot: need %d MB, free %d MB", (size+otaUploadReserve)>>20, free>>20)
+	}
+	part := otaUploadFile() + ".part"
+	f, err := os.OpenFile(part, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		_ = os.RemoveAll(otaUploadDir)
+		return "", fmt.Errorf("cannot write upload: %v", err)
+	}
+	n, err := io.Copy(f, io.LimitReader(body, size))
+	if err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil || n != size {
+		_ = os.RemoveAll(otaUploadDir)
+		return "", fmt.Errorf("upload interrupted (%d/%d bytes)", n, size)
+	}
+	version, err := otaFileVersion(part)
+	if err != nil {
+		_ = os.RemoveAll(otaUploadDir)
+		return "", err
+	}
+	if err := os.Rename(part, otaUploadFile()); err != nil {
+		_ = os.RemoveAll(otaUploadDir)
+		return "", fmt.Errorf("cannot store upload: %v", err)
+	}
+	return version, nil
+}
+
+func otaFileVersion(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	head := make([]byte, otaHeadBytes)
+	n, _ := io.ReadFull(f, head)
+	version := otaManifestVersion(head[:n])
+	if version == "" {
+		return "", fmt.Errorf("not a WireOS .ota file (manifest.ini with update_version missing)")
+	}
+	return version, nil
+}
+
+func freeBytes(path string) int64 {
+	var st syscall.Statfs_t
+	if err := syscall.Statfs(path, &st); err != nil {
+		return 0
+	}
+	return int64(st.Bavail) * int64(st.Bsize)
+}
+
+// serveLocalOta feeds the uploaded file to update-engine on this robot only.
+func serveLocalOta(w http.ResponseWriter, r *http.Request) {
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	http.ServeFile(w, r, otaUploadFile())
+}
+
+// cleanupOtaUpload drops a leftover upload unless update-engine is reading it.
+func cleanupOtaUpload() {
+	if a := unitActive("update-engine.service"); a == "active" || a == "activating" {
+		return
+	}
+	if _, err := os.Stat(otaUploadDir); err == nil {
+		_ = os.RemoveAll(otaUploadDir)
+	}
 }
 
 func validateOtaURL(raw string) error {
@@ -207,8 +368,12 @@ func probeOtaURL(raw string) error {
 	return nil
 }
 
-// The release asset name never changes; a new build replaces the file.
-const officialOtaURL = "https://github.com/haryken/wirepodxiaozhi/releases/download/robot/vector.ota"
+// The release asset names never change; a new build replaces the file.
+// Checked in order: the first link that has the file is offered.
+var officialOtaURLs = []string{
+	"https://github.com/haryken/wirepodxiaozhi/releases/download/robot/vector.ota",
+	"https://github.com/haryken/wire-os/releases/download/robot/vector.ota",
+}
 
 const (
 	officialOtaCacheTTL = 10 * time.Minute
@@ -223,8 +388,8 @@ type officialOtaCheck struct {
 	HTTPStatus     int    `json:"http_status"`
 	UpdateVersion  string `json:"update_version"`
 	CurrentVersion string `json:"current_version"`
-	// Newer is true when the file is a newer build, or when its version
-	// cannot be read (the user can still decide to install it).
+	// Newer is true when the file exists and its update_version differs from
+	// the robot (or the version cannot be read). Same version = no offer.
 	Newer     bool   `json:"newer"`
 	Same      bool   `json:"same"`
 	Size      int64  `json:"size"`
@@ -248,24 +413,31 @@ func checkOfficialOta(force bool) officialOtaCheck {
 		return *officialOtaCached
 	}
 	res := officialOtaCheck{
-		URL:            officialOtaURL,
+		URL:            officialOtaURLs[0],
 		CurrentVersion: currentAnkiVersionFn(),
 		CheckedAt:      time.Now().Format(time.RFC3339),
 	}
-	status, total, head, err := officialOtaFetch(officialOtaURL)
-	res.HTTPStatus = status
-	if err != nil {
-		res.Error = err.Error()
-	} else {
+	for _, u := range officialOtaURLs {
+		status, total, head, err := officialOtaFetch(u)
+		if err != nil {
+			res.Error = err.Error()
+			continue
+		}
 		res.Reachable = true
-		res.Exists = status == http.StatusOK || status == http.StatusPartialContent
+		res.HTTPStatus = status
+		if status == http.StatusOK || status == http.StatusPartialContent {
+			res.URL = u
+			res.Exists = true
+			res.Error = ""
+			res.Size = total
+			res.UpdateVersion = otaManifestVersion(head)
+			res.Same = res.UpdateVersion != "" && compareOSVersions(res.UpdateVersion, res.CurrentVersion) == 0
+			res.Newer = !res.Same
+			break
+		}
 	}
-	if res.Exists {
-		res.Size = total
-		res.UpdateVersion = otaManifestVersion(head)
-		cmp := compareOSVersions(res.UpdateVersion, res.CurrentVersion)
-		res.Same = res.UpdateVersion != "" && cmp == 0
-		res.Newer = res.UpdateVersion == "" || res.CurrentVersion == "" || cmp > 0
+	if res.Reachable && !res.Exists {
+		res.Error = ""
 	}
 	officialOtaCached = &res
 	officialOtaTime = time.Now()
@@ -406,6 +578,9 @@ func (m *AutoUpdate) writeStatus(w http.ResponseWriter) {
 		if st.Error == "" {
 			st.Error = "update-engine exit_code=" + code
 		}
+	}
+	if st.Error != "" && st.UnitActive != "active" && st.UnitActive != "activating" {
+		cleanupOtaUpload()
 	}
 	if st.Expected > 0 {
 		st.Percent = int((st.Progress * 100) / st.Expected)

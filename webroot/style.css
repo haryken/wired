@@ -2666,10 +2666,368 @@ html.i18n-pure small.sub {
     color: #e8b86d;
 }
 
-.ota-other-title {
+/* OS update tab: status card + two numbered update methods */
+.ota-status-card {
+    text-align: left;
+    margin: 8px 0 14px;
+    padding: 12px 14px;
+    background: #1f1f1f;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+}
+
+.ota-status-title {
+    margin: 0 0 6px;
+    font-size: 16px;
+    color: #67e8f9;
+}
+
+.ota-current {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.ota-safe {
+    margin: 4px 0 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(103, 232, 249, 0.08);
+    color: #b9e6ee;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.ota-way {
+    text-align: left;
+    margin: 0 0 14px;
+    padding: 16px 14px;
+    border-radius: 12px;
+    border: 1px solid #3a3a3a;
+    background: #242424;
+}
+
+.ota-way-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.ota-way-head h3 {
+    margin: 0 0 4px;
+    font-size: 19px;
+    color: #fff;
+}
+
+.ota-way-num {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #052e16;
+    font-weight: bold;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ota-way-num-manual {
+    background: #6b7280;
+    color: #fff;
+}
+
+.ota-tag {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 10px;
+    background: rgba(74, 222, 128, 0.18);
+    color: #86efac;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.ota-tag-manual {
+    background: rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
+}
+
+.ota-steps {
+    margin: 6px 0 12px;
+    padding-left: 1.3em;
+    color: #d4d4d4;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.ota-steps li {
+    margin: 3px 0;
+}
+
+.ota-hint {
+    margin: 4px 0 6px;
+    color: #c8c8c8;
+    font-size: 14px;
+}
+
+.ota-check-box {
+    padding: 12px;
+    border-radius: 10px;
+    background: #1b1b1b;
+    border: 1px solid #333;
+}
+
+.ota-official .ota-official-recheck {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+    margin: 8px auto 0;
+    background: transparent;
+    border: 1px solid #67e8f9;
+    color: #67e8f9;
+}
+
+.ota-official[data-state="new"] .ota-check-box {
+    background: rgba(5, 46, 22, 0.55);
+    border-color: #4ade80;
+}
+
+.ota-switch {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.ota-switch-btn {
+    flex: 1;
+    margin: 0;
+    padding: 12px 8px;
+    font-size: 15px;
+    font-weight: bold;
     color: #aaa;
-    font-weight: normal;
-    margin: 14px 0 4px;
+    background: #1b1b1b;
+    border: 2px solid #3a3a3a;
+}
+
+.ota-switch-btn.active {
+    color: #67e8f9;
+    border-color: #67e8f9;
+    background: rgba(103, 232, 249, 0.1);
+}
+
+.ota-manual[hidden] {
+    display: none;
+}
+
+.ota-file-pick {
+    display: block;
+    margin: 8px 0;
+    padding: 16px;
+    border: 2px dashed #67e8f9;
+    border-radius: 10px;
+    text-align: center;
+    color: #67e8f9;
+    font-weight: bold;
+    background: rgba(103, 232, 249, 0.06);
+    cursor: pointer;
+    word-break: break-word;
+}
+
+.ota-file-pick:hover {
+    background: rgba(103, 232, 249, 0.14);
+}
+
+.ota-file-pick input {
+    display: none;
+}
+
+.ota-file-pick.picked {
+    border-style: solid;
+    border-color: #4ade80;
+    color: #86efac;
+    background: rgba(74, 222, 128, 0.08);
+}
+
+.ota-url-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    margin: 4px 0 8px;
+    padding: 8px 10px;
+    font-size: 15px;
+    color: #f0f0f0;
+    background: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 8px;
+}
+
+.ota-action-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0 0;
+    padding: 14px;
+    font-size: 17px;
+    font-weight: bold;
+    color: #fff;
+    background: #0e7490;
+    border-color: #22d3ee;
+}
+
+.ota-action-btn:hover {
+    background: #0891b2;
+}
+
+.ota-action-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.ota-log-details {
+    text-align: left;
+    margin: 0 0 12px;
+}
+
+.ota-log-details summary {
+    cursor: pointer;
+    color: #aaa;
+    padding: 8px 0;
+}
+
+/* Styled confirm dialog (replaces window.confirm) */
+.wos-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    animation: wos-modal-fade 0.18s ease-out;
+}
+
+.wos-modal-backdrop[hidden] {
+    display: none;
+}
+
+.wos-modal {
+    width: 100%;
+    max-width: 420px;
+    padding: 22px 20px 18px;
+    box-sizing: border-box;
+    text-align: center;
+    background: #1f1f1f;
+    border: 1px solid #3a3a3a;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    animation: wos-modal-pop 0.22s cubic-bezier(.2, .9, .3, 1.2);
+}
+
+.wos-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: rgba(74, 222, 128, 0.18);
+}
+
+.wos-modal.warn .wos-modal-icon {
+    background: rgba(251, 191, 36, 0.18);
+}
+
+.wos-modal-title {
+    margin: 0;
+    font-size: 20px;
+    color: #fff;
+}
+
+.wos-modal-sub {
+    margin-top: 6px;
+    color: #4ade80;
+    font-weight: bold;
+    word-break: break-all;
+}
+
+.wos-modal-sub[hidden] {
+    display: none;
+}
+
+.wos-modal-list {
+    list-style: none;
+    margin: 14px 0 6px;
+    padding: 0;
+    text-align: left;
+}
+
+.wos-modal-list li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 6px 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #d4d4d4;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.wos-modal-list li.warn {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+    font-weight: bold;
+}
+
+.wos-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.wos-modal-actions button {
+    flex: 1;
+    margin: 0;
+    padding: 13px 10px;
+    font-weight: bold;
+    border-radius: 10px;
+}
+
+.wos-modal-cancel {
+    background: #2e2e2e;
+    color: #ccc;
+}
+
+.wos-modal-ok {
+    background: #22c55e;
+    border-color: #bbf7d0;
+    color: #052e16;
+}
+
+.wos-modal-ok:hover {
+    background: #4ade80;
+    color: #052e16;
+}
+
+.wos-modal.warn .wos-modal-ok {
+    background: #f59e0b;
+    border-color: #fde68a;
+    color: #2b1700;
+}
+
+@keyframes wos-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes wos-modal-pop {
+    from { opacity: 0; transform: translateY(16px) scale(0.95); }
+    to { opacity: 1; transform: none; }
 }
 
 .tabs button.has-update,
