@@ -56,8 +56,14 @@ type XiaozhiCfg struct {
 	FaceGreet bool `json:"face_greet,omitempty"`
 	// FaceGreetEveryMin: minimum minutes between face greetings; unset = 5, 0 = no wait.
 	FaceGreetEveryMin *int `json:"face_greet_every_min,omitempty"`
+	// SilencePromptSec: 0 = off (default). 10..50 = after that many quiet seconds
+	// while listening, vic-cloud nudges the user ("khơi gợi lại") so the chat
+	// does not die when they stay silent too long. One setting for every AI backend.
+	SilencePromptSec int `json:"silence_prompt_sec,omitempty"`
 	// TTSGainPct boosts every AI voice in vic-cloud (100 = as received).
 	TTSGainPct int `json:"tts_gain_pct,omitempty"`
+	// GateRMS is the loudness floor for conversation_mode "gate" (0 = 800).
+	GateRMS int `json:"gate_rms,omitempty"`
 	// Backend: "" / "xiaozhi" (default) or "openai" (settings in openai.json).
 	Backend string `json:"backend,omitempty"`
 }
@@ -68,8 +74,15 @@ const (
 
 	faceGreetEveryMaxMin = 240
 
+	silencePromptMinSec = 10
+	silencePromptMaxSec = 50
+
 	ttsGainMinPct = 100
 	ttsGainMaxPct = 1000
+
+	xiaozhiGateRMSMin     = 100
+	xiaozhiGateRMSMax     = 4000
+	xiaozhiGateRMSDefault = 800
 
 	xiaozhiBackendXiaozhi = "xiaozhi"
 	xiaozhiBackendOpenAI  = "openai"
@@ -98,6 +111,49 @@ func normalizeMusicServerURL(u string) string {
 
 // Read by vic-anim / vic-engine / vic-cloud at stream start (tmpfs, owned anki:anki).
 var xiaozhiListenVADFlagPath = "/run/vic-cloud/xiaozhi-listen-vad"
+
+// Anim reads these at wake, before vic-cloud reloads xiaozhi.json.
+var (
+	xiaozhiAmbientFlagPath     = "/run/vic-cloud/xiaozhi-ambient"
+	xiaozhiOpenMicModeFlagPath = "/run/vic-cloud/xiaozhi-openmic-mode"
+	xiaozhiOpenMicArmPath      = "/run/vic-cloud/xiaozhi-openmic"
+)
+
+// syncXiaozhiConversationFlags applies conversation_mode without a cloud restart.
+// Shared by every AI backend (Xiaozhi + Direct API): same /run flags for anim.
+// Leaving Kéo dài drops the walking-mic hold. Mở sẵn and Ngưỡng keep the mode
+// flag so the next wake opens the mic while Vector is still walking.
+func syncXiaozhiConversationFlags(mode string) {
+	if mode != "ambient" {
+		_ = os.Remove(xiaozhiAmbientFlagPath)
+	}
+	if mode == "open" || mode == "gate" {
+		_ = os.MkdirAll(filepath.Dir(xiaozhiOpenMicModeFlagPath), 0775)
+		_ = os.WriteFile(xiaozhiOpenMicModeFlagPath, []byte("1"), 0664)
+	} else {
+		_ = os.Remove(xiaozhiOpenMicModeFlagPath)
+		_ = os.Remove(xiaozhiOpenMicArmPath)
+	}
+}
+
+func validXiaozhiConvMode(mode string) bool {
+	switch mode {
+	case "continuous", "single", "ambient", "open", "gate":
+		return true
+	default:
+		return false
+	}
+}
+
+func clampXiaozhiGateRMS(n int) int {
+	if n < xiaozhiGateRMSMin {
+		return xiaozhiGateRMSMin
+	}
+	if n > xiaozhiGateRMSMax {
+		return xiaozhiGateRMSMax
+	}
+	return n
+}
 
 // syncXiaozhiListenVADFlag applies listen_mode to the next listen without
 // waiting for vic-cloud to reload xiaozhi.json.
@@ -525,14 +581,20 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		cfg.TTSMode = "xiaozhi"
-		if v := r.FormValue("conversation_mode"); v != "" {
-			cfg.ConversationMode = strings.TrimSpace(v)
+		if v := strings.TrimSpace(r.FormValue("conversation_mode")); validXiaozhiConvMode(v) {
+			cfg.ConversationMode = v
+		}
+		if v := strings.TrimSpace(r.FormValue("gate_rms")); v != "" {
+			if n, err := strconv.Atoi(v); err == nil {
+				cfg.GateRMS = clampXiaozhiGateRMS(n)
+			}
 		}
 		cfg.GameGoogleTTSVI = true
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
 		}
+		syncXiaozhiConversationFlags(cfg.ConversationMode)
 		applied := false
 		if xiaozhiConnectionChanged(before, cfg) {
 			applied = applyVicCloudConfig()
@@ -775,6 +837,38 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 
+	case vars.IsEndpoint(r, "set_conversation_mode"):
+		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
+		if !validXiaozhiConvMode(mode) {
+			vars.HTTPError(w, r, "mode must be continuous, single, ambient, open, or gate")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.ConversationMode = mode
+		if v := strings.TrimSpace(r.FormValue("rms")); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				vars.HTTPError(w, r, "rms must be a number")
+				return
+			}
+			cfg.GateRMS = clampXiaozhiGateRMS(n)
+		}
+		if mode == "gate" && cfg.GateRMS == 0 {
+			cfg.GateRMS = xiaozhiGateRMSDefault
+		}
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		syncXiaozhiConversationFlags(mode)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": xiaozhiCfgView(cfg),
+		})
+		return
+
 	case vars.IsEndpoint(r, "set_listen_mode"):
 		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
 		if mode != xiaozhiListenFixed && mode != xiaozhiListenVAD {
@@ -817,6 +911,33 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			cfg.FaceGreetEveryMin = &n
 		}
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	// set_silence_prompt: 0 = off; 10..50 = quiet seconds before a nudge.
+	// vic-cloud reads silence_prompt_sec on the next listen (LoadConfig).
+	case vars.IsEndpoint(r, "set_silence_prompt"):
+		secStr := strings.TrimSpace(r.FormValue("sec"))
+		if secStr == "" {
+			vars.HTTPError(w, r, "sec required (0 or 10-50)")
+			return
+		}
+		n, err := strconv.Atoi(secStr)
+		if err != nil || (n != 0 && (n < silencePromptMinSec || n > silencePromptMaxSec)) {
+			vars.HTTPError(w, r, fmt.Sprintf("sec must be 0 or %d-%d", silencePromptMinSec, silencePromptMaxSec))
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.SilencePromptSec = n
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return

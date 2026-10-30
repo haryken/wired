@@ -162,9 +162,93 @@ function xzShowConfigForMode(mode) {
     if (direct && typeof oaiLoad === 'function') oaiLoad();
 }
 
+function convModeStatus(msg) {
+    const el = document.getElementById('convModeStatus');
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+}
+
+function convModeLabel(mode) {
+    if (mode === 'single') return xzT('xz.conv_single', 'Một lượt');
+    if (mode === 'ambient') return xzT('xz.conv_ambient', 'Kéo dài');
+    if (mode === 'open') return xzT('xz.conv_open', 'Mở sẵn');
+    if (mode === 'gate') return xzT('xz.conv_gate', 'Ngưỡng');
+    return xzT('xz.conv_cont', 'Liên tục');
+}
+
+function applyGateRMS(n) {
+    const sel = document.getElementById('xzGateRMS');
+    if (!sel) return;
+    const v = String(n > 0 ? n : 800);
+    let found = false;
+    Array.from(sel.options).forEach(function (o) {
+        if (o.value === v) found = true;
+    });
+    if (!found) {
+        const o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        sel.appendChild(o);
+    }
+    sel.value = v;
+}
+
+function applyConversationRadios(cfg) {
+    let mode = 'continuous';
+    if (cfg && (cfg.conversation_mode === 'single' || cfg.conversation_mode === 'ambient' || cfg.conversation_mode === 'open' || cfg.conversation_mode === 'gate')) {
+        mode = cfg.conversation_mode;
+    }
+    document.querySelectorAll('input[name="xzConvMode"]').forEach(function (el) {
+        el.checked = el.value === mode;
+    });
+    applyGateRMS(cfg && cfg.gate_rms);
+    let msg = xzT('conv.using', 'Đang dùng: {name}.').replace('{name}', convModeLabel(mode));
+    if (cfg && cfg.enabled === false) msg += ' ' + xzT('conv.off', '(AI giao tiếp đang tắt — chế độ này chưa có tác dụng.)');
+    convModeStatus(msg);
+}
+
+async function loadConversationMode() {
+    try {
+        const r = await fetch('/api/mods/Xiaozhi/get', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        applyConversationRadios(await r.json());
+    } catch (e) {
+        convModeStatus(xzT('conv.load_err', 'Lỗi đọc cách hội thoại:') + ' ' + (e.message || e));
+    }
+}
+
+function setGateRMS(rms) {
+    const gate = document.getElementById('xzConvGate');
+    if (gate) gate.checked = true;
+    setConversationMode('gate', rms);
+}
+
+async function setConversationMode(mode, rms) {
+    convModeStatus(xzT('conv.saving', 'Đang lưu…'));
+    try {
+        const params = { mode: mode };
+        if (rms != null && rms !== '') params.rms = String(rms);
+        const r = await fetch('/api/mods/Xiaozhi/set_conversation_mode?' + new URLSearchParams(params).toString(), { method: 'POST' });
+        const j = await r.json().catch(function () { return {}; });
+        if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
+        applyConversationRadios(j.config || { conversation_mode: mode, enabled: true });
+    } catch (e) {
+        convModeStatus(xzT('conv.save_err', 'Lỗi lưu cách hội thoại:') + ' ' + (e.message || e));
+        await loadConversationMode();
+    }
+}
+
 function xzSelectedConvMode() {
     const single = document.getElementById('xzConvSingle');
-    return (single && single.checked) ? 'single' : 'continuous';
+    const ambient = document.getElementById('xzConvAmbient');
+    const open = document.getElementById('xzConvOpen');
+    const gate = document.getElementById('xzConvGate');
+    if (single && single.checked) return 'single';
+    if (ambient && ambient.checked) return 'ambient';
+    if (open && open.checked) return 'open';
+    if (gate && gate.checked) return 'gate';
+    return 'continuous';
 }
 
 function xzApplyCfg(cfg) {
@@ -176,14 +260,25 @@ function xzApplyCfg(cfg) {
     const cid = document.getElementById('xzClientID');
     const convCont = document.getElementById('xzConvContinuous');
     const convSingle = document.getElementById('xzConvSingle');
+    const convAmbient = document.getElementById('xzConvAmbient');
+    const convOpen = document.getElementById('xzConvOpen');
+    const convGate = document.getElementById('xzConvGate');
 
     if (ota) ota.value = (cfg.ota_base_url && cfg.ota_base_url.trim()) ? cfg.ota_base_url : XZ_DEFAULT_OTA;
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
-    const conv = (cfg.conversation_mode === 'single') ? 'single' : 'continuous';
+    let conv = 'continuous';
+    if (cfg.conversation_mode === 'single') conv = 'single';
+    else if (cfg.conversation_mode === 'ambient') conv = 'ambient';
+    else if (cfg.conversation_mode === 'open') conv = 'open';
+    else if (cfg.conversation_mode === 'gate') conv = 'gate';
     if (convCont) convCont.checked = (conv === 'continuous');
     if (convSingle) convSingle.checked = (conv === 'single');
+    if (convAmbient) convAmbient.checked = (conv === 'ambient');
+    if (convOpen) convOpen.checked = (conv === 'open');
+    if (convGate) convGate.checked = (conv === 'gate');
+    applyGateRMS(cfg.gate_rms);
 
     const gviOn = document.getElementById('xzGameTtsOn');
     const gviOff = document.getElementById('xzGameTtsOff');

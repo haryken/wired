@@ -108,6 +108,30 @@ func TestXiaozhiSetFaceGreetInterval(t *testing.T) {
 	}
 }
 
+func TestXiaozhiSetSilencePrompt(t *testing.T) {
+	withTempXiaozhiPaths(t)
+	if r := postXiaozhi(t, "set_silence_prompt", url.Values{"sec": {"30"}}); r["status"] != "success" {
+		t.Fatalf("resp %v", r)
+	}
+	if cfg, _ := loadXiaozhiCfg(); cfg.SilencePromptSec != 30 {
+		t.Fatalf("silence_prompt_sec = %d", cfg.SilencePromptSec)
+	}
+	for _, bad := range []string{"", "5", "9", "51", "abc"} {
+		if r := postXiaozhi(t, "set_silence_prompt", url.Values{"sec": {bad}}); r["status"] == "success" {
+			t.Fatalf("sec=%q accepted", bad)
+		}
+	}
+	if cfg, _ := loadXiaozhiCfg(); cfg.SilencePromptSec != 30 {
+		t.Fatalf("rejected values changed silence_prompt_sec to %d", cfg.SilencePromptSec)
+	}
+	if r := postXiaozhi(t, "set_silence_prompt", url.Values{"sec": {"0"}}); r["status"] != "success" {
+		t.Fatalf("off resp %v", r)
+	}
+	if cfg, _ := loadXiaozhiCfg(); cfg.SilencePromptSec != 0 {
+		t.Fatalf("off silence_prompt_sec = %d", cfg.SilencePromptSec)
+	}
+}
+
 func TestXiaozhiSetTTSGain(t *testing.T) {
 	withTempXiaozhiPaths(t)
 	if r := postXiaozhi(t, "set_tts_gain", url.Values{"pct": {"160"}}); r["status"] != "success" {
