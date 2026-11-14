@@ -260,18 +260,16 @@ function showBotSection(id) {
     // Legacy: silence nudge + removed fixed~6s mic tile → mic-open behavior.
     if (id === 'bot-silence' || id === 'bot-listen') id = 'bot-conv';
 
-    // Gate engine-specific tiles
+    // Gate engine-specific tiles → popup with jump to Engine đánh thức
     if ((id === 'bot-sens' || id === 'bot-cww') && typeof isWakeThf === 'function' && isWakeThf()) {
-        if (typeof setJdocStatus === 'function') {
-            setJdocStatus(id === 'bot-cww'
-                ? 'Từ đánh thức tùy chỉnh chỉ dùng khi engine = Picovoice.'
-                : 'Độ nhạy chỉ dùng khi engine = Picovoice.');
+        if (typeof openWakeEngineGate === 'function') {
+            openWakeEngineGate(id === 'bot-cww' ? 'cww' : 'sens');
         }
         return;
     }
     if (id === 'bot-locale' && typeof isWakeThf === 'function' && !isWakeThf()) {
-        if (typeof setJdocStatus === 'function') {
-            setJdocStatus('Độ nhạy Hey Vector chỉ dùng khi engine = Hey Vector (THF).');
+        if (typeof openWakeEngineGate === 'function') {
+            openWakeEngineGate('locale');
         }
         return;
     }
@@ -295,6 +293,7 @@ function showBotSection(id) {
         if (typeof xzLoadGain === 'function') xzLoadGain();
     }
     if (id === 'bot-eyes') getEyePreset();
+    if (id === 'bot-wake' && typeof loadWakeEngine === 'function') loadWakeEngine();
     if (id === 'bot-sens' && typeof setSensitivity === 'function') setSensitivity();
     if (id === 'bot-locale' && typeof loadWakeLocale === 'function') loadWakeLocale();
     if (id === 'bot-stim' && typeof stimStart === 'function') stimStart();

@@ -188,7 +188,61 @@ async function saveWakeEngine() {
     }
 }
 
+function wakeGateT(key, fallback) {
+    return (typeof t === 'function') ? t(key, fallback) : fallback;
+}
+
+/** Popup when a wake tile is locked for the current engine. */
+function openWakeEngineGate(kind) {
+    const modal = document.getElementById('wakeGateModal');
+    const title = document.getElementById('wakeGateTitle');
+    const body = document.getElementById('wakeGateBody');
+    if (!modal || !title || !body) return;
+
+    let titleText;
+    let bodyText;
+    if (kind === 'locale') {
+        titleText = wakeGateT('wake.gate_title', 'Cần đổi engine đánh thức');
+        bodyText = wakeGateT(
+            'wake.gate_body_thf',
+            'Độ nhạy Hey Vector chỉ dùng khi engine = Hey Vector (THF). Hãy mở Engine đánh thức và đổi sang Hey Vector trước.'
+        );
+    } else if (kind === 'cww') {
+        titleText = wakeGateT('wake.gate_title', 'Cần đổi engine đánh thức');
+        bodyText = wakeGateT(
+            'wake.gate_body_cww',
+            'Từ đánh thức tùy chỉnh chỉ dùng khi engine = Picovoice. Hãy mở Engine đánh thức và đổi sang Picovoice trước.'
+        );
+    } else {
+        titleText = wakeGateT('wake.gate_title', 'Cần đổi engine đánh thức');
+        bodyText = wakeGateT(
+            'wake.gate_body_sens',
+            'Độ nhạy wake chỉ dùng khi engine = Picovoice. Hãy mở Engine đánh thức và đổi sang Picovoice trước.'
+        );
+    }
+    title.textContent = titleText;
+    body.textContent = bodyText;
+    modal.hidden = false;
+}
+
+function closeWakeEngineGate() {
+    const modal = document.getElementById('wakeGateModal');
+    if (modal) modal.hidden = true;
+}
+
+function goWakeEngineFromGate() {
+    closeWakeEngineGate();
+    showBotSection('bot-wake');
+    if (typeof loadWakeEngine === 'function') loadWakeEngine();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadWakeEngine();
     loadWakeLocale();
+    const modal = document.getElementById('wakeGateModal');
+    if (modal) {
+        modal.addEventListener('click', (ev) => {
+            if (ev.target === modal) closeWakeEngineGate();
+        });
+    }
 });

@@ -2412,8 +2412,8 @@ h3 small.sub {
 .bot-nav-item.disabled,
 .bot-nav-item[aria-disabled="true"] {
     opacity: 0.35;
-    cursor: not-allowed;
-    pointer-events: none;
+    cursor: pointer;
+    /* Keep clicks so we can show “change wake engine” popup. */
     filter: grayscale(0.6);
 }
 
@@ -3205,6 +3205,14 @@ html.i18n-pure small.sub {
     color: #4ade80;
     font-weight: bold;
     word-break: break-all;
+}
+
+.wos-modal-body {
+    margin: 10px 0 0;
+    color: #d4d4d8;
+    font-size: 14.5px;
+    line-height: 1.5;
+    text-align: left;
 }
 
 .wos-modal-sub[hidden] {
