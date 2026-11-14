@@ -186,10 +186,19 @@ func trainFace(name string) error {
 	if err != nil {
 		return err
 	}
+	// SetFaceToEnroll alone does not start MeetVictor (no backpack scan lights).
+	// Companion app also fires intent_meet_victor after setting the enroll name.
 	_, err = v.Conn.SetFaceToEnroll(ctx, &vectorpb.SetFaceToEnrollRequest{
 		Name:        name,
 		SaveToRobot: true,
 		SayName:     true,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = v.Conn.AppIntent(ctx, &vectorpb.AppIntentRequest{
+		Intent: "intent_meet_victor",
+		Param:  name,
 	})
 	return err
 }
