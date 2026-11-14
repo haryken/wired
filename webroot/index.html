@@ -624,85 +624,82 @@
         <div id="bot-conv" class="bot-section" style="display:none;">
             <h3>🎙 <span data-i18n="sec.conv">Hành vi mở micro khi giao tiếp</span></h3>
             <div class="help-box">
-                <p data-i18n="conv.help">Chọn micro mở / nghe thế nào khi đang chat với AI (sau Hey Vector hoặc nút lưng). Một lựa chọn dùng chung mọi AI giao tiếp. Bấm là lưu ngay, áp dụng từ lần đánh thức tiếp theo.</p>
-                <p class="help-warn" data-i18n="conv.warn">Dùng chung một UI / một cờ cho Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime và Grok Voice. Cơ chế gốc của các AI Direct (OpenAI / Gemini / Grok / Tự chọn AI) chính là kiểu Liên tục — chọn Liên tục nếu muốn giữ hành vi đó. Vosk không dùng các chế độ này.</p>
+                <p data-i18n="conv.help" data-i18n-html="1">Chọn một chế độ bên dưới, đọc giải thích, rồi bấm <b>Áp dụng</b>. Dùng chung mọi AI giao tiếp (Xiaozhi, OpenAI, Gemini, Grok, Tự chọn AI). Có hiệu lực từ lần Hey Vector / nút lưng tiếp theo.</p>
             </div>
             <div id="convModeStatus" class="faces-status" style="display:none;"></div>
-            <div class="bot-opt-list xz-conv-radios">
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked onchange="setConversationMode('continuous')">
-                    <span>
-                        <b data-i18n="xz.conv_cont">Liên tục</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_cont_desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu. Đây cũng là kiểu gốc của OpenAI / Gemini / Grok / Tự chọn AI.</span>
-                    </span>
-                </label>
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="stand" id="xzConvStand" onchange="setConversationMode('stand')">
-                    <span>
-                        <b data-i18n="xz.conv_stand">Đứng nghe</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_stand_desc">Giống Liên tục nhưng đứng yên lâu hơn (~2 phút im mới tắt mic + kênh). Không cắt cứng sau ~10 giây im.</span>
-                    </span>
-                </label>
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="ambient" id="xzConvAmbient" onchange="setConversationMode('ambient')">
-                    <span>
-                        <b data-i18n="xz.conv_ambient">Kéo dài</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_ambient_desc">Hết thời gian nghe đứng yên thì lưng vẫn xanh, mic vẫn nghe khi bạn nói, robot vẫn đi lại. Im lặng vài phút thì tắt, phải Hey Vector lại.</span>
-                    </span>
-                </label>
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="open" id="xzConvOpen" onchange="setConversationMode('open')">
-                    <span>
-                        <b data-i18n="xz.conv_open">Mở sẵn</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_open_desc">Đánh thức hoặc sang lượt mới có tiếng ting và lưng xanh, robot vẫn đi. Mic mở đến khi câu nói lên server thì đóng để robot nói.</span>
-                    </span>
-                </label>
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="gate" id="xzConvGate" onchange="setConversationMode('gate')">
-                    <span>
-                        <b data-i18n="xz.conv_gate">Ngưỡng</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_gate_desc">Giống Mở sẵn: ting, lưng xanh, robot vẫn đi. Tiếng chỉ gửi lên server khi đủ to. Số RMS càng cao càng khó nghe.</span>
-                    </span>
-                </label>
-                <div class="xz-conv-desc" style="margin: 0 0 10px 28px;">
-                    <label data-i18n="xz.gate_rms">Mức RMS</label>
-                    <select id="xzGateRMS" onchange="setGateRMS(this.value)">
-                        <option value="200" data-i18n="xz.gate_200">200 — rất nhạy</option>
-                        <option value="400" data-i18n="xz.gate_400">400</option>
-                        <option value="600" data-i18n="xz.gate_600">600</option>
-                        <option value="800" data-i18n="xz.gate_800" selected>800 — mức cũ</option>
-                        <option value="1200" data-i18n="xz.gate_1200">1200</option>
-                        <option value="2000" data-i18n="xz.gate_2000">2000 — lọc mạnh</option>
-                    </select>
+
+            <div class="xz-conv-panel" role="region" aria-label="Conversation mic modes">
+                <div class="xz-conv-tabs" role="tablist">
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="continuous" onclick="xzConvSelectTab('continuous')" data-i18n="xz.conv_cont">Liên tục</button>
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="stand" onclick="xzConvSelectTab('stand')" data-i18n="xz.conv_stand">Đứng nghe</button>
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="ambient" onclick="xzConvSelectTab('ambient')" data-i18n="xz.conv_ambient">Kéo dài</button>
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="open" onclick="xzConvSelectTab('open')" data-i18n="xz.conv_open">Mở sẵn</button>
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="gate" onclick="xzConvSelectTab('gate')" data-i18n="xz.conv_gate">Ngưỡng</button>
+                    <button type="button" class="xz-conv-tab" role="tab" data-mode="single" onclick="xzConvSelectTab('single')" data-i18n="xz.conv_single">Một lượt</button>
                 </div>
-                <label class="xz-conv-option">
-                    <input type="radio" name="xzConvMode" value="single" id="xzConvSingle" onchange="setConversationMode('single')">
-                    <span>
-                        <b data-i18n="xz.conv_single">Một lượt</b><br>
-                        <span class="xz-conv-desc" data-i18n="xz.conv_single_desc">Một câu hỏi → một câu trả lời rồi tắt mic. Muốn nói tiếp phải Hey Vector lại. Tiết kiệm / ít bị nghe nhầm.</span>
-                    </span>
-                </label>
+
+                <div class="xz-conv-detail">
+                    <h4 id="xzConvDetailTitle">Liên tục</h4>
+                    <p id="xzConvDetailExtra" class="xz-conv-extra"></p>
+
+                    <div class="xz-conv-block">
+                        <span class="xz-conv-block-label" data-i18n="conv.flow_lbl">Bạn sẽ thấy</span>
+                        <ul id="xzConvDetailFlow" class="xz-conv-points"></ul>
+                    </div>
+                    <div class="xz-conv-block xz-conv-block-tech">
+                        <span class="xz-conv-block-label" data-i18n="conv.tech_lbl">Giải thích thêm</span>
+                        <ul id="xzConvDetailTech" class="xz-conv-points"></ul>
+                    </div>
+
+                    <div id="xzConvGateOpts" class="xz-conv-gate" style="display:none;">
+                        <div class="xz-conv-gate-label" data-i18n="xz.gate_rms">Mức RMS</div>
+                        <p class="xz-conv-gate-hint" data-i18n="xz.gate_rms_hint">Số càng cao càng khó kích hoạt (lọc ồn mạnh hơn). Chỉ dùng với chế độ Ngưỡng.</p>
+                        <div class="xz-conv-gate-chips" role="radiogroup" aria-label="Gate RMS">
+                            <button type="button" class="xz-conv-gate-chip" data-rms="200" onclick="xzConvPickGateRMS(200)" data-i18n="xz.gate_200">200 — rất nhạy</button>
+                            <button type="button" class="xz-conv-gate-chip" data-rms="400" onclick="xzConvPickGateRMS(400)">400</button>
+                            <button type="button" class="xz-conv-gate-chip" data-rms="600" onclick="xzConvPickGateRMS(600)">600</button>
+                            <button type="button" class="xz-conv-gate-chip" data-rms="800" onclick="xzConvPickGateRMS(800)" data-i18n="xz.gate_800">800 — mức cũ</button>
+                            <button type="button" class="xz-conv-gate-chip" data-rms="1200" onclick="xzConvPickGateRMS(1200)">1200</button>
+                            <button type="button" class="xz-conv-gate-chip" data-rms="2000" onclick="xzConvPickGateRMS(2000)" data-i18n="xz.gate_2000">2000 — lọc mạnh</button>
+                        </div>
+                        <select id="xzGateRMS" hidden aria-hidden="true">
+                            <option value="200">200</option>
+                            <option value="400">400</option>
+                            <option value="600">600</option>
+                            <option value="800" selected>800</option>
+                            <option value="1200">1200</option>
+                            <option value="2000">2000</option>
+                        </select>
+                    </div>
+
+                    <div class="xz-conv-actions">
+                        <button type="button" id="xzConvApplyBtn" class="xz-conv-apply" onclick="xzConvApplySelected()" data-i18n="conv.apply">Áp dụng</button>
+                        <span id="xzConvApplyHint" class="xz-conv-apply-hint" data-i18n="conv.applied_hint">Đây là chế độ đang chạy trên robot.</span>
+                    </div>
+                </div>
             </div>
 
-            <hr class="smallhr">
-            <h4 class="vol-part-title">💬 <span data-i18n="sec.silence">Gọi khi im lặng</span></h4>
-            <div class="help-box">
-                <p data-i18n="silence.help" data-i18n-html="1">Khi đang trò chuyện mà bạn <b>im quá lâu</b>, robot tự hỏi han / gợi chuyện một câu ngắn — khỏi phải gọi lại “Hey Vector”, hội thoại không bị “chết” giữa chừng.</p>
-                <ul>
-                    <li data-i18n="silence.why">Cần vì mic mở sẵn (Liên tục / Đứng nghe / Kéo dài / Mở sẵn / Ngưỡng) có thể đứng im rất lâu: không có tiếng thì AI không biết bạn còn muốn nói, còn bạn thì quên robot đang nghe.</li>
-                    <li data-i18n="silence.rule">Chỉ gọi khi đang trong lượt nghe và chưa có ai nói; chọn mốc 10–50 giây. Một lần gọi xong robot nói rồi mở mic lại — im tiếp thì gọi lại theo cùng mốc.</li>
-                    <li data-i18n="silence.vs_idle">Khác với đóng kênh sau ~2 phút im tuyệt đối (ESP32): cái này là <b>nhắc nhẹ</b>, không tắt mic / không ngắt kết nối.</li>
-                </ul>
-                <p class="help-warn" data-i18n="silence.warn">Một cài đặt dùng chung mọi AI giao tiếp. Mặc định tắt. Áp dụng từ lần nghe tiếp theo.</p>
-            </div>
-            <div id="silencePromptStatus" class="faces-status" style="display:none;"></div>
-            <div class="bot-opt-list">
-                <label><input type="radio" name="silencePromptMode" value="off" checked onchange="setSilencePromptMode(false)"> <span data-i18n="silence.off">Tắt — không tự gọi khi im</span></label>
-                <label><input type="radio" name="silencePromptMode" value="on" onchange="setSilencePromptMode(true)"> <span data-i18n="silence.on">Bật — gọi khi im quá lâu</span></label>
-            </div>
-            <div id="silencePromptEvery" class="face-greet-every" style="display:none;">
-                <div class="face-greet-every-title" data-i18n="silence.every_lbl">Im bao lâu thì gọi:</div>
-                <div id="silencePromptChips" class="face-greet-chips" role="radiogroup"></div>
+            <fieldset class="xz-conv-radios-hidden" aria-hidden="true">
+                <input type="radio" name="xzConvMode" value="continuous" id="xzConvContinuous" checked>
+                <input type="radio" name="xzConvMode" value="stand" id="xzConvStand">
+                <input type="radio" name="xzConvMode" value="ambient" id="xzConvAmbient">
+                <input type="radio" name="xzConvMode" value="open" id="xzConvOpen">
+                <input type="radio" name="xzConvMode" value="gate" id="xzConvGate">
+                <input type="radio" name="xzConvMode" value="single" id="xzConvSingle">
+            </fieldset>
+
+            <div class="xz-conv-silence">
+                <h4 class="vol-part-title">💬 <span data-i18n="sec.silence">Gọi khi im lặng</span></h4>
+                <p class="vol-part-help" data-i18n="silence.help" data-i18n-html="1">Đang chat mà bạn <b>im quá lâu</b>, robot tự hỏi han một câu ngắn — không tắt mic, không cần Hey Vector lại. Khác với đóng kênh sau ~2 phút im.</p>
+                <div id="silencePromptStatus" class="faces-status" style="display:none;"></div>
+                <div class="bot-opt-list">
+                    <label><input type="radio" name="silencePromptMode" value="off" checked onchange="setSilencePromptMode(false)"> <span data-i18n="silence.off">Tắt — không tự gọi khi im</span></label>
+                    <label><input type="radio" name="silencePromptMode" value="on" onchange="setSilencePromptMode(true)"> <span data-i18n="silence.on">Bật — gọi khi im quá lâu</span></label>
+                </div>
+                <div id="silencePromptEvery" class="face-greet-every" style="display:none;">
+                    <div class="face-greet-every-title" data-i18n="silence.every_lbl">Im bao lâu thì gọi:</div>
+                    <div id="silencePromptChips" class="face-greet-chips" role="radiogroup"></div>
+                </div>
             </div>
         </div>
 

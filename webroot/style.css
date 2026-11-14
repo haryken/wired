@@ -866,11 +866,244 @@ body.nav-drawer-open {
 
 .xz-conv-desc {
     display: block;
-    margin-top: 4px;
-    font-size: 13px;
-    color: #bbb;
+    margin: 0 0 10px;
+    font-size: 12.5px;
+    color: #9ca3af;
     font-weight: normal;
-    line-height: 1.4;
+    line-height: 1.45;
+}
+
+.xz-conv-panel {
+    margin-top: 8px;
+    border: 1px solid #3a3a3a;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1c1c1c 0%, #151515 100%);
+}
+
+.xz-conv-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px;
+    border-bottom: 1px solid #333;
+    background: #121212;
+}
+
+.xz-conv-tab {
+    appearance: none;
+    border: 1px solid #444;
+    background: #1e1e1e;
+    color: #ddd;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.xz-conv-tab:hover {
+    border-color: #666;
+    background: #252525;
+}
+
+.xz-conv-tab.is-preview {
+    border-color: rgba(96, 165, 250, 0.55);
+    background: rgba(59, 130, 246, 0.16);
+    color: #e8f1ff;
+}
+
+.xz-conv-tab.is-applied {
+    border-color: rgba(34, 211, 238, 0.55);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.25);
+}
+
+.xz-conv-tab.is-applied.is-preview {
+    border-color: rgba(34, 211, 238, 0.75);
+    background: rgba(34, 211, 238, 0.14);
+}
+
+.xz-conv-detail {
+    padding: 14px 16px 16px;
+}
+
+.xz-conv-detail h4 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #f3f3f3;
+}
+
+.xz-conv-block {
+    margin: 0 0 12px;
+}
+
+.xz-conv-block-label {
+    display: block;
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #93c5fd;
+}
+
+.xz-conv-block-tech .xz-conv-block-label {
+    color: #a78bfa;
+}
+
+.xz-conv-block-tech .xz-conv-points {
+    color: #b7b7c9;
+    font-size: 12.5px;
+}
+
+.xz-conv-points {
+    margin: 0;
+    padding-left: 18px;
+    color: #cfcfcf;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.xz-conv-points li {
+    margin: 4px 0;
+}
+
+.xz-conv-gate {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0 4px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #333;
+}
+
+.xz-conv-gate-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e5e7eb;
+}
+
+.xz-conv-gate-hint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #9ca3af;
+}
+
+.xz-conv-gate-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.xz-conv-gate-chip {
+    appearance: none;
+    border: 1px solid #4b5563;
+    background: #1f1f1f;
+    color: #e5e7eb;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.xz-conv-gate-chip:hover {
+    border-color: #6b7280;
+    background: #262626;
+}
+
+.xz-conv-gate-chip.is-on {
+    border-color: rgba(34, 211, 238, 0.65);
+    background: rgba(34, 211, 238, 0.16);
+    color: #ecfeff;
+}
+
+.xz-conv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.xz-conv-apply {
+    appearance: none;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background: #22d3ee;
+    color: #042f2e;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.xz-conv-apply:hover {
+    filter: brightness(1.05);
+}
+
+.xz-conv-apply:disabled {
+    opacity: 0.55;
+    cursor: default;
+    filter: none;
+}
+
+.xz-conv-apply-hint {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.xz-conv-extra {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(34, 211, 238, 0.08);
+    border: 1px solid rgba(34, 211, 238, 0.22);
+    color: #cffafe;
+    font-size: 13.5px;
+    line-height: 1.45;
+}
+
+.xz-conv-radios-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.xz-conv-silence {
+    margin-top: 18px;
+    padding: 14px 14px 12px;
+    border-radius: 14px;
+    border: 1px solid #333;
+    background: #171717;
+}
+
+.xz-conv-silence .vol-part-title {
+    margin-top: 0;
+}
+
+.xz-conv-silence .vol-part-help {
+    margin-bottom: 10px;
+}
+
+@media (max-width: 560px) {
+    .xz-conv-tabs {
+        gap: 8px;
+    }
+    .xz-conv-tab {
+        flex: 1 1 calc(50% - 8px);
+        text-align: center;
+    }
 }
 
 input.xz-readonly,
@@ -2695,6 +2928,26 @@ html.i18n-pure small.sub {
     color: #b9e6ee;
     font-size: 13px;
     line-height: 1.45;
+}
+
+/* Progress sits under the update-method cards (auto / manual). */
+.ota-progress-card {
+    text-align: left;
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    background: #1f1f1f;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+}
+
+.ota-progress-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: #67e8f9;
+}
+
+.ota-progress-card .ota-progress-wrap {
+    margin: 8px 0 0;
 }
 
 .ota-way {

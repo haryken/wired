@@ -187,8 +187,8 @@ function convModeLabel(mode) {
     if (mode === 'single') return xzT('xz.conv_single', 'Một lượt');
     if (mode === 'stand') return xzT('xz.conv_stand', 'Đứng nghe');
     if (mode === 'ambient') return xzT('xz.conv_ambient', 'Kéo dài');
-    if (mode === 'open') return xzT('xz.conv_open', 'Đi & nghe');
-    if (mode === 'gate') return xzT('xz.conv_gate', 'Lọc ồn');
+    if (mode === 'open') return xzT('xz.conv_open', 'Mở sẵn');
+    if (mode === 'gate') return xzT('xz.conv_gate', 'Ngưỡng');
     return xzT('xz.conv_cont', 'Liên tục');
 }
 
@@ -197,81 +197,81 @@ function xzConvDetailCopy(mode) {
     const map = {
         continuous: {
             flow: [
-                xzT('xz.conv_cont_flow_p1', 'Gọi Hey Vector → robot đứng yên, ting, lưng xanh → bạn nói → robot trả lời.'),
-                xzT('xz.conv_cont_flow_p2', 'Trả lời xong mic mở lại để nói tiếp — không cần Hey Vector mỗi câu.'),
+                xzT('xz.conv_cont_flow_p1', 'Hey Vector → ting + lưng xanh, robot đứng yên → bạn nói → robot trả lời.'),
+                xzT('xz.conv_cont_flow_p2', 'Trả lời xong mic mở lại ngay để nói tiếp — không cần Hey Vector mỗi câu.'),
                 xzT('xz.conv_cont_flow_p3', 'Im khoảng 10 giây thì hết lượt nghe; robot có thể đi lại.'),
             ],
             tech: [
-                xzT('xz.conv_cont_tech_p1', 'FakeTrigger / đứng nghe: ting + cyan backpack, mic mở.'),
-                xzT('xz.conv_cont_tech_p2', 'Cắt cứng ~10s không nói (VAD / no-speech). PersistentSession giữ kênh AI giữa các lượt.'),
-                xzT('xz.conv_cont_tech_p3', 'Kiểu gốc của OpenAI / Gemini / Grok / Tự chọn AI (conversation_mode trống = continuous).'),
+                xzT('xz.conv_cont_tech_p1', 'Mic mở theo giọng nói: nói xong mới gửi lên AI; im ~10 giây thì đóng lượt nghe.'),
+                xzT('xz.conv_cont_tech_p2', 'Giữa các câu trong cùng cuộc chat vẫn giữ kết nối AI — khỏi gọi lại Hey Vector.'),
+                xzT('xz.conv_cont_tech_p3', 'Đây là kiểu gốc của OpenAI / Gemini / Grok / Tự chọn AI.'),
             ],
-            extra: xzT('xz.conv_cont_extra', 'Phù hợp chat nhanh, quen kiểu “nói — trả lời — nói tiếp”.'),
+            extra: xzT('xz.conv_cont_extra', 'Phù hợp chat nhanh: nói — trả lời — nói tiếp.'),
         },
         stand: {
             flow: [
                 xzT('xz.conv_stand_flow_p1', 'Giống Liên tục: ting, đứng yên, lưng xanh — không đi lung tung lúc chat.'),
-                xzT('xz.conv_stand_flow_p2', 'Im lâu vẫn đứng nghe tiếp (~2 phút, giống ESP32); không tự cắt sau khoảng 10 giây im.'),
-                xzT('xz.conv_stand_flow_p3', 'Trả lời xong vẫn đứng nghe trong cùng cuộc trò chuyện; thôi khi tạm biệt hoặc hết phiên.'),
+                xzT('xz.conv_stand_flow_p2', 'Im lâu vẫn đứng nghe tiếp (~2 phút); không tự cắt sau khoảng 10 giây im.'),
+                xzT('xz.conv_stand_flow_p3', 'Trả lời xong vẫn đứng nghe trong cùng cuộc trò chuyện; tạm biệt hoặc hết phiên thì thôi.'),
             ],
             tech: [
-                xzT('xz.conv_stand_tech_p1', 'StandHoldMode: cùng FakeTrigger với continuous, nhưng không dùng cắt cứng ~10s no-speech.'),
-                xzT('xz.conv_stand_tech_p2', 'Giữ nghe / cyan đến khi WSS idle đóng (giống ESP32 ~120s, hoặc session_idle cao hơn) hoặc goodbye kết phiên.'),
-                xzT('xz.conv_stand_tech_p3', 'StandHoldRelisten mở lại lượt đứng nghe trong cùng PersistentSession.'),
+                xzT('xz.conv_stand_tech_p1', 'Khác Liên tục: không cắt cứng ~10 giây im — cửa sổ nghe dài như ESP32 (~2 phút).'),
+                xzT('xz.conv_stand_tech_p2', 'Im hết ~2 phút mới tắt mic và đóng kênh AI; nói “tạm biệt” cũng kết thúc sớm.'),
+                xzT('xz.conv_stand_tech_p3', 'Sau mỗi câu trả lời, robot đứng nghe lại trong cùng cuộc chat.'),
             ],
-            extra: xzT('xz.conv_stand_extra', 'Dùng khi muốn đứng yên suốt cuộc trò chuyện.'),
+            extra: xzT('xz.conv_stand_extra', 'Dùng khi muốn đứng yên, chat thong thả, không sợ bị cắt sớm.'),
         },
         ambient: {
             flow: [
                 xzT('xz.conv_ambient_flow_p1', 'Ban đầu đứng nghe như thường; sau đó robot có thể đi lại.'),
-                xzT('xz.conv_ambient_flow_p2', 'Trong lúc đi vẫn nghe khi bạn nói.'),
+                xzT('xz.conv_ambient_flow_p2', 'Trong lúc đi vẫn nghe khi bạn nói — lưng vẫn xanh.'),
                 xzT('xz.conv_ambient_flow_p3', 'Im vài phút thì tắt — muốn nói tiếp phải Hey Vector lại.'),
             ],
             tech: [
-                xzT('xz.conv_ambient_tech_p1', 'AmbientHold: sau standing listen không FakeTrigger lại (tránh đóng băng hành vi đi).'),
-                xzT('xz.conv_ambient_tech_p2', 'Mic / cyan giữ khi đi; idle dài hơn continuous rồi đóng đến lần wake sau.'),
-                xzT('xz.conv_ambient_tech_p3', 'PersistentSession vẫn bật giữa các lượt trong phiên.'),
+                xzT('xz.conv_ambient_tech_p1', 'Sau đoạn đứng nghe, robot được phép đi; mic vẫn cầm sẵn khi bạn nói.'),
+                xzT('xz.conv_ambient_tech_p2', 'Im lâu hơn Liên tục (khoảng vài phút) mới tắt hoàn toàn đến lần wake sau.'),
+                xzT('xz.conv_ambient_tech_p3', 'Trong phiên vẫn giữ kênh AI giữa các câu; hết idle thì phải Hey Vector lại.'),
             ],
-            extra: '',
+            extra: xzT('xz.conv_ambient_extra', 'Hợp khi muốn robot vừa đi vừa còn nghe được bạn.'),
         },
         open: {
             flow: [
-                xzT('xz.conv_open_flow_p1', 'Có ting và lưng xanh — robot vẫn đi lại bình thường.'),
+                xzT('xz.conv_open_flow_p1', 'Có ting và lưng xanh — robot vẫn đi lại bình thường (không đứng đông).'),
                 xzT('xz.conv_open_flow_p2', 'Mic sẵn sàng đến khi bạn nói xong, rồi robot trả lời.'),
-                xzT('xz.conv_open_flow_p3', 'Hợp khi muốn chat mà không bắt robot đứng yên.'),
+                xzT('xz.conv_open_flow_p3', 'Im lâu (~2 phút) thì đóng kênh; muốn nói tiếp cần đánh thức lại.'),
             ],
             tech: [
-                xzT('xz.conv_open_tech_p1', 'OpenMic: ting + cyan, bỏ BehaviorReactToVoiceCommand (không đứng đông cứng).'),
-                xzT('xz.conv_open_tech_p2', 'Upload từng frame mic đến hết utterance rồi đóng mic để robot nói.'),
-                xzT('xz.conv_open_tech_p3', 'Cờ /run open-mic cho vic-anim; PersistentSession giữ kênh AI.'),
+                xzT('xz.conv_open_tech_p1', 'Không bắt robot đứng yên kiểu “nghe lệnh” — vẫn đi trong lúc chờ bạn nói.'),
+                xzT('xz.conv_open_tech_p2', 'Mic mở theo giọng nói; hết câu thì đóng mic để robot nói, rồi mở lại lượt sau.'),
+                xzT('xz.conv_open_tech_p3', 'Giữ kết nối AI trong phiên; idle ~2 phút (giống ESP32) thì đóng kênh.'),
             ],
-            extra: '',
+            extra: xzT('xz.conv_open_extra', 'Hợp khi muốn chat mà robot vẫn đi quanh.'),
         },
         gate: {
             flow: [
-                xzT('xz.conv_gate_flow_p1', 'Giống Đi & nghe: ting, lưng xanh, robot vẫn đi.'),
+                xzT('xz.conv_gate_flow_p1', 'Giống Mở sẵn: ting, lưng xanh, robot vẫn đi.'),
                 xzT('xz.conv_gate_flow_p2', 'Chỉ nhận khi bạn nói đủ rõ — bớt nghe nhầm tiếng ồn / TV.'),
-                xzT('xz.conv_gate_flow_p3', 'Chọn độ nhạy bên dưới: dễ nghe hơn hoặc lọc ồn mạnh hơn.'),
+                xzT('xz.conv_gate_flow_p3', 'Chọn mức RMS bên dưới: thấp = dễ nghe hơn; cao = lọc ồn mạnh hơn.'),
             ],
             tech: [
-                xzT('xz.conv_gate_tech_p1', 'GateMic = OpenMic + sàn độ to (GateRMS, mặc định 800, khoảng 100–4000).'),
-                xzT('xz.conv_gate_tech_p2', 'Frame dưới ngưỡng RMS không upload lên AI — giảm false trigger.'),
-                xzT('xz.conv_gate_tech_p3', 'Cùng PersistentSession / cờ open-mic như chế độ Đi & nghe.'),
+                xzT('xz.conv_gate_tech_p1', 'Cùng kiểu Mở sẵn, thêm sàn độ to (RMS). Mặc định 800.'),
+                xzT('xz.conv_gate_tech_p2', 'Tiếng nhỏ hơn ngưỡng không gửi lên AI — giảm kích hoạt nhầm.'),
+                xzT('xz.conv_gate_tech_p3', 'Idle / đóng kênh giống Mở sẵn (~2 phút im).'),
             ],
-            extra: '',
+            extra: xzT('xz.conv_gate_extra', 'Hợp phòng ồn hoặc khi robot hay nghe nhầm.'),
         },
         single: {
             flow: [
                 xzT('xz.conv_single_flow_p1', 'Một câu hỏi → một câu trả lời rồi tắt mic.'),
-                xzT('xz.conv_single_flow_p2', 'Muốn nói tiếp phải Hey Vector lại.'),
-                xzT('xz.conv_single_flow_p3', 'Tiết kiệm / ít bị nghe nhầm.'),
+                xzT('xz.conv_single_flow_p2', 'Muốn nói tiếp phải Hey Vector (hoặc nút lưng) lại.'),
+                xzT('xz.conv_single_flow_p3', 'Tiết kiệm pin / ít bị nghe nhầm giữa các lần gọi.'),
             ],
             tech: [
-                xzT('xz.conv_single_tech_p1', 'SingleTurnMode: một Q→A rồi đóng mic.'),
-                xzT('xz.conv_single_tech_p2', 'Không PersistentSession — kênh AI đóng sau lượt trả lời.'),
-                xzT('xz.conv_single_tech_p3', 'Lượt sau cần wake word (Hey Vector) để mở phiên mới.'),
+                xzT('xz.conv_single_tech_p1', 'Chỉ một vòng hỏi–đáp; xong là đóng mic.'),
+                xzT('xz.conv_single_tech_p2', 'Không giữ kênh AI giữa các lần — mỗi lần gọi là phiên mới.'),
+                xzT('xz.conv_single_tech_p3', 'Gọi khi im lặng hầu như không cần vì mic không mở sẵn lâu.'),
             ],
-            extra: '',
+            extra: xzT('xz.conv_single_extra', 'Hợp hỏi một câu rồi thôi, hoặc nhà có nhiều tiếng ồn.'),
         },
     };
     return map[mode] || map.continuous;
