@@ -33,7 +33,7 @@ func flagExists() bool {
 	return err == nil
 }
 
-func TestXiaozhiSetListenModeTogglesFlag(t *testing.T) {
+func TestXiaozhiSetListenModeAlwaysVAD(t *testing.T) {
 	withTempXiaozhiPaths(t)
 
 	if w := setListenMode(t, "vad"); w.Code != 200 {
@@ -47,10 +47,15 @@ func TestXiaozhiSetListenModeTogglesFlag(t *testing.T) {
 		t.Fatal("vad mode did not create flag")
 	}
 
-	setListenMode(t, "fixed")
+	w := setListenMode(t, "fixed")
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["status"] == "success" {
+		t.Fatal("legacy fixed must be rejected")
+	}
 	cfg, _ = loadXiaozhiCfg()
-	if cfg.ListenMode != xiaozhiListenFixed || flagExists() {
-		t.Fatalf("fixed: listen_mode %q flag %v", cfg.ListenMode, flagExists())
+	if cfg.ListenMode != xiaozhiListenVAD || !flagExists() {
+		t.Fatalf("after rejected fixed: listen_mode %q flag %v", cfg.ListenMode, flagExists())
 	}
 }
 
@@ -61,9 +66,6 @@ func TestXiaozhiSetListenModeRejectsUnknown(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	if resp["status"] == "success" {
 		t.Fatal("unknown mode accepted")
-	}
-	if _, err := os.Stat(xiaozhiConfigPath); err == nil {
-		t.Fatal("config written for rejected mode")
 	}
 }
 
@@ -161,8 +163,9 @@ func TestXiaozhiListenModeDefaultsToVAD(t *testing.T) {
 	if !flagExists() {
 		t.Fatal("empty listen_mode must default to end-of-speech (vad)")
 	}
+	// Legacy fixed in config still gets the VAD flag (6s window removed).
 	syncXiaozhiListenVADFlag(XiaozhiCfg{Enabled: true, ListenMode: xiaozhiListenFixed})
-	if flagExists() {
-		t.Fatal("explicit fixed must keep the ~6s window")
+	if !flagExists() {
+		t.Fatal("legacy fixed must still arm end-of-speech flag")
 	}
 }

@@ -257,8 +257,8 @@ async function applyCustomEyeColor() {
 }
 
 function showBotSection(id) {
-    // Legacy: silence nudge merged into mic-open behavior (bot-conv).
-    if (id === 'bot-silence') id = 'bot-conv';
+    // Legacy: silence nudge + removed fixed~6s mic tile → mic-open behavior.
+    if (id === 'bot-silence' || id === 'bot-listen') id = 'bot-conv';
 
     // Gate engine-specific tiles
     if ((id === 'bot-sens' || id === 'bot-cww') && typeof isWakeThf === 'function' && isWakeThf()) {
@@ -302,7 +302,6 @@ function showBotSection(id) {
     if (id === 'bot-stats' && typeof statsRefresh === 'function') statsRefresh();
     if (id === 'bot-wifi-setup' && typeof loadWifiSetupMode === 'function') loadWifiSetupMode();
     if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
-    if (id === 'bot-listen' && typeof loadListenMode === 'function') loadListenMode();
     if (id === 'bot-conv') {
         if (typeof loadConversationMode === 'function') loadConversationMode();
         if (typeof loadSilencePrompt === 'function') loadSilencePrompt();

@@ -46,7 +46,7 @@ type XiaozhiCfg struct {
 	CourseBook  map[string]int `json:"course_book,omitempty"`
 	CourseUnit  map[string]int `json:"course_unit,omitempty"`
 	StudentName string         `json:"student_name,omitempty"`
-	// ListenMode: "vad" (default, also when empty: mic open until server STT) or "fixed" (~6s mic).
+	// ListenMode is always "vad" (end of speech). Legacy "fixed" (~6s) is coerced away.
 	ListenMode string `json:"listen_mode,omitempty"`
 	// MusicSource: "server" (default, Xiaozhi server music) or "youtube"
 	// (vic-cloud self.music.play streaming from MusicServerURL).
@@ -77,7 +77,7 @@ const (
 	silencePromptMinSec = 10
 	silencePromptMaxSec = 50
 
-	ttsGainMinPct = 25 // ≈ old ExternalAudio at VOLUME_LOW on ALSA path
+	ttsGainMinPct = 25  // ≈ old ExternalAudio at VOLUME_LOW on ALSA path
 	ttsGainMaxPct = 1000
 
 	xiaozhiGateRMSMin     = 100
@@ -138,7 +138,7 @@ func syncXiaozhiConversationFlags(mode string) {
 
 func validXiaozhiConvMode(mode string) bool {
 	switch mode {
-	case "continuous", "single", "ambient", "open", "gate":
+	case "continuous", "stand", "single", "ambient", "open", "gate":
 		return true
 	default:
 		return false
@@ -155,11 +155,10 @@ func clampXiaozhiGateRMS(n int) int {
 	return n
 }
 
-// syncXiaozhiListenVADFlag applies listen_mode to the next listen without
-// waiting for vic-cloud to reload xiaozhi.json.
-// The direct-API backends always end the listen on end-of-speech.
+// syncXiaozhiListenVADFlag keeps the VAD flag while AI chat is enabled so the
+// next listen uses end-of-speech (fixed ~6s window was removed).
 func syncXiaozhiListenVADFlag(cfg XiaozhiCfg) {
-	if cfg.Enabled && (cfg.ListenMode != xiaozhiListenFixed || isDirectAPIBackend(cfg.Backend)) {
+	if cfg.Enabled {
 		if err := os.MkdirAll(filepath.Dir(xiaozhiListenVADFlagPath), 0775); err == nil {
 			_ = os.WriteFile(xiaozhiListenVADFlagPath, []byte("1"), 0664)
 		}
@@ -250,6 +249,8 @@ func ensureXiaozhiDefaults(cfg *XiaozhiCfg) {
 	if cfg.ProtocolVersion == 0 {
 		cfg.ProtocolVersion = 1
 	}
+	// Always end-of-speech; migrate away from legacy fixed ~6s.
+	cfg.ListenMode = xiaozhiListenVAD
 	// Game Google TTS is always available; language picked in Games lobby.
 	cfg.GameGoogleTTSVI = true
 	if strings.TrimSpace(cfg.GameGoogleTTSLang) == "" {
@@ -840,7 +841,7 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 	case vars.IsEndpoint(r, "set_conversation_mode"):
 		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
 		if !validXiaozhiConvMode(mode) {
-			vars.HTTPError(w, r, "mode must be continuous, single, ambient, open, or gate")
+			vars.HTTPError(w, r, "mode must be continuous, stand, single, ambient, open, or gate")
 			return
 		}
 		cfg, _ := loadXiaozhiCfg()
@@ -870,14 +871,15 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case vars.IsEndpoint(r, "set_listen_mode"):
+		// Fixed ~6s removed — only vad remains (accept "vad" or empty; reject others).
 		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
-		if mode != xiaozhiListenFixed && mode != xiaozhiListenVAD {
-			vars.HTTPError(w, r, "mode must be fixed or vad")
+		if mode != "" && mode != xiaozhiListenVAD {
+			vars.HTTPError(w, r, "listen mode is always vad (fixed ~6s removed)")
 			return
 		}
 		cfg, _ := loadXiaozhiCfg()
 		ensureXiaozhiDefaults(&cfg)
-		cfg.ListenMode = mode
+		cfg.ListenMode = xiaozhiListenVAD
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
