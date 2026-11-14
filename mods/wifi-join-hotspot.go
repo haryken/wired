@@ -127,6 +127,7 @@ func (m *WifiSetup) finishJoinHotspot(ok bool, ssid, errMsg string) {
 			hsSetBusy(false)
 			hsSetHoldAP(false)
 			wifiLog("hotspot grace done ap=%v %s", hsAPOn(), hsSnapshot(ssid))
+			dnsApplySaved()
 		}()
 		return
 	}

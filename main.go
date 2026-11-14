@@ -48,6 +48,7 @@ var EnabledMods []vars.Modification = []vars.Modification{
 	mods.NewBlackjackWeb(),
 	mods.NewPoker(),
 	mods.NewWebLocale(),
+	mods.NewDnsSettings(),
 }
 
 func main() {

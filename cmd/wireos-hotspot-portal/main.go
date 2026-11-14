@@ -22,6 +22,7 @@ var portalAPIAllowlist = []string{
 	"/api/mods/Petting/",
 	"/api/mods/Alexa/",
 	"/api/mods/Xiaozhi/",
+	"/api/mods/DnsSettings/",
 	"/api/mods/Control/",
 	"/api/extra/restartvic",
 }
