@@ -140,7 +140,7 @@ func TestXiaozhiSetTTSGain(t *testing.T) {
 	if cfg, _ := loadXiaozhiCfg(); cfg.TTSGainPct != 160 {
 		t.Fatalf("tts_gain_pct = %d", cfg.TTSGainPct)
 	}
-	for _, bad := range []string{"", "99", "1001", "x"} {
+	for _, bad := range []string{"", "24", "1001", "x"} {
 		if r := postXiaozhi(t, "set_tts_gain", url.Values{"pct": {bad}}); r["status"] == "success" {
 			t.Fatalf("pct=%q accepted", bad)
 		}

@@ -60,7 +60,7 @@ type XiaozhiCfg struct {
 	// while listening, vic-cloud nudges the user ("khơi gợi lại") so the chat
 	// does not die when they stay silent too long. One setting for every AI backend.
 	SilencePromptSec int `json:"silence_prompt_sec,omitempty"`
-	// TTSGainPct boosts every AI voice in vic-cloud (100 = as received).
+	// TTSGainPct scales AI voice in vic-cloud (100 = ALSA full; <100 quieter).
 	TTSGainPct int `json:"tts_gain_pct,omitempty"`
 	// GateRMS is the loudness floor for conversation_mode "gate" (0 = 800).
 	GateRMS int `json:"gate_rms,omitempty"`
@@ -77,7 +77,7 @@ const (
 	silencePromptMinSec = 10
 	silencePromptMaxSec = 50
 
-	ttsGainMinPct = 100
+	ttsGainMinPct = 25 // ≈ old ExternalAudio at VOLUME_LOW on ALSA path
 	ttsGainMaxPct = 1000
 
 	xiaozhiGateRMSMin     = 100

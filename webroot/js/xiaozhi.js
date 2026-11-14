@@ -49,7 +49,8 @@ function xzT(key, fallback) {
     return (typeof t === 'function') ? t(key, fallback) : fallback;
 }
 
-const XZ_GAIN_CHOICES = [100, 130, 160, 200, 250, 300, 400, 500, 600, 800, 1000];
+// 30% ≈ quiet like old Wwise VOLUME_LOW; 100% = current full ALSA loudness.
+const XZ_GAIN_CHOICES = [30, 45, 60, 75, 100, 130, 160, 200, 250, 300, 400, 500, 600, 800, 1000];
 // Chip row id -> its status line; both rows edit the same tts_gain_pct.
 const XZ_GAIN_BOXES = { xzGainChips: 'xzGainStatus', volGainChips: 'volGainStatus' };
 
@@ -69,10 +70,12 @@ function xzRenderGain(pct) {
             chip.setAttribute('role', 'radio');
             chip.setAttribute('aria-checked', n === cur ? 'true' : 'false');
             chip.textContent = n + '%';
-            if (n === 100) {
+            if (n === 30 || n === 100) {
                 const tag = document.createElement('span');
                 tag.className = 'face-greet-chip-tag';
-                tag.textContent = xzT('xz.gain_orig', 'gốc');
+                tag.textContent = n === 30
+                    ? xzT('xz.gain_quiet', 'nhỏ')
+                    : xzT('xz.gain_loud', 'to');
                 chip.appendChild(tag);
             }
             chip.onclick = () => {
