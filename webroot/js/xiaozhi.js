@@ -165,6 +165,9 @@ function xzShowConfigForMode(mode) {
     if (direct && typeof oaiLoad === 'function') oaiLoad();
 }
 
+var xzConvAppliedMode = 'continuous';
+var xzConvPreviewMode = 'continuous';
+
 function convModeStatus(msg) {
     const el = document.getElementById('convModeStatus');
     if (!el) return;
@@ -172,12 +175,106 @@ function convModeStatus(msg) {
     el.textContent = msg || '';
 }
 
+function xzNormalizeConvMode(mode) {
+    if (mode === 'single' || mode === 'stand' || mode === 'ambient' || mode === 'open' || mode === 'gate') {
+        return mode;
+    }
+    return 'continuous';
+}
+
 function convModeLabel(mode) {
+    mode = xzNormalizeConvMode(mode);
     if (mode === 'single') return xzT('xz.conv_single', 'Một lượt');
+    if (mode === 'stand') return xzT('xz.conv_stand', 'Đứng nghe');
     if (mode === 'ambient') return xzT('xz.conv_ambient', 'Kéo dài');
-    if (mode === 'open') return xzT('xz.conv_open', 'Mở sẵn');
-    if (mode === 'gate') return xzT('xz.conv_gate', 'Ngưỡng');
+    if (mode === 'open') return xzT('xz.conv_open', 'Đi & nghe');
+    if (mode === 'gate') return xzT('xz.conv_gate', 'Lọc ồn');
     return xzT('xz.conv_cont', 'Liên tục');
+}
+
+function xzConvDetailCopy(mode) {
+    mode = xzNormalizeConvMode(mode);
+    const map = {
+        continuous: {
+            flow: [
+                xzT('xz.conv_cont_flow_p1', 'Gọi Hey Vector → robot đứng yên, ting, lưng xanh → bạn nói → robot trả lời.'),
+                xzT('xz.conv_cont_flow_p2', 'Trả lời xong mic mở lại để nói tiếp — không cần Hey Vector mỗi câu.'),
+                xzT('xz.conv_cont_flow_p3', 'Im khoảng 10 giây thì hết lượt nghe; robot có thể đi lại.'),
+            ],
+            tech: [
+                xzT('xz.conv_cont_tech_p1', 'FakeTrigger / đứng nghe: ting + cyan backpack, mic mở.'),
+                xzT('xz.conv_cont_tech_p2', 'Cắt cứng ~10s không nói (VAD / no-speech). PersistentSession giữ kênh AI giữa các lượt.'),
+                xzT('xz.conv_cont_tech_p3', 'Kiểu gốc của OpenAI / Gemini / Grok / Tự chọn AI (conversation_mode trống = continuous).'),
+            ],
+            extra: xzT('xz.conv_cont_extra', 'Phù hợp chat nhanh, quen kiểu “nói — trả lời — nói tiếp”.'),
+        },
+        stand: {
+            flow: [
+                xzT('xz.conv_stand_flow_p1', 'Giống Liên tục: ting, đứng yên, lưng xanh — không đi lung tung lúc chat.'),
+                xzT('xz.conv_stand_flow_p2', 'Im lâu vẫn đứng nghe tiếp (~2 phút, giống ESP32); không tự cắt sau khoảng 10 giây im.'),
+                xzT('xz.conv_stand_flow_p3', 'Trả lời xong vẫn đứng nghe trong cùng cuộc trò chuyện; thôi khi tạm biệt hoặc hết phiên.'),
+            ],
+            tech: [
+                xzT('xz.conv_stand_tech_p1', 'StandHoldMode: cùng FakeTrigger với continuous, nhưng không dùng cắt cứng ~10s no-speech.'),
+                xzT('xz.conv_stand_tech_p2', 'Giữ nghe / cyan đến khi WSS idle đóng (giống ESP32 ~120s, hoặc session_idle cao hơn) hoặc goodbye kết phiên.'),
+                xzT('xz.conv_stand_tech_p3', 'StandHoldRelisten mở lại lượt đứng nghe trong cùng PersistentSession.'),
+            ],
+            extra: xzT('xz.conv_stand_extra', 'Dùng khi muốn đứng yên suốt cuộc trò chuyện.'),
+        },
+        ambient: {
+            flow: [
+                xzT('xz.conv_ambient_flow_p1', 'Ban đầu đứng nghe như thường; sau đó robot có thể đi lại.'),
+                xzT('xz.conv_ambient_flow_p2', 'Trong lúc đi vẫn nghe khi bạn nói.'),
+                xzT('xz.conv_ambient_flow_p3', 'Im vài phút thì tắt — muốn nói tiếp phải Hey Vector lại.'),
+            ],
+            tech: [
+                xzT('xz.conv_ambient_tech_p1', 'AmbientHold: sau standing listen không FakeTrigger lại (tránh đóng băng hành vi đi).'),
+                xzT('xz.conv_ambient_tech_p2', 'Mic / cyan giữ khi đi; idle dài hơn continuous rồi đóng đến lần wake sau.'),
+                xzT('xz.conv_ambient_tech_p3', 'PersistentSession vẫn bật giữa các lượt trong phiên.'),
+            ],
+            extra: '',
+        },
+        open: {
+            flow: [
+                xzT('xz.conv_open_flow_p1', 'Có ting và lưng xanh — robot vẫn đi lại bình thường.'),
+                xzT('xz.conv_open_flow_p2', 'Mic sẵn sàng đến khi bạn nói xong, rồi robot trả lời.'),
+                xzT('xz.conv_open_flow_p3', 'Hợp khi muốn chat mà không bắt robot đứng yên.'),
+            ],
+            tech: [
+                xzT('xz.conv_open_tech_p1', 'OpenMic: ting + cyan, bỏ BehaviorReactToVoiceCommand (không đứng đông cứng).'),
+                xzT('xz.conv_open_tech_p2', 'Upload từng frame mic đến hết utterance rồi đóng mic để robot nói.'),
+                xzT('xz.conv_open_tech_p3', 'Cờ /run open-mic cho vic-anim; PersistentSession giữ kênh AI.'),
+            ],
+            extra: '',
+        },
+        gate: {
+            flow: [
+                xzT('xz.conv_gate_flow_p1', 'Giống Đi & nghe: ting, lưng xanh, robot vẫn đi.'),
+                xzT('xz.conv_gate_flow_p2', 'Chỉ nhận khi bạn nói đủ rõ — bớt nghe nhầm tiếng ồn / TV.'),
+                xzT('xz.conv_gate_flow_p3', 'Chọn độ nhạy bên dưới: dễ nghe hơn hoặc lọc ồn mạnh hơn.'),
+            ],
+            tech: [
+                xzT('xz.conv_gate_tech_p1', 'GateMic = OpenMic + sàn độ to (GateRMS, mặc định 800, khoảng 100–4000).'),
+                xzT('xz.conv_gate_tech_p2', 'Frame dưới ngưỡng RMS không upload lên AI — giảm false trigger.'),
+                xzT('xz.conv_gate_tech_p3', 'Cùng PersistentSession / cờ open-mic như chế độ Đi & nghe.'),
+            ],
+            extra: '',
+        },
+        single: {
+            flow: [
+                xzT('xz.conv_single_flow_p1', 'Một câu hỏi → một câu trả lời rồi tắt mic.'),
+                xzT('xz.conv_single_flow_p2', 'Muốn nói tiếp phải Hey Vector lại.'),
+                xzT('xz.conv_single_flow_p3', 'Tiết kiệm / ít bị nghe nhầm.'),
+            ],
+            tech: [
+                xzT('xz.conv_single_tech_p1', 'SingleTurnMode: một Q→A rồi đóng mic.'),
+                xzT('xz.conv_single_tech_p2', 'Không PersistentSession — kênh AI đóng sau lượt trả lời.'),
+                xzT('xz.conv_single_tech_p3', 'Lượt sau cần wake word (Hey Vector) để mở phiên mới.'),
+            ],
+            extra: '',
+        },
+    };
+    return map[mode] || map.continuous;
 }
 
 function applyGateRMS(n) {
@@ -195,17 +292,97 @@ function applyGateRMS(n) {
         sel.appendChild(o);
     }
     sel.value = v;
+    document.querySelectorAll('.xz-conv-gate-chip').forEach(function (btn) {
+        btn.classList.toggle('is-on', btn.getAttribute('data-rms') === v);
+    });
 }
 
-function applyConversationRadios(cfg) {
-    let mode = 'continuous';
-    if (cfg && (cfg.conversation_mode === 'single' || cfg.conversation_mode === 'ambient' || cfg.conversation_mode === 'open' || cfg.conversation_mode === 'gate')) {
-        mode = cfg.conversation_mode;
-    }
+function xzConvPickGateRMS(n) {
+    applyGateRMS(n);
+    // Preview only until Apply — keep gate tab selected.
+    if (xzConvPreviewMode !== 'gate') xzConvSelectTab('gate');
+    else xzConvRenderDetail('gate');
+}
+
+function xzConvSyncHiddenRadios(mode) {
     document.querySelectorAll('input[name="xzConvMode"]').forEach(function (el) {
         el.checked = el.value === mode;
     });
+}
+
+function xzConvFillPoints(el, lines) {
+    if (!el) return;
+    el.innerHTML = '';
+    (lines || []).forEach(function (t) {
+        if (!t) return;
+        const li = document.createElement('li');
+        li.textContent = t;
+        el.appendChild(li);
+    });
+}
+
+function xzConvRenderDetail(mode) {
+    mode = xzNormalizeConvMode(mode);
+    const title = document.getElementById('xzConvDetailTitle');
+    const flow = document.getElementById('xzConvDetailFlow');
+    const tech = document.getElementById('xzConvDetailTech');
+    const extra = document.getElementById('xzConvDetailExtra');
+    const gateOpts = document.getElementById('xzConvGateOpts');
+    const hint = document.getElementById('xzConvApplyHint');
+    const btn = document.getElementById('xzConvApplyBtn');
+    const copy = xzConvDetailCopy(mode);
+    if (title) title.textContent = convModeLabel(mode);
+    xzConvFillPoints(flow, copy.flow);
+    xzConvFillPoints(tech, copy.tech);
+    if (extra) {
+        extra.textContent = copy.extra || '';
+        extra.style.display = copy.extra ? 'block' : 'none';
+    }
+    if (gateOpts) gateOpts.style.display = mode === 'gate' ? 'flex' : 'none';
+    const dirty = mode !== xzConvAppliedMode;
+    if (btn) {
+        btn.disabled = !dirty;
+        btn.textContent = dirty
+            ? xzT('conv.apply', 'Áp dụng')
+            : xzT('conv.applied', 'Đang dùng');
+    }
+    if (hint) {
+        hint.textContent = dirty
+            ? xzT('conv.apply_hint', 'Chưa áp dụng — bấm Áp dụng để đổi trên robot.')
+            : xzT('conv.applied_hint', 'Đây là chế độ đang chạy trên robot.');
+    }
+}
+
+function xzConvPaintTabs() {
+    document.querySelectorAll('.xz-conv-tab').forEach(function (btn) {
+        const mode = btn.getAttribute('data-mode');
+        btn.classList.toggle('is-preview', mode === xzConvPreviewMode);
+        btn.classList.toggle('is-applied', mode === xzConvAppliedMode);
+        btn.setAttribute('aria-selected', mode === xzConvPreviewMode ? 'true' : 'false');
+    });
+}
+
+function xzConvSelectTab(mode) {
+    xzConvPreviewMode = xzNormalizeConvMode(mode);
+    xzConvSyncHiddenRadios(xzConvPreviewMode);
+    xzConvPaintTabs();
+    xzConvRenderDetail(xzConvPreviewMode);
+}
+
+function xzConvApplySelected() {
+    const mode = xzNormalizeConvMode(xzConvPreviewMode);
+    const rms = mode === 'gate' ? (document.getElementById('xzGateRMS') || {}).value : undefined;
+    setConversationMode(mode, rms);
+}
+
+function applyConversationRadios(cfg) {
+    const mode = xzNormalizeConvMode(cfg && cfg.conversation_mode);
+    xzConvAppliedMode = mode;
+    xzConvPreviewMode = mode;
+    xzConvSyncHiddenRadios(mode);
     applyGateRMS(cfg && cfg.gate_rms);
+    xzConvPaintTabs();
+    xzConvRenderDetail(mode);
     let msg = xzT('conv.using', 'Đang dùng: {name}.').replace('{name}', convModeLabel(mode));
     if (cfg && cfg.enabled === false) msg += ' ' + xzT('conv.off', '(AI giao tiếp đang tắt — chế độ này chưa có tác dụng.)');
     convModeStatus(msg);
@@ -222,16 +399,20 @@ async function loadConversationMode() {
 }
 
 function setGateRMS(rms) {
-    const gate = document.getElementById('xzConvGate');
-    if (gate) gate.checked = true;
+    xzConvSelectTab('gate');
     setConversationMode('gate', rms);
 }
 
 async function setConversationMode(mode, rms) {
+    mode = xzNormalizeConvMode(mode);
     convModeStatus(xzT('conv.saving', 'Đang lưu…'));
     try {
         const params = { mode: mode };
         if (rms != null && rms !== '') params.rms = String(rms);
+        else if (mode === 'gate') {
+            const sel = document.getElementById('xzGateRMS');
+            if (sel && sel.value) params.rms = sel.value;
+        }
         const r = await fetch('/api/mods/Xiaozhi/set_conversation_mode?' + new URLSearchParams(params).toString(), { method: 'POST' });
         const j = await r.json().catch(function () { return {}; });
         if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
@@ -243,15 +424,7 @@ async function setConversationMode(mode, rms) {
 }
 
 function xzSelectedConvMode() {
-    const single = document.getElementById('xzConvSingle');
-    const ambient = document.getElementById('xzConvAmbient');
-    const open = document.getElementById('xzConvOpen');
-    const gate = document.getElementById('xzConvGate');
-    if (single && single.checked) return 'single';
-    if (ambient && ambient.checked) return 'ambient';
-    if (open && open.checked) return 'open';
-    if (gate && gate.checked) return 'gate';
-    return 'continuous';
+    return xzNormalizeConvMode(xzConvPreviewMode || xzConvAppliedMode);
 }
 
 function xzApplyCfg(cfg) {
@@ -261,27 +434,11 @@ function xzApplyCfg(cfg) {
     const ep = document.getElementById('xzEndpoint');
     const did = document.getElementById('xzDeviceID');
     const cid = document.getElementById('xzClientID');
-    const convCont = document.getElementById('xzConvContinuous');
-    const convSingle = document.getElementById('xzConvSingle');
-    const convAmbient = document.getElementById('xzConvAmbient');
-    const convOpen = document.getElementById('xzConvOpen');
-    const convGate = document.getElementById('xzConvGate');
-
     if (ota) ota.value = (cfg.ota_base_url && cfg.ota_base_url.trim()) ? cfg.ota_base_url : XZ_DEFAULT_OTA;
     if (ep) ep.value = cfg.endpoint || '';
     if (did) did.value = cfg.device_id || '';
     if (cid) cid.value = cfg.client_id || '';
-    let conv = 'continuous';
-    if (cfg.conversation_mode === 'single') conv = 'single';
-    else if (cfg.conversation_mode === 'ambient') conv = 'ambient';
-    else if (cfg.conversation_mode === 'open') conv = 'open';
-    else if (cfg.conversation_mode === 'gate') conv = 'gate';
-    if (convCont) convCont.checked = (conv === 'continuous');
-    if (convSingle) convSingle.checked = (conv === 'single');
-    if (convAmbient) convAmbient.checked = (conv === 'ambient');
-    if (convOpen) convOpen.checked = (conv === 'open');
-    if (convGate) convGate.checked = (conv === 'gate');
-    applyGateRMS(cfg.gate_rms);
+    applyConversationRadios(cfg);
 
     const gviOn = document.getElementById('xzGameTtsOn');
     const gviOff = document.getElementById('xzGameTtsOff');

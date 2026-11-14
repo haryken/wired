@@ -121,8 +121,8 @@
                 <span data-i18n="bot.listen">Mở micro</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-conv')">
-                <span class="bot-ico" aria-hidden="true">💬</span>
-                <span data-i18n="bot.conv">Cách hội thoại</span>
+                <span class="bot-ico" aria-hidden="true">🎙</span>
+                <span data-i18n="bot.conv">Mở micro khi giao tiếp</span>
             </button>
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-music')">
                 <span class="bot-ico" aria-hidden="true">🎵</span>
@@ -135,10 +135,6 @@
             <button type="button" class="bot-nav-item" onclick="showBotSection('bot-facegreet')">
                 <span class="bot-ico" aria-hidden="true">👋</span>
                 <span data-i18n="bot.facegreet">Chào khi thấy người</span>
-            </button>
-            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-silence')">
-                <span class="bot-ico" aria-hidden="true">💬</span>
-                <span data-i18n="bot.silence">Gọi khi im lặng</span>
             </button>
         </div>
         <hr class="smallhr">
@@ -576,9 +572,9 @@
         </div>
 
         <div id="bot-conv" class="bot-section" style="display:none;">
-            <h3>💬 <span data-i18n="sec.conv">Cách hội thoại</span></h3>
+            <h3>🎙 <span data-i18n="sec.conv">Hành vi mở micro khi giao tiếp</span></h3>
             <div class="help-box">
-                <p data-i18n="conv.help">Chọn robot nghe tiếp thế nào sau khi bạn gọi Hey Vector hoặc bấm nút lưng. Một lựa chọn dùng chung mọi AI giao tiếp (cùng cờ trên robot). Bấm là lưu ngay, áp dụng từ lần đánh thức tiếp theo.</p>
+                <p data-i18n="conv.help">Chọn micro mở / nghe thế nào khi đang chat với AI (sau Hey Vector hoặc nút lưng). Một lựa chọn dùng chung mọi AI giao tiếp. Bấm là lưu ngay, áp dụng từ lần đánh thức tiếp theo.</p>
                 <p class="help-warn" data-i18n="conv.warn">Dùng chung một UI / một cờ cho Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime và Grok Voice. Cơ chế gốc của các AI Direct (OpenAI / Gemini / Grok / Tự chọn AI) chính là kiểu Liên tục — chọn Liên tục nếu muốn giữ hành vi đó. Vosk không dùng các chế độ này.</p>
             </div>
             <div id="convModeStatus" class="faces-status" style="display:none;"></div>
@@ -588,6 +584,13 @@
                     <span>
                         <b data-i18n="xz.conv_cont">Liên tục</b><br>
                         <span class="xz-conv-desc" data-i18n="xz.conv_cont_desc">Sau khi robot trả lời xong, mic mở lại để nói tiếp — như chat liên tục, không cần Hey Vector mỗi câu. Đây cũng là kiểu gốc của OpenAI / Gemini / Grok / Tự chọn AI.</span>
+                    </span>
+                </label>
+                <label class="xz-conv-option">
+                    <input type="radio" name="xzConvMode" value="stand" id="xzConvStand" onchange="setConversationMode('stand')">
+                    <span>
+                        <b data-i18n="xz.conv_stand">Đứng nghe</b><br>
+                        <span class="xz-conv-desc" data-i18n="xz.conv_stand_desc">Giống Liên tục nhưng đứng yên lâu hơn (~2 phút im mới tắt mic + kênh). Không cắt cứng sau ~10 giây im.</span>
                     </span>
                 </label>
                 <label class="xz-conv-option">
@@ -630,6 +633,27 @@
                     </span>
                 </label>
             </div>
+
+            <hr class="smallhr">
+            <h4 class="vol-part-title">💬 <span data-i18n="sec.silence">Gọi khi im lặng</span></h4>
+            <div class="help-box">
+                <p data-i18n="silence.help" data-i18n-html="1">Khi đang trò chuyện mà bạn <b>im quá lâu</b>, robot tự hỏi han / gợi chuyện một câu ngắn — khỏi phải gọi lại “Hey Vector”, hội thoại không bị “chết” giữa chừng.</p>
+                <ul>
+                    <li data-i18n="silence.why">Cần vì mic mở sẵn (Liên tục / Đứng nghe / Kéo dài / Mở sẵn / Ngưỡng) có thể đứng im rất lâu: không có tiếng thì AI không biết bạn còn muốn nói, còn bạn thì quên robot đang nghe.</li>
+                    <li data-i18n="silence.rule">Chỉ gọi khi đang trong lượt nghe và chưa có ai nói; chọn mốc 10–50 giây. Một lần gọi xong robot nói rồi mở mic lại — im tiếp thì gọi lại theo cùng mốc.</li>
+                    <li data-i18n="silence.vs_idle">Khác với đóng kênh sau ~2 phút im tuyệt đối (ESP32): cái này là <b>nhắc nhẹ</b>, không tắt mic / không ngắt kết nối.</li>
+                </ul>
+                <p class="help-warn" data-i18n="silence.warn">Một cài đặt dùng chung mọi AI giao tiếp. Mặc định tắt. Áp dụng từ lần nghe tiếp theo.</p>
+            </div>
+            <div id="silencePromptStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="silencePromptMode" value="off" checked onchange="setSilencePromptMode(false)"> <span data-i18n="silence.off">Tắt — không tự gọi khi im</span></label>
+                <label><input type="radio" name="silencePromptMode" value="on" onchange="setSilencePromptMode(true)"> <span data-i18n="silence.on">Bật — gọi khi im quá lâu</span></label>
+            </div>
+            <div id="silencePromptEvery" class="face-greet-every" style="display:none;">
+                <div class="face-greet-every-title" data-i18n="silence.every_lbl">Im bao lâu thì gọi:</div>
+                <div id="silencePromptChips" class="face-greet-chips" role="radiogroup"></div>
+            </div>
         </div>
 
         <div id="bot-battery" class="bot-section" style="display:none;">
@@ -662,28 +686,6 @@
             <div class="face-greet-every">
                 <div class="face-greet-every-title" data-i18n="facegreet.every_lbl">Khoảng cách giữa hai lần chào:</div>
                 <div id="faceGreetEvery" class="face-greet-chips" role="radiogroup"></div>
-            </div>
-        </div>
-
-        <div id="bot-silence" class="bot-section" style="display:none;">
-            <h3>💬 <span data-i18n="sec.silence">Gọi khi im lặng</span></h3>
-            <div class="help-box">
-                <p data-i18n="silence.help" data-i18n-html="1">Khi đang trò chuyện mà bạn <b>im quá lâu</b>, robot tự hỏi han / gợi chuyện một câu ngắn — khỏi phải gọi lại “Hey Vector”, hội thoại không bị “chết” giữa chừng.</p>
-                <ul>
-                    <li data-i18n="silence.why">Cần vì mic mở sẵn (Liên tục / Kéo dài / Mở sẵn / Ngưỡng) có thể đứng im rất lâu: không có tiếng thì AI không biết bạn còn muốn nói, còn bạn thì quên robot đang nghe.</li>
-                    <li data-i18n="silence.rule">Chỉ gọi khi đang trong lượt nghe và chưa có ai nói; chọn mốc 10–50 giây. Một lần gọi xong robot nói rồi mở mic lại — im tiếp thì gọi lại theo cùng mốc.</li>
-                    <li data-i18n="silence.vs_idle">Khác với đóng kênh sau ~2 phút im tuyệt đối (ESP32): cái này là <b>nhắc nhẹ</b>, không tắt mic / không ngắt kết nối.</li>
-                </ul>
-                <p class="help-warn" data-i18n="silence.warn">Một cài đặt dùng chung mọi AI giao tiếp (Xiaozhi, Tự chọn AI, Gemini Live, OpenAI Realtime, Grok Voice). Mặc định tắt. Áp dụng từ lần nghe tiếp theo, không cần khởi động lại.</p>
-            </div>
-            <div id="silencePromptStatus" class="faces-status" style="display:none;"></div>
-            <div class="bot-opt-list">
-                <label><input type="radio" name="silencePromptMode" value="off" checked onchange="setSilencePromptMode(false)"> <span data-i18n="silence.off">Tắt — không tự gọi khi im</span></label>
-                <label><input type="radio" name="silencePromptMode" value="on" onchange="setSilencePromptMode(true)"> <span data-i18n="silence.on">Bật — gọi khi im quá lâu</span></label>
-            </div>
-            <div id="silencePromptEvery" class="face-greet-every" style="display:none;">
-                <div class="face-greet-every-title" data-i18n="silence.every_lbl">Im bao lâu thì gọi:</div>
-                <div id="silencePromptChips" class="face-greet-chips" role="radiogroup"></div>
             </div>
         </div>
 

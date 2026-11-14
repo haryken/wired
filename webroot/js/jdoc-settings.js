@@ -257,6 +257,9 @@ async function applyCustomEyeColor() {
 }
 
 function showBotSection(id) {
+    // Legacy: silence nudge merged into mic-open behavior (bot-conv).
+    if (id === 'bot-silence') id = 'bot-conv';
+
     // Gate engine-specific tiles
     if ((id === 'bot-sens' || id === 'bot-cww') && typeof isWakeThf === 'function' && isWakeThf()) {
         if (typeof setJdocStatus === 'function') {
@@ -300,9 +303,12 @@ function showBotSection(id) {
     if (id === 'bot-wifi-setup' && typeof loadWifiSetupMode === 'function') loadWifiSetupMode();
     if (id === 'bot-alexa' && typeof alexaRefresh === 'function') alexaRefresh();
     if (id === 'bot-listen' && typeof loadListenMode === 'function') loadListenMode();
-    if (id === 'bot-conv' && typeof loadConversationMode === 'function') loadConversationMode();
+    if (id === 'bot-conv') {
+        if (typeof loadConversationMode === 'function') loadConversationMode();
+        if (typeof loadSilencePrompt === 'function') loadSilencePrompt();
+    }
     if (id === 'bot-facegreet' && typeof loadFaceGreet === 'function') loadFaceGreet();
-    if (id === 'bot-silence' && typeof loadSilencePrompt === 'function') loadSilencePrompt();
+    if (id === 'bot-dns' && typeof loadDnsSettings === 'function') loadDnsSettings();
     if (id === 'bot-music' && typeof loadMusicSettings === 'function') loadMusicSettings();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {
         GetCurrent('FreqChange').then((data) => {
