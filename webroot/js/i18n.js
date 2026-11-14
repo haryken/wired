@@ -3560,13 +3560,25 @@
         return currentLang;
     }
 
+    // Safe markup allowed in translations when using innerHTML.
+    // Keep the allowlist tight — do not add script/event handlers.
+    const I18N_HTML_TAG_RE = /<\/?(?:b|strong|i|em|br|a|span|code)\b/i;
+
+    function i18nValueLooksLikeHtml(val) {
+        return typeof val === 'string' && I18N_HTML_TAG_RE.test(val);
+    }
+
     function applyI18n(root) {
         root = root || document;
         root.querySelectorAll('[data-i18n]').forEach((el) => {
             const key = el.getAttribute('data-i18n');
             if (!key) return;
             const val = t(key, el.textContent);
-            if (el.getAttribute('data-i18n-html') === '1') {
+            // Prefer explicit data-i18n-html="1"; also auto-detect when the
+            // translated string contains allowlisted tags so "<b>" never
+            // shows as literal text (common news-card / help-box mistake).
+            const useHtml = el.getAttribute('data-i18n-html') === '1' || i18nValueLooksLikeHtml(val);
+            if (useHtml) {
                 el.innerHTML = val;
             } else {
                 el.textContent = val;
