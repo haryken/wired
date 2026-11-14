@@ -1,6 +1,6 @@
 // Direct-API settings (AI giao tiếp → Tự chọn AI | OpenAI Realtime | Gemini
 // Live | Grok). All live in openai.json and share one card; oaiLayout picks
-// the fields: 'pipeline' | 'openai' (Realtime) | 'gemini' | 'grok'.
+// the fields: 'pipeline' | 'openai' (Realtime) | 'gemini' | 'grok' | 'qwen'.
 
 let oaiBusy = false;
 let oaiLayout = 'openai';
@@ -58,6 +58,10 @@ function oaiShow(id, on) {
 
 function oaiShowTtsFields() {
     oaiRefresh();
+    if (oaiLayout !== 'pipeline') return;
+    const tts = oaiSelectedTts();
+    if (tts === 'openai') oaiLoadModels('tts', 'oaiTtsModel', false);
+    if (tts === 'gemini') oaiLoadModels('gemini_tts', 'oaiGeminiModel', false);
 }
 
 const OAI_GROQ_BASE = 'https://api.groq.com/openai/v1';
@@ -151,7 +155,7 @@ function oaiSetProv(stage, prov) {
         if (prev === 'custom') oaiCustomBase[stage] = oaiVal(s.base);
         oaiCurProv[stage] = prov;
         oaiSetVal(s.base, prov === 'custom' ? oaiCustomBase[stage] : OAI_PROV_BASE[prov]);
-        oaiSetVal(s.model, oaiProvModel[stage][prov] || s.models[prov] || '');
+        oaiSelectValue(s.model, oaiProvModel[stage][prov] || s.models[prov] || '');
         oaiSetVal(s.key, '');
         oaiSetModelPlaceholder(stage, prov);
     }
@@ -164,6 +168,7 @@ function oaiOnProv(stage) {
         const el = document.getElementById(OAI_STAGES[stage].base);
         if (el && !el.value) el.focus();
     }
+    if (stage === 'stt' || stage === 'llm') oaiLoadModels(stage, OAI_STAGES[stage].model, false);
 }
 
 function oaiShowProvFields(stage) {
@@ -230,12 +235,21 @@ function oaiRefreshHints() {
             : oaiT('gk.key_missing', '⚠ Chưa có key xAI — robot sẽ không trả lời.');
         xh.style.color = c.has_xai_key ? '' : '#fbbf24';
     }
+
+    const qh = document.getElementById('qwKeyHint');
+    if (qh) {
+        qh.textContent = c.has_dashscope_key
+            ? oaiKeyHint(true, c.dashscope_key_hint)
+            : oaiT('qw.key_missing', '⚠ Chưa có key DashScope — robot sẽ không trả lời.');
+        qh.style.color = c.has_dashscope_key ? '' : '#fbbf24';
+    }
 }
 
 // oaiRefresh shows only what the current choices need.
 function oaiRefresh() {
     const gl = oaiLayout === 'gemini';
     const gk = oaiLayout === 'grok';
+    const qw = oaiLayout === 'qwen';
     const pl = oaiLayout === 'pipeline';
     const rt = oaiLayout === 'openai';
     const tts = oaiSelectedTts();
@@ -252,6 +266,9 @@ function oaiRefresh() {
     oaiShow('gkTitle', gk);
     oaiShow('gkHelp', gk);
     oaiShow('gkFields', gk);
+    oaiShow('qwTitle', qw);
+    oaiShow('qwHelp', qw);
+    oaiShow('qwFields', qw);
     oaiShow('oaiRtFields', rt);
     oaiShow('oaiPlFields', pl);
 
@@ -297,7 +314,7 @@ function oaiRefresh() {
 
 // oaiSetLayout shows the OpenAI card or the Gemini Live one (same form).
 function oaiSetLayout(layout) {
-    oaiLayout = ['pipeline', 'gemini', 'grok'].indexOf(layout) >= 0 ? layout : 'openai';
+    oaiLayout = ['pipeline', 'gemini', 'grok', 'qwen'].indexOf(layout) >= 0 ? layout : 'openai';
     oaiSetStatus('', false);
     oaiRefresh();
 }
@@ -312,6 +329,135 @@ function oaiSelectValue(id, v) {
         sel.appendChild(opt);
     }
     sel.value = v;
+}
+
+const OAI_MODEL_DEFAULTS = {
+    gemini_live: ['gemini-3.8-live', 'gemini-2.5-flash-native-audio-latest'],
+    grok: ['grok-voice-latest'],
+    qwen: ['qwen-audio-3.1-realtime-flash', 'qwen-audio-3.1-realtime-plus', 'qwen-audio-3.0-realtime-flash', 'qwen-audio-3.0-realtime-plus'],
+    realtime: ['gpt-realtime-mini', 'gpt-realtime'],
+    stt: ['gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-large-v3-turbo', 'whisper-large-v3', 'whisper-1'],
+    llm: ['gpt-4o-mini', 'gpt-4o', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'openai/gpt-oss-120b'],
+    tts: ['gpt-4o-mini-tts', 'gpt-4o-tts'],
+    gemini_tts: ['gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts'],
+    vision: ['gpt-4o-mini', 'gpt-4o'],
+};
+const OAI_MODEL_SELECT = {
+    gemini_live: 'glModel',
+    grok: 'gkModel',
+    qwen: 'qwModel',
+    realtime: 'oaiRtModel',
+    stt: 'oaiSttModel',
+    llm: 'oaiLlmModel',
+    tts: 'oaiTtsModel',
+    gemini_tts: 'oaiGeminiModel',
+    vision: 'oaiVisionModel',
+};
+const oaiModelsBusy = {};
+
+function oaiModelStatusId(selectId) {
+    return selectId + 'Status';
+}
+
+function oaiModelRefreshBtnId(selectId) {
+    return selectId + 'RefreshBtn';
+}
+
+function oaiSetModelStatus(selectId, msg, isErr) {
+    const el = document.getElementById(oaiModelStatusId(selectId));
+    if (!el) return;
+    el.textContent = msg || '';
+    el.style.color = isErr ? '#fbbf24' : '';
+}
+
+function oaiFillModelSelect(selectId, models, selected, kind) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const defaults = OAI_MODEL_DEFAULTS[kind] || [];
+    const keep = selected || sel.value || defaults[0] || '';
+    const list = [];
+    const seen = {};
+    function add(id) {
+        id = String(id || '').replace(/^models\//, '').trim();
+        if (!id || seen[id]) return;
+        seen[id] = true;
+        list.push(id);
+    }
+    (models || []).forEach(add);
+    defaults.forEach(add);
+    add(keep);
+    sel.innerHTML = '';
+    list.forEach(function (id) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        sel.appendChild(opt);
+    });
+    if (keep) sel.value = keep;
+}
+
+async function oaiLoadModels(kind, selectId, force) {
+    selectId = selectId || OAI_MODEL_SELECT[kind];
+    if (!selectId || oaiModelsBusy[selectId]) return;
+    oaiModelsBusy[selectId] = true;
+    const btn = document.getElementById(oaiModelRefreshBtnId(selectId));
+    if (btn) btn.disabled = true;
+    if (force) oaiSetModelStatus(selectId, oaiT('gl.model_loading', 'Đang tải danh sách model…'), false);
+    try {
+        const params = oaiFormParams();
+        params.set('kind', kind);
+        const j = await oaiPost('list_models', params);
+        if (j.status !== 'success' || !Array.isArray(j.models)) {
+            throw new Error(j.message || j.error || 'bad response');
+        }
+        const selected = oaiVal(selectId) || j.current || '';
+        oaiFillModelSelect(selectId, j.models, selected, kind);
+        if (j.source === 'api') {
+            oaiSetModelStatus(selectId, oaiT('gl.model_loaded', 'Đã tải {n} model.').replace('{n}', String(j.models.length)), false);
+        } else if (j.error) {
+            oaiSetModelStatus(selectId, oaiT('gl.model_fallback', 'Không tải được — dùng danh sách mặc định:') + ' ' + j.error, true);
+        } else {
+            oaiSetModelStatus(selectId, j.message || oaiT('gl.model_defaults', 'Đang hiện model mặc định. Nhập key rồi bấm Tải danh sách.'), true);
+        }
+    } catch (e) {
+        oaiFillModelSelect(selectId, OAI_MODEL_DEFAULTS[kind] || [], oaiVal(selectId), kind);
+        oaiSetModelStatus(selectId, oaiT('gl.model_err', 'Lỗi tải model:') + ' ' + (e.message || e), true);
+    } finally {
+        oaiModelsBusy[selectId] = false;
+        if (btn) btn.disabled = false;
+    }
+}
+
+function oaiLoadVisibleModels(force) {
+    if (oaiLayout === 'gemini') {
+        oaiLoadModels('gemini_live', 'glModel', force);
+        return;
+    }
+    if (oaiLayout === 'grok') {
+        oaiLoadModels('grok', 'gkModel', force);
+        return;
+    }
+    if (oaiLayout === 'qwen') {
+        oaiLoadModels('qwen', 'qwModel', force);
+        return;
+    }
+    if (oaiLayout === 'openai') {
+        oaiLoadModels('realtime', 'oaiRtModel', force);
+        oaiLoadModels('vision', 'oaiVisionModel', force);
+        return;
+    }
+    // pipeline
+    oaiLoadModels('stt', 'oaiSttModel', force);
+    oaiLoadModels('llm', 'oaiLlmModel', force);
+    oaiLoadModels('vision', 'oaiVisionModel', force);
+    const tts = oaiSelectedTts();
+    if (tts === 'openai') oaiLoadModels('tts', 'oaiTtsModel', force);
+    if (tts === 'gemini') oaiLoadModels('gemini_tts', 'oaiGeminiModel', force);
+}
+
+// Back-compat for any leftover callers.
+function glLoadModels(force) {
+    return oaiLoadModels('gemini_live', 'glModel', force);
 }
 
 // Presets only fill the form; nothing is saved until "Lưu & áp dụng".
@@ -346,22 +492,25 @@ function oaiApply(c) {
     oaiSelectValue('oaiEdgeVoice', c.edge_voice);
     oaiSelectValue('oaiGeminiVoice', c.gemini_voice);
     oaiSelectValue('glVoice', c.gemini_live_voice);
-    oaiSetVal('glModel', c.gemini_live_model);
+    oaiFillModelSelect('glModel', OAI_MODEL_DEFAULTS.gemini_live, c.gemini_live_model || 'gemini-3.8-live', 'gemini_live');
     oaiSelectValue('gkVoice', c.grok_voice);
-    oaiSetVal('gkModel', c.grok_model);
-    oaiSetVal('oaiRtModel', c.realtime_model);
+    oaiFillModelSelect('gkModel', OAI_MODEL_DEFAULTS.grok, c.grok_model || 'grok-voice-latest', 'grok');
+    oaiSelectValue('qwVoice', c.qwen_voice || 'longanqian_v3.1');
+    oaiSelectValue('qwRegion', c.qwen_region || 'intl');
+    oaiFillModelSelect('qwModel', OAI_MODEL_DEFAULTS.qwen, c.qwen_model || 'qwen-audio-3.1-realtime-flash', 'qwen');
+    oaiFillModelSelect('oaiRtModel', OAI_MODEL_DEFAULTS.realtime, c.realtime_model, 'realtime');
     oaiSetVal('oaiSttBase', c.stt_base_url);
-    oaiSetVal('oaiSttModel', c.stt_model);
-    oaiSetVal('oaiLlmModel', c.llm_model);
+    oaiFillModelSelect('oaiSttModel', OAI_MODEL_DEFAULTS.stt, c.stt_model, 'stt');
+    oaiFillModelSelect('oaiLlmModel', OAI_MODEL_DEFAULTS.llm, c.llm_model, 'llm');
     oaiSetVal('oaiLlmBase', c.llm_base_url);
-    oaiSetVal('oaiTtsModel', c.tts_model);
-    oaiSetVal('oaiGeminiModel', c.gemini_tts_model);
+    oaiFillModelSelect('oaiTtsModel', OAI_MODEL_DEFAULTS.tts, c.tts_model, 'tts');
+    oaiFillModelSelect('oaiGeminiModel', OAI_MODEL_DEFAULTS.gemini_tts, c.gemini_tts_model, 'gemini_tts');
     oaiSetVal('oaiMemory', c.memory_turns);
     oaiSetVal('oaiInstructions', c.instructions);
     oaiSetVal('oaiBaseURL', c.base_url);
     oaiSetVal('oaiLanguage', c.language);
-    oaiSetVal('oaiVisionModel', c.vision_model);
-    ['oaiKey', 'oaiSttKey', 'oaiLlmKey', 'oaiGeminiKey', 'glKey', 'gkKey'].forEach(function (id) { oaiSetVal(id, ''); });
+    oaiFillModelSelect('oaiVisionModel', OAI_MODEL_DEFAULTS.vision, c.vision_model, 'vision');
+    ['oaiKey', 'oaiSttKey', 'oaiLlmKey', 'oaiGeminiKey', 'glKey', 'gkKey', 'qwKey'].forEach(function (id) { oaiSetVal(id, ''); });
     oaiLastCfg = c;
     ['stt', 'llm'].forEach(function (stage) {
         const base = stage === 'stt' ? c.stt_base_url : c.llm_base_url;
@@ -387,7 +536,10 @@ async function oaiLoad() {
     try {
         const resp = await fetch('/api/mods/OpenAI/status');
         const j = await resp.json();
-        if (j.status === 'success') oaiApply(j.config);
+        if (j.status === 'success') {
+            oaiApply(j.config);
+            oaiLoadVisibleModels(false);
+        }
     } catch (e) {
         oaiSetStatus(oaiT('oai.err_load', 'Lỗi tải cấu hình OpenAI:') + ' ' + e.message, true);
     }
@@ -407,11 +559,15 @@ function oaiFormParams() {
     }
     if (oaiLayout === 'gemini') put('glKey', 'gemini_api_key');
     if (oaiLayout === 'grok') put('gkKey', 'xai_api_key');
+    if (oaiLayout === 'qwen') put('qwKey', 'dashscope_api_key');
     p.set('gemini_live_model', oaiVal('glModel'));
     p.set('gemini_live_voice', oaiVal('glVoice'));
     p.set('grok_model', oaiVal('gkModel'));
     p.set('grok_voice', oaiVal('gkVoice'));
-    // Gemini Live / Grok leave the OpenAI mode as it is.
+    p.set('qwen_model', oaiVal('qwModel'));
+    p.set('qwen_voice', oaiVal('qwVoice'));
+    p.set('qwen_region', oaiVal('qwRegion') || 'intl');
+    // Gemini Live / Grok / Qwen leave the OpenAI mode as it is.
     if (oaiLayout === 'openai' || oaiLayout === 'pipeline') p.set('mode', oaiSelectedMode());
     p.set('voice', oaiVal('oaiVoice'));
     p.set('realtime_model', oaiVal('oaiRtModel'));
@@ -482,6 +638,12 @@ async function oaiSave() {
             oaiSetStatus(msg, noKey);
             return;
         }
+        if (oaiLayout === 'qwen') {
+            const noKey = !j.config.has_dashscope_key;
+            if (noKey) msg += '\n' + oaiT('qw.key_missing', '⚠ Chưa có key DashScope — robot sẽ không trả lời.');
+            oaiSetStatus(msg, noKey);
+            return;
+        }
         if (j.config.needs_openai_key) msg += ' ' + oaiT('oai.need_key', 'Nhớ nhập API key để dùng.');
         const missingText = oaiMissingKeysText(j.config);
         if (missingText) msg += '\n' + missingText;
@@ -499,7 +661,7 @@ async function oaiTest() {
     oaiSetStatus(oaiT('oai.testing', 'Đang kiểm tra…'), false);
     try {
         const params = oaiFormParams();
-        if (oaiLayout === 'gemini' || oaiLayout === 'grok') params.set('target', oaiLayout);
+        if (oaiLayout === 'gemini' || oaiLayout === 'grok' || oaiLayout === 'qwen') params.set('target', oaiLayout);
         const j = await oaiPost('test', params);
         if (!Array.isArray(j.checks)) {
             oaiSetStatus(oaiT('oai.test_fail', 'Không kết nối được:') + ' ' + (j.message || 'unknown'), true);

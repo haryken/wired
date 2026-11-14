@@ -20,7 +20,17 @@ function otaLogAppend(line) {
 
 function otaShowProgress(showIt) {
     const wrap = document.getElementById('otaProgressWrap');
-    if (wrap) wrap.style.display = showIt ? 'block' : 'none';
+    if (!wrap) return;
+    wrap.hidden = !showIt;
+    wrap.style.display = showIt ? 'block' : 'none';
+}
+
+function otaMountProgress(hostId) {
+    const wrap = document.getElementById('otaProgressWrap');
+    const host = document.getElementById(hostId);
+    if (wrap && host && wrap.parentElement !== host) {
+        host.appendChild(wrap);
+    }
 }
 
 function otaSetProgress(pct, phase, detail, mode) {
@@ -192,6 +202,7 @@ function uploadOtaFile(file) {
     otaLastPhase = '';
     otaLastPct = -1;
     otaFailStreak = 0;
+    otaMountProgress('otaProgressHostFile');
     otaSetStartDisabled(true);
     otaLogAppend(`Upload ${file.name} (${formatBytes(file.size)})`);
 
@@ -371,6 +382,7 @@ async function startOtaFromURL(officialUrl, confirmed) {
     otaLastPhase = '';
     otaLastPct = -1;
     otaFailStreak = 0;
+    otaMountProgress(officialUrl ? 'otaProgressHostOfficial' : 'otaProgressHostUrl');
     otaSetProgress(0, 'starting', v.url, '');
     setAutoUpdateStatus('Đang kiểm tra URL rồi khởi động... (Checking URL, then starting...)');
     otaLogAppend('Kiểm tra URL... (Probing URL)');
@@ -387,7 +399,7 @@ async function startOtaFromURL(officialUrl, confirmed) {
             otaSetStartDisabled(false);
             return;
         }
-        setAutoUpdateStatus('Đã bắt đầu — xem thanh tiến trình + log bên dưới. (Started — watch progress + log.)');
+        setAutoUpdateStatus('Đã bắt đầu — xem thanh tiến trình bên dưới. (Started — watch progress below.)');
         otaLogAppend('Đã start update-engine — URL OK');
         startOtaPoll();
     } catch (e) {
@@ -497,6 +509,19 @@ async function refreshOtaLogOnly() {
     }
 }
 
+async function otaResumeIfBusy() {
+    try {
+        const res = await fetch('/api/mods/AutoUpdate/status');
+        const j = await res.json();
+        const phase = (j && j.phase) || 'waiting';
+        const busy = j && !j.done && !j.error && phase !== 'waiting' && phase !== 'idle';
+        if (!busy) return;
+        otaMountProgress('otaProgressHostOfficial');
+        otaShowProgress(true);
+        startOtaPoll();
+    } catch (_) { /* ignore */ }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('otaUrl');
     if (!input) return;
@@ -508,11 +533,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         markOtaUrlField(v.ok);
     });
-    // Always show progress + log chrome so the Update tab looks complete before start.
-    otaShowProgress(true);
-    const box = document.getElementById('otaLogBox');
-    if (box) box.style.display = 'block';
+    // Progress only appears under the method in use once an update starts.
+    otaShowProgress(false);
+    otaSetManualMode('url');
     checkOfficialOta(false);
+    otaResumeIfBusy();
 });
 
 // Language switch rewrites labels and may rebuild the mobile drawer.

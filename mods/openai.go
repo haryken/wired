@@ -51,11 +51,16 @@ type OpenAICfg struct {
 	XAIAPIKey    string `json:"xai_api_key"`
 	GrokModel    string `json:"grok_model"`
 	GrokVoice    string `json:"grok_voice"`
-	Voice        string `json:"voice"`
-	Language     string `json:"language"`
-	Instructions string `json:"instructions"`
-	MemoryTurns  int    `json:"memory_turns"`
-	VisionModel  string `json:"vision_model"`
+	// Qwen Live backend (xiaozhi.json backend "qwen", DashScope key).
+	DashScopeAPIKey string `json:"dashscope_api_key"`
+	QwenModel       string `json:"qwen_model"`
+	QwenVoice       string `json:"qwen_voice"`
+	QwenRegion      string `json:"qwen_region"` // "intl" | "cn"
+	Voice           string `json:"voice"`
+	Language        string `json:"language"`
+	Instructions    string `json:"instructions"`
+	MemoryTurns     int    `json:"memory_turns"`
+	VisionModel     string `json:"vision_model"`
 }
 
 const (
@@ -75,8 +80,9 @@ const (
 var geminiModelsBase = "https://" + geminiAPIHost + "/v1beta"
 
 // voiceIDRe / modelIDRe keep user values safe inside SSML and URL paths.
+// Underscore/dot allowed for Qwen voices (longanqian_v3.1).
 var (
-	voiceIDRe = regexp.MustCompile(`^[A-Za-z0-9-]{1,80}$`)
+	voiceIDRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,80}$`)
 	modelIDRe = regexp.MustCompile(`^[A-Za-z0-9._/:-]{1,120}$`)
 )
 
@@ -96,6 +102,9 @@ func defaultOpenAICfg() OpenAICfg {
 		GeminiLiveVoice: "Kore",
 		GrokModel:       "grok-voice-latest",
 		GrokVoice:       "eve",
+		QwenModel:       "qwen-audio-3.1-realtime-flash",
+		QwenVoice:       "longanqian_v3.1",
+		QwenRegion:      "intl",
 		Voice:           "coral",
 		Language:        "vi",
 		MemoryTurns:     10,
@@ -256,6 +265,11 @@ func openAIView(cfg OpenAICfg) map[string]interface{} {
 		"grok_voice":          cfg.GrokVoice,
 		"has_xai_key":         strings.TrimSpace(cfg.XAIAPIKey) != "",
 		"xai_key_hint":        maskKey(cfg.XAIAPIKey),
+		"qwen_model":          cfg.QwenModel,
+		"qwen_voice":          cfg.QwenVoice,
+		"qwen_region":         cfg.QwenRegion,
+		"has_dashscope_key":   strings.TrimSpace(cfg.DashScopeAPIKey) != "",
+		"dashscope_key_hint":  maskKey(cfg.DashScopeAPIKey),
 		"backend":             xz.Backend,
 		"voice":               cfg.Voice,
 		"language":            cfg.Language,
@@ -345,6 +359,7 @@ func applyOpenAIForm(cfg *OpenAICfg, r *http.Request) error {
 		{"gemini_api_key", "clear_gemini_key", &cfg.GeminiAPIKey},
 		{"groq_api_key", "clear_groq_key", &cfg.GroqAPIKey},
 		{"xai_api_key", "clear_xai_key", &cfg.XAIAPIKey},
+		{"dashscope_api_key", "clear_dashscope_key", &cfg.DashScopeAPIKey},
 	} {
 		if v := str(k.field); v != "" {
 			*k.dst = v
@@ -407,14 +422,21 @@ func applyOpenAIForm(cfg *OpenAICfg, r *http.Request) error {
 	if has("gemini_voice") && str("gemini_voice") != "" && !voiceIDRe.MatchString(str("gemini_voice")) {
 		return fmt.Errorf("gemini_voice is not a valid voice name")
 	}
-	for _, k := range []string{"gemini_tts_model", "gemini_live_model", "grok_model"} {
+	for _, k := range []string{"gemini_tts_model", "gemini_live_model", "grok_model", "qwen_model"} {
 		if has(k) && str(k) != "" && !modelIDRe.MatchString(str(k)) {
 			return fmt.Errorf("%s is not a valid model name", k)
 		}
 	}
-	for _, k := range []string{"gemini_live_voice", "grok_voice"} {
+	for _, k := range []string{"gemini_live_voice", "grok_voice", "qwen_voice"} {
 		if has(k) && str(k) != "" && !voiceIDRe.MatchString(str(k)) {
 			return fmt.Errorf("%s is not a valid voice name", k)
+		}
+	}
+	if has("qwen_region") {
+		switch str("qwen_region") {
+		case "", "intl", "cn":
+		default:
+			return fmt.Errorf("qwen_region must be intl or cn")
 		}
 	}
 	if has("memory_turns") {
@@ -448,6 +470,9 @@ func applyOpenAIForm(cfg *OpenAICfg, r *http.Request) error {
 		{"gemini_live_voice", &cfg.GeminiLiveVoice, d.GeminiLiveVoice},
 		{"grok_model", &cfg.GrokModel, d.GrokModel},
 		{"grok_voice", &cfg.GrokVoice, d.GrokVoice},
+		{"qwen_model", &cfg.QwenModel, d.QwenModel},
+		{"qwen_voice", &cfg.QwenVoice, d.QwenVoice},
+		{"qwen_region", &cfg.QwenRegion, d.QwenRegion},
 		{"voice", &cfg.Voice, d.Voice},
 		{"language", &cfg.Language, d.Language},
 		{"vision_model", &cfg.VisionModel, d.VisionModel},
@@ -461,6 +486,9 @@ func applyOpenAIForm(cfg *OpenAICfg, r *http.Request) error {
 		}
 	}
 	cfg.Language = strings.ToLower(cfg.Language)
+	if cfg.QwenRegion != "cn" {
+		cfg.QwenRegion = "intl"
+	}
 	// A step key typed while that step points at Groq / Gemini (older pages
 	// do this) belongs to the provider, not to the custom-server slot.
 	for _, s := range []struct {
@@ -519,6 +547,358 @@ func listGeminiModels(key string) ([]string, error) {
 	return fetchModelIDs(geminiModelsBase+"/models?pageSize=1000", func(h http.Header) {
 		h.Set("x-goog-api-key", key)
 	})
+}
+
+// Built-in Live choices when the key is missing or Google's list is empty.
+var geminiLiveModelDefaults = []string{
+	"gemini-3.8-live",
+	"gemini-2.5-flash-native-audio-latest",
+}
+
+func isGeminiLiveModelID(id string) bool {
+	s := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(id), "models/"))
+	if s == "" {
+		return false
+	}
+	return strings.Contains(s, "live") || strings.Contains(s, "native-audio")
+}
+
+func geminiModelSupportsLive(methods []string) bool {
+	for _, m := range methods {
+		if strings.EqualFold(m, "bidiGenerateContent") {
+			return true
+		}
+	}
+	return false
+}
+
+// listGeminiLiveModels returns Live / native-audio model IDs for the dropdown.
+// Prefers models advertising bidiGenerateContent; falls back to name matching.
+func listGeminiLiveModels(key string) ([]string, error) {
+	req, err := http.NewRequest(http.MethodGet, geminiModelsBase+"/models?pageSize=1000", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("x-goog-api-key", key)
+	resp, err := openAITestClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if resp.StatusCode != http.StatusOK {
+		var e struct {
+			Error struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(body, &e) == nil && e.Error.Message != "" {
+			return nil, fmt.Errorf("%s: %s", resp.Status, e.Error.Message)
+		}
+		return nil, fmt.Errorf("%s", resp.Status)
+	}
+	var out struct {
+		Models []struct {
+			Name    string   `json:"name"`
+			Methods []string `json:"supportedGenerationMethods"`
+		} `json:"models"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("bad /models response")
+	}
+	byMethod := make([]string, 0)
+	byName := make([]string, 0)
+	seen := map[string]bool{}
+	add := func(dst *[]string, id string) {
+		id = strings.TrimPrefix(strings.TrimSpace(id), "models/")
+		if id == "" || seen[id] {
+			return
+		}
+		seen[id] = true
+		*dst = append(*dst, id)
+	}
+	for _, m := range out.Models {
+		id := strings.TrimPrefix(m.Name, "models/")
+		if geminiModelSupportsLive(m.Methods) {
+			add(&byMethod, id)
+			continue
+		}
+		if isGeminiLiveModelID(id) {
+			add(&byName, id)
+		}
+	}
+	if len(byMethod) > 0 {
+		return byMethod, nil
+	}
+	if len(byName) > 0 {
+		return byName, nil
+	}
+	return nil, fmt.Errorf("no Live models listed for this key")
+}
+
+func mergeGeminiLiveModels(api []string, current string) []string {
+	return mergeModelLists(api, geminiLiveModelDefaults, current)
+}
+
+func mergeModelLists(api, defaults []string, current string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(api)+len(defaults)+1)
+	add := func(id string) {
+		id = strings.TrimPrefix(strings.TrimSpace(id), "models/")
+		if id == "" || seen[id] {
+			return
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	for _, id := range api {
+		add(id)
+	}
+	for _, id := range defaults {
+		add(id)
+	}
+	add(current)
+	return out
+}
+
+func modelKindDefaults(kind string) []string {
+	switch kind {
+	case "realtime":
+		return []string{"gpt-realtime-mini", "gpt-realtime"}
+	case "stt":
+		return []string{"gpt-4o-mini-transcribe", "gpt-4o-transcribe", "whisper-large-v3-turbo", "whisper-large-v3", "whisper-1"}
+	case "llm":
+		return []string{"gpt-4o-mini", "gpt-4o", "gemini-3.5-flash-lite", "gemini-3.8-flash", "openai/gpt-oss-120b"}
+	case "tts":
+		return []string{"gpt-4o-mini-tts", "gpt-4o-tts"}
+	case "gemini_tts":
+		return []string{"gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"}
+	case "vision":
+		return []string{"gpt-4o-mini", "gpt-4o"}
+	case "grok":
+		return []string{"grok-voice-latest"}
+	case "qwen":
+		return []string{
+			"qwen-audio-3.1-realtime-flash",
+			"qwen-audio-3.1-realtime-plus",
+			"qwen-audio-3.0-realtime-flash",
+			"qwen-audio-3.0-realtime-plus",
+		}
+	case "gemini_live":
+		return append([]string{}, geminiLiveModelDefaults...)
+	default:
+		return nil
+	}
+}
+
+func filterModelsByKind(ids []string, kind string) []string {
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		s := strings.ToLower(strings.TrimPrefix(id, "models/"))
+		keep := false
+		switch kind {
+		case "realtime":
+			keep = strings.Contains(s, "realtime")
+		case "stt":
+			keep = strings.Contains(s, "whisper") || strings.Contains(s, "transcribe")
+		case "tts", "gemini_tts":
+			keep = strings.Contains(s, "tts")
+		case "vision", "llm":
+			keep = isChatCompletionModel(s)
+		case "grok":
+			keep = strings.Contains(s, "grok") || strings.Contains(s, "voice")
+		case "gemini_live":
+			keep = isGeminiLiveModelID(s)
+		default:
+			keep = true
+		}
+		if keep {
+			out = append(out, strings.TrimPrefix(id, "models/"))
+		}
+	}
+	return out
+}
+
+func isChatCompletionModel(s string) bool {
+	deny := []string{
+		"whisper", "tts", "realtime", "embedding", "dall-e", "moderation",
+		"image", "transcribe", "computer-use", "sora", "codex-mini",
+	}
+	for _, d := range deny {
+		if strings.Contains(s, d) {
+			return false
+		}
+	}
+	return true
+}
+
+func listGrokModels(key string) ([]string, error) {
+	return fetchModelIDs("https://api.x.ai/v1/models", func(h http.Header) {
+		h.Set("Authorization", "Bearer "+key)
+	})
+}
+
+func listModelsForKind(cfg OpenAICfg, kind string) (ids []string, source string, err error) {
+	switch kind {
+	case "gemini_live":
+		key := cfg.geminiKey()
+		if key == "" {
+			return nil, "defaults", fmt.Errorf("Gemini API key chưa nhập")
+		}
+		ids, err = listGeminiLiveModels(key)
+		return ids, "api", err
+	case "gemini_tts":
+		key := cfg.geminiKey()
+		if key == "" {
+			return nil, "defaults", fmt.Errorf("Gemini API key chưa nhập")
+		}
+		all, e := listGeminiModels(key)
+		if e != nil {
+			return nil, "defaults", e
+		}
+		return filterModelsByKind(all, "gemini_tts"), "api", nil
+	case "grok":
+		key := strings.TrimSpace(cfg.XAIAPIKey)
+		if key == "" {
+			return nil, "defaults", fmt.Errorf("xAI API key chưa nhập")
+		}
+		all, e := listGrokModels(key)
+		if e != nil {
+			return nil, "defaults", e
+		}
+		filtered := filterModelsByKind(all, "grok")
+		if len(filtered) == 0 {
+			filtered = all
+		}
+		return filtered, "api", nil
+	case "qwen":
+		// DashScope has no simple OpenAI-style /models list for Audio-Realtime;
+		// return curated defaults (UI still shows them as a dropdown).
+		if strings.TrimSpace(cfg.DashScopeAPIKey) == "" {
+			return nil, "defaults", fmt.Errorf("DashScope API key chưa nhập")
+		}
+		return modelKindDefaults("qwen"), "defaults", nil
+	case "stt":
+		base, key := cfg.sttBase(), cfg.sttKey()
+		if key == "" && !isLocalHost(urlHost(base)) {
+			return nil, "defaults", fmt.Errorf("API key chưa nhập")
+		}
+		if urlHost(base) == geminiAPIHost {
+			all, e := listGeminiModels(key)
+			if e != nil {
+				return nil, "defaults", e
+			}
+			return filterModelsByKind(all, "stt"), "api", nil
+		}
+		all, e := listModels(base, key)
+		if e != nil {
+			return nil, "defaults", e
+		}
+		filtered := filterModelsByKind(all, "stt")
+		if len(filtered) == 0 {
+			filtered = all
+		}
+		return filtered, "api", nil
+	case "llm":
+		base, key := cfg.llmBase(), cfg.llmKey()
+		if key == "" && !isLocalHost(urlHost(base)) {
+			return nil, "defaults", fmt.Errorf("API key chưa nhập")
+		}
+		if urlHost(base) == geminiAPIHost {
+			all, e := listGeminiModels(key)
+			if e != nil {
+				return nil, "defaults", e
+			}
+			filtered := filterModelsByKind(all, "llm")
+			if len(filtered) == 0 {
+				filtered = all
+			}
+			return filtered, "api", nil
+		}
+		all, e := listModels(base, key)
+		if e != nil {
+			return nil, "defaults", e
+		}
+		filtered := filterModelsByKind(all, "llm")
+		if len(filtered) == 0 {
+			filtered = all
+		}
+		return filtered, "api", nil
+	default: // realtime, tts, vision, …
+		base, key := cfg.BaseURL, cfg.APIKey
+		if strings.TrimSpace(base) == "" {
+			base = defaultOpenAICfg().BaseURL
+		}
+		if key == "" && !isLocalHost(urlHost(base)) {
+			return nil, "defaults", fmt.Errorf("OpenAI API key chưa nhập")
+		}
+		all, e := listModels(base, key)
+		if e != nil {
+			return nil, "defaults", e
+		}
+		filtered := filterModelsByKind(all, kind)
+		if len(filtered) == 0 && (kind == "vision" || kind == "llm") {
+			filtered = filterModelsByKind(all, "llm")
+		}
+		if len(filtered) == 0 {
+			filtered = all
+		}
+		return filtered, "api", nil
+	}
+}
+
+func currentModelForKind(cfg OpenAICfg, kind string) string {
+	switch kind {
+	case "realtime":
+		return cfg.RealtimeModel
+	case "stt":
+		return cfg.STTModel
+	case "llm":
+		return cfg.LLMModel
+	case "tts":
+		return cfg.TTSModel
+	case "gemini_tts":
+		return cfg.GeminiTTSModel
+	case "vision":
+		return cfg.VisionModel
+	case "grok":
+		return cfg.GrokModel
+	case "qwen":
+		return cfg.QwenModel
+	case "gemini_live":
+		return cfg.GeminiLiveModel
+	default:
+		return ""
+	}
+}
+
+func listModelsResponse(cfg OpenAICfg, kind string) map[string]interface{} {
+	kind = strings.TrimSpace(kind)
+	if kind == "" {
+		kind = "realtime"
+	}
+	current := currentModelForKind(cfg, kind)
+	defaults := modelKindDefaults(kind)
+	out := map[string]interface{}{
+		"status":  "success",
+		"kind":    kind,
+		"current": current,
+	}
+	ids, source, err := listModelsForKind(cfg, kind)
+	if err != nil || source != "api" {
+		out["source"] = "defaults"
+		out["models"] = mergeModelLists(nil, defaults, current)
+		if err != nil {
+			out["error"] = err.Error()
+			if strings.Contains(err.Error(), "chưa nhập") {
+				out["message"] = err.Error() + " — đang hiện model mặc định. Nhập key rồi bấm Tải danh sách."
+			}
+		}
+		return out
+	}
+	out["source"] = "api"
+	out["models"] = mergeModelLists(ids, defaults, current)
+	return out
 }
 
 func fetchModelIDs(u string, auth func(http.Header)) ([]string, error) {
@@ -780,13 +1160,97 @@ func testGrok(cfg OpenAICfg) openAITestResult {
 	return openAITestResult{Status: "success", OK: c.OK, Checks: []openAICheck{c}}
 }
 
+func qwenRealtimeURL(region string) string {
+	if region == "cn" {
+		return "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
+	}
+	return "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime"
+}
+
+// qwenSetupError opens a DashScope Qwen-Audio-Realtime session (no audio billed).
+func qwenSetupError(key, region, model, voice string) error {
+	h := http.Header{}
+	h.Set("Authorization", "Bearer "+key)
+	h.Set("X-DashScope-DataInspection", "enable")
+	d := websocket.Dialer{HandshakeTimeout: 10 * time.Second, Proxy: http.ProxyFromEnvironment}
+	ws, resp, err := d.Dial(qwenRealtimeURL(region)+"?model="+url.QueryEscape(model), h)
+	if err != nil {
+		if resp != nil {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 400))
+			resp.Body.Close()
+			var e struct {
+				Error interface{} `json:"error"`
+			}
+			if json.Unmarshal(body, &e) == nil && e.Error != nil {
+				return fmt.Errorf("%s: %v", resp.Status, e.Error)
+			}
+			return fmt.Errorf("%s", resp.Status)
+		}
+		return err
+	}
+	defer ws.Close()
+	deadline := time.Now().Add(12 * time.Second)
+	_ = ws.SetWriteDeadline(deadline)
+	_ = ws.SetReadDeadline(deadline)
+	if err := ws.WriteJSON(map[string]interface{}{
+		"type": "session.update",
+		"session": map[string]interface{}{
+			"modalities":          []string{"text", "audio"},
+			"voice":               voice,
+			"input_audio_format":  "pcm",
+			"output_audio_format": "pcm",
+			"turn_detection":      map[string]interface{}{"type": "server_vad"},
+		},
+	}); err != nil {
+		return err
+	}
+	for {
+		_, data, err := ws.ReadMessage()
+		if err != nil {
+			var ce *websocket.CloseError
+			if errors.As(err, &ce) && ce.Text != "" {
+				return errors.New(ce.Text)
+			}
+			return err
+		}
+		var m struct {
+			Type  string `json:"type"`
+			Error struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(data, &m) != nil {
+			continue
+		}
+		switch m.Type {
+		case "session.updated":
+			return nil
+		case "error":
+			return errors.New(m.Error.Message)
+		}
+	}
+}
+
+func testQwen(cfg OpenAICfg) openAITestResult {
+	host := urlHost(qwenRealtimeURL(cfg.QwenRegion))
+	c := openAICheck{Stage: "qwen", Host: host, Model: cfg.QwenModel}
+	if key := strings.TrimSpace(cfg.DashScopeAPIKey); key == "" {
+		c.Error = "DashScope API key chưa nhập"
+	} else if err := qwenSetupError(key, cfg.QwenRegion, cfg.QwenModel, cfg.QwenVoice); err != nil {
+		c.Error = err.Error()
+	} else {
+		c.OK, c.Found = true, true
+	}
+	return openAITestResult{Status: "success", OK: c.OK, Checks: []openAICheck{c}}
+}
+
 type OpenAI struct{}
 
 func NewOpenAI() *OpenAI { return &OpenAI{} }
 
 func (m *OpenAI) Name() string { return "OpenAI" }
 func (m *OpenAI) Description() string {
-	return "OpenAI / Gemini Live / Grok backends for AI giao tiếp (Realtime, STT→LLM→TTS, Gemini Live, Grok Voice)."
+	return "OpenAI / Gemini Live / Grok / Qwen backends for AI giao tiếp (Realtime, STT→LLM→TTS, Gemini Live, Grok Voice, Qwen Live)."
 }
 func (m *OpenAI) Load() error { return nil }
 
@@ -833,8 +1297,36 @@ func (m *OpenAI) HTTP(w http.ResponseWriter, r *http.Request) {
 		case xiaozhiBackendGrok:
 			json.NewEncoder(w).Encode(testGrok(cfg))
 			return
+		case xiaozhiBackendQwen:
+			json.NewEncoder(w).Encode(testQwen(cfg))
+			return
 		}
 		json.NewEncoder(w).Encode(testOpenAI(cfg))
+
+	case vars.IsEndpoint(r, "list_gemini_live_models"):
+		// Kept for older UI; prefer list_models?kind=gemini_live.
+		cfg := loadOpenAICfg()
+		if r.Method == http.MethodPost {
+			if err := applyOpenAIForm(&cfg, r); err != nil {
+				vars.HTTPError(w, r, err.Error())
+				return
+			}
+		}
+		json.NewEncoder(w).Encode(listModelsResponse(cfg, "gemini_live"))
+
+	case vars.IsEndpoint(r, "list_models"):
+		cfg := loadOpenAICfg()
+		if r.Method == http.MethodPost {
+			if err := applyOpenAIForm(&cfg, r); err != nil {
+				vars.HTTPError(w, r, err.Error())
+				return
+			}
+		}
+		kind := strings.TrimSpace(r.FormValue("kind"))
+		if kind == "" {
+			kind = "realtime"
+		}
+		json.NewEncoder(w).Encode(listModelsResponse(cfg, kind))
 
 	case vars.IsEndpoint(r, "clear_memory"):
 		if err := os.Remove(openAIMemoryPath); err != nil && !os.IsNotExist(err) {

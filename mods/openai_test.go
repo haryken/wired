@@ -218,6 +218,8 @@ func TestXiaozhiBackendFor(t *testing.T) {
 		{"gemini", "", "vi_pool", ""},
 		{"", "grok", "", "grok"},
 		{"grok", "", "", "grok"},
+		{"", "qwen", "", "qwen"},
+		{"qwen", "", "", "qwen"},
 		{"", "pipeline", "", "openai"},
 		{"", "", "", ""},
 	}
@@ -524,6 +526,144 @@ func TestGeminiLiveTestEndpoint(t *testing.T) {
 	_, resp = openAIPost(t, "test", url.Values{"target": {"gemini"}})
 	if resp["ok"] != false {
 		t.Fatalf("no key: %v", resp)
+	}
+}
+
+func TestListGeminiLiveModelsEndpoint(t *testing.T) {
+	withTempOpenAIPaths(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-goog-api-key") != "AIza-list" {
+			w.WriteHeader(400)
+			fmt.Fprint(w, `{"error":{"message":"bad key"}}`)
+			return
+		}
+		fmt.Fprint(w, `{"models":[
+			{"name":"models/gemini-3.8-live","supportedGenerationMethods":["bidiGenerateContent"]},
+			{"name":"models/gemini-2.5-flash","supportedGenerationMethods":["generateContent"]},
+			{"name":"models/gemini-2.5-flash-native-audio-latest","supportedGenerationMethods":["bidiGenerateContent"]}
+		]}`)
+	}))
+	defer srv.Close()
+	old := geminiModelsBase
+	geminiModelsBase = srv.URL + "/v1beta"
+	defer func() { geminiModelsBase = old }()
+
+	_, resp := openAIPost(t, "list_gemini_live_models", url.Values{})
+	if resp["source"] != "defaults" || resp["status"] != "success" {
+		t.Fatalf("no key defaults: %v", resp)
+	}
+
+	_, resp = openAIPost(t, "list_gemini_live_models", url.Values{"gemini_api_key": {"AIza-list"}})
+	if resp["source"] != "api" {
+		t.Fatalf("api source: %v", resp)
+	}
+	models, _ := resp["models"].([]interface{})
+	joined := fmt.Sprint(models)
+	if !strings.Contains(joined, "gemini-3.8-live") || !strings.Contains(joined, "native-audio") {
+		t.Fatalf("live models missing: %v", models)
+	}
+	if strings.Contains(joined, "gemini-2.5-flash\"") || strings.Count(joined, "gemini-2.5-flash,") > 0 {
+		// plain flash without live/native-audio must not appear
+		for _, m := range models {
+			if fmt.Sprint(m) == "gemini-2.5-flash" {
+				t.Fatalf("non-live model leaked: %v", models)
+			}
+		}
+	}
+}
+
+func TestListModelsEndpoint(t *testing.T) {
+	withTempOpenAIPaths(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth != "Bearer sk-list" {
+			w.WriteHeader(401)
+			fmt.Fprint(w, `{"error":{"message":"bad key"}}`)
+			return
+		}
+		fmt.Fprint(w, `{"data":[
+			{"id":"gpt-realtime-mini"},
+			{"id":"gpt-realtime"},
+			{"id":"gpt-4o-mini"},
+			{"id":"gpt-4o-mini-tts"},
+			{"id":"gpt-4o-mini-transcribe"},
+			{"id":"whisper-1"},
+			{"id":"text-embedding-3-small"}
+		]}`)
+	}))
+	defer srv.Close()
+
+	_, resp := openAIPost(t, "list_models", url.Values{"kind": {"realtime"}, "base_url": {srv.URL + "/v1"}})
+	if resp["source"] != "defaults" {
+		t.Fatalf("no key should use defaults: %v", resp)
+	}
+
+	_, resp = openAIPost(t, "list_models", url.Values{
+		"kind": {"realtime"}, "api_key": {"sk-list"}, "base_url": {srv.URL + "/v1"},
+	})
+	if resp["source"] != "api" || resp["kind"] != "realtime" {
+		t.Fatalf("realtime api: %v", resp)
+	}
+	joined := fmt.Sprint(resp["models"])
+	if !strings.Contains(joined, "gpt-realtime") || strings.Contains(joined, "embedding") {
+		t.Fatalf("realtime filter: %v", resp["models"])
+	}
+
+	_, resp = openAIPost(t, "list_models", url.Values{
+		"kind": {"tts"}, "api_key": {"sk-list"}, "base_url": {srv.URL + "/v1"},
+	})
+	joined = fmt.Sprint(resp["models"])
+	if !strings.Contains(joined, "tts") || strings.Contains(joined, "realtime-mini") {
+		t.Fatalf("tts filter: %v", resp["models"])
+	}
+
+	_, resp = openAIPost(t, "list_models", url.Values{
+		"kind": {"stt"}, "api_key": {"sk-list"}, "base_url": {srv.URL + "/v1"},
+	})
+	joined = fmt.Sprint(resp["models"])
+	if !strings.Contains(joined, "transcribe") && !strings.Contains(joined, "whisper") {
+		t.Fatalf("stt filter: %v", resp["models"])
+	}
+}
+
+func TestOpenAIQwenFields(t *testing.T) {
+	withTempOpenAIPaths(t)
+	_, resp := openAIPost(t, "save", url.Values{})
+	view := resp["config"].(map[string]interface{})
+	if view["qwen_model"] != "qwen-audio-3.1-realtime-flash" || view["qwen_voice"] != "longanqian_v3.1" ||
+		view["qwen_region"] != "intl" || view["has_dashscope_key"] != false {
+		t.Fatalf("defaults %v", view)
+	}
+	_, resp = openAIPost(t, "save", url.Values{
+		"dashscope_api_key": {"sk-dash-secret-4321"},
+		"qwen_voice":        {"longanlufeng"},
+		"qwen_region":       {"cn"},
+		"qwen_model":        {"qwen-audio-3.1-realtime-plus"},
+	})
+	view = resp["config"].(map[string]interface{})
+	if view["has_dashscope_key"] != true || view["dashscope_key_hint"] != "…4321" ||
+		view["qwen_voice"] != "longanlufeng" || view["qwen_region"] != "cn" ||
+		view["qwen_model"] != "qwen-audio-3.1-realtime-plus" {
+		t.Fatalf("view %v", view)
+	}
+	if strings.Contains(fmt.Sprint(view), "sk-dash-secret") {
+		t.Fatal("dashscope key leaked into the view")
+	}
+	for _, form := range []url.Values{
+		{"qwen_model": {"x y"}},
+		{"qwen_voice": {"<b>"}},
+		{"qwen_region": {"us"}},
+	} {
+		if w, _ := openAIPost(t, "save", form); w.Code == 200 {
+			t.Fatalf("accepted %v", form)
+		}
+	}
+
+	_ = saveXiaozhiCfg(defaultXiaozhiCfg())
+	req := httptest.NewRequest("POST", "/api/mods/Xiaozhi/set_enabled?enabled=true&backend=qwen", nil)
+	NewXiaozhi().HTTP(httptest.NewRecorder(), req)
+	if cfg, _ := loadXiaozhiCfg(); cfg.Backend != xiaozhiBackendQwen || !cfg.Enabled {
+		t.Fatalf("qwen backend %q enabled %v", cfg.Backend, cfg.Enabled)
 	}
 }
 

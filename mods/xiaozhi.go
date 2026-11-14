@@ -88,6 +88,7 @@ const (
 	xiaozhiBackendOpenAI  = "openai"
 	xiaozhiBackendGemini  = "gemini"
 	xiaozhiBackendGrok    = "grok"
+	xiaozhiBackendQwen    = "qwen"
 	// "Tự chọn AI" (STT → LLM → TTS) is its own choice on the page but runs
 	// as backend openai with openai.json mode pipeline; it is never stored.
 	xiaozhiBackendPipeline = "pipeline"
@@ -168,9 +169,9 @@ func syncXiaozhiListenVADFlag(cfg XiaozhiCfg) {
 }
 
 // isDirectAPIBackend: vic-cloud calls the AI API itself (OpenAI / Gemini
-// Live / Grok, settings in openai.json) instead of the Xiaozhi server.
+// Live / Grok / Qwen, settings in openai.json) instead of the Xiaozhi server.
 func isDirectAPIBackend(b string) bool {
-	return b == xiaozhiBackendOpenAI || b == xiaozhiBackendGemini || b == xiaozhiBackendGrok
+	return b == xiaozhiBackendOpenAI || b == xiaozhiBackendGemini || b == xiaozhiBackendGrok || b == xiaozhiBackendQwen
 }
 
 // xiaozhiBackendFor resolves set_enabled's backend: explicit "backend" wins;
@@ -180,7 +181,7 @@ func xiaozhiBackendFor(current, arg, ident string) string {
 	switch strings.ToLower(strings.TrimSpace(arg)) {
 	case xiaozhiBackendPipeline:
 		return xiaozhiBackendOpenAI
-	case xiaozhiBackendOpenAI, xiaozhiBackendGemini, xiaozhiBackendGrok:
+	case xiaozhiBackendOpenAI, xiaozhiBackendGemini, xiaozhiBackendGrok, xiaozhiBackendQwen:
 		return strings.ToLower(strings.TrimSpace(arg))
 	case xiaozhiBackendXiaozhi:
 		return ""
