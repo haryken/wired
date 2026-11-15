@@ -56,12 +56,17 @@ type XiaozhiCfg struct {
 	FaceGreet bool `json:"face_greet,omitempty"`
 	// FaceGreetEveryMin: minimum minutes between face greetings; unset = 5, 0 = no wait.
 	FaceGreetEveryMin *int `json:"face_greet_every_min,omitempty"`
+	// SelfControlResume: after AI voice self-control finishes, detect "xong hành
+	// động" + reopen mic. Off = old behavior (mic stays closed). UI actions never trigger.
+	SelfControlResume bool `json:"self_control_resume,omitempty"`
 	// SilencePromptSec: 0 = off (default). 10..50 = after that many quiet seconds
 	// while listening, vic-cloud nudges the user ("khơi gợi lại") so the chat
 	// does not die when they stay silent too long. One setting for every AI backend.
 	SilencePromptSec int `json:"silence_prompt_sec,omitempty"`
 	// TTSGainPct scales AI voice in vic-cloud (100 = ALSA full; <100 quieter).
 	TTSGainPct int `json:"tts_gain_pct,omitempty"`
+	// TTSPlayback: "classic" (default) or "smooth" (ESP-like prefill).
+	TTSPlayback string `json:"tts_playback,omitempty"`
 	// GateRMS is the loudness floor for conversation_mode "gate" (0 = 800).
 	GateRMS int `json:"gate_rms,omitempty"`
 	// Backend: "" / "xiaozhi" (default) or "openai" (settings in openai.json).
@@ -79,6 +84,9 @@ const (
 
 	ttsGainMinPct = 25  // ≈ old ExternalAudio at VOLUME_LOW on ALSA path
 	ttsGainMaxPct = 1000
+
+	ttsPlaybackClassic = "classic"
+	ttsPlaybackSmooth  = "smooth"
 
 	xiaozhiGateRMSMin     = 100
 	xiaozhiGateRMSMax     = 4000
@@ -917,6 +925,54 @@ func (m *Xiaozhi) HTTP(w http.ResponseWriter, r *http.Request) {
 		if err := saveXiaozhiCfg(cfg); err != nil {
 			vars.HTTPError(w, r, "save failed: "+err.Error())
 			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	// set_tts_playback: classic (gap keepalive) vs smooth (ESP-like prefill).
+	// vic-cloud applies on next LoadConfig / TTS turn.
+	case vars.IsEndpoint(r, "set_tts_playback"):
+		mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
+		if mode != ttsPlaybackClassic && mode != ttsPlaybackSmooth {
+			vars.HTTPError(w, r, "mode must be classic or smooth")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.TTSPlayback = mode
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "success",
+			"config": cfg,
+		})
+		return
+
+	// set_self_control_resume: after AI self-control finishes, detect + reopen mic.
+	// vic-cloud reads self_control_resume on the next arm/done (LoadConfig).
+	case vars.IsEndpoint(r, "set_self_control_resume"):
+		v := strings.TrimSpace(r.FormValue("enabled"))
+		if v == "" {
+			vars.HTTPError(w, r, "enabled required")
+			return
+		}
+		cfg, _ := loadXiaozhiCfg()
+		ensureXiaozhiDefaults(&cfg)
+		cfg.SelfControlResume = v == "true" || v == "1" || v == "on"
+		if err := saveXiaozhiCfg(cfg); err != nil {
+			vars.HTTPError(w, r, "save failed: "+err.Error())
+			return
+		}
+		if !cfg.SelfControlResume {
+			_ = os.Remove("/run/vic-cloud/ai-self-control-pending")
+			_ = os.Remove("/run/vic-cloud/intent-done")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{

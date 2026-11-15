@@ -1,0 +1,3 @@
+# WireOS: allow engine/cloud to sync speaker gain with master_volume mute
+engine ALL = (root) NOPASSWD: /anki/bin/wireos-speaker-gain
+cloud ALL = (root) NOPASSWD: /anki/bin/wireos-speaker-gain

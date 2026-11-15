@@ -1,0 +1,21 @@
+#!/bin/sh
+# WireOS speaker helper. Usage: wireos-speaker-gain 0|84
+#
+# Do NOT toggle PRI_MI2S MultiMedia1 — turning it Off while Wwise still opens
+# PCM leaves AkAlsaSink "Device busy" and system SFX stay dead until anim restart.
+# Mute is handled in engine (GameState/RTPC/StopAllEvents + power-off AUDIO lock).
+#
+# This script only repairs RX Digital Volume if stuck out of range / 256-glitch.
+val="${1:-84}"
+for ctl in "RX1 Digital Volume" "RX2 Digital Volume" "RX3 Digital Volume"; do
+  cur=$(/usr/bin/tinymix get "$ctl" 2>/dev/null | awk '{print $1}')
+  case "$cur" in
+    ''|84) ;;
+    *)
+      # out of 0..124 or the tinymix-0→256 glitch
+      /usr/bin/tinymix set "$ctl" 84 >/dev/null 2>&1 || true
+      ;;
+  esac
+done
+# Ensure Wwise path stays enabled whenever we run (safe after bad mute experiments)
+/usr/bin/tinymix set "PRI_MI2S_RX Audio Mixer MultiMedia1" 1 >/dev/null 2>&1 || true

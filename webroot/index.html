@@ -214,6 +214,14 @@
                 <span class="bot-ico" aria-hidden="true">👋</span>
                 <span data-i18n="bot.facegreet">Chào khi thấy người</span>
             </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-selfctrl')">
+                <span class="bot-ico" aria-hidden="true">🎬</span>
+                <span data-i18n="bot.selfctrl">Sau self-control</span>
+            </button>
+            <button type="button" class="bot-nav-item" onclick="showBotSection('bot-ttsplays')">
+                <span class="bot-ico" aria-hidden="true">🔈</span>
+                <span data-i18n="bot.ttsplays">Phát giọng AI</span>
+            </button>
         </div>
         <hr class="smallhr">
 
@@ -753,6 +761,41 @@
             <div class="face-greet-every">
                 <div class="face-greet-every-title" data-i18n="facegreet.every_lbl">Khoảng cách giữa hai lần chào:</div>
                 <div id="faceGreetEvery" class="face-greet-chips" role="radiogroup"></div>
+            </div>
+        </div>
+
+        <div id="bot-selfctrl" class="bot-section" style="display:none;">
+            <h3>🎬 <span data-i18n="sec.selfctrl">Sau khi self-control xong</span></h3>
+            <div class="help-box">
+                <p data-i18n="scr.help" data-i18n-html="1">Khi bạn <b>nói</b> với AI để robot làm động tác (nhảy, pháo hoa, …), chọn bên dưới robot xử lý thế nào khi hành động xong.</p>
+                <ul>
+                    <li data-i18n="scr.rule_ai">Chỉ khi lệnh self-control đến từ AI giọng nói. Bấm UI (đổi màu mắt, âm lượng, …) <b>không</b> mở micro.</li>
+                    <li data-i18n="scr.rule_new">Chế độ mới: engine báo xong → gửi detect giống “xin chào” với nội dung <b>xong hành động</b> → AI nói với bạn → mở micro như thường.</li>
+                    <li data-i18n="scr.rule_old">Chế độ cũ: xong hành động thì mic vẫn đóng đến khi Hey Vector / nút lưng (an toàn nếu chế độ mới lỗi).</li>
+                </ul>
+                <p class="help-warn" data-i18n="scr.warn">Có hiệu lực từ lần self-control tiếp theo, không cần khởi động lại. Mặc định = cũ.</p>
+            </div>
+            <div id="selfControlResumeStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="selfControlResumeMode" value="old" checked onchange="setSelfControlResume(false)"> <span data-i18n="scr.old">Cũ — đóng mic đến khi đánh thức</span></label>
+                <label><input type="radio" name="selfControlResumeMode" value="new" onchange="setSelfControlResume(true)"> <span data-i18n="scr.new">Mới — nói “xong hành động” rồi mở micro</span></label>
+            </div>
+        </div>
+
+        <div id="bot-ttsplays" class="bot-section" style="display:none;">
+            <h3>🔈 <span data-i18n="sec.ttsplays">Phát giọng AI</span></h3>
+            <div class="help-box">
+                <p data-i18n="ttp.help" data-i18n-html="1">Cách <b>vic-cloud</b> đưa PCM ra loa (MultiMedia2). Không đổi âm lượng hệ thống / Wwise.</p>
+                <ul>
+                    <li data-i18n="ttp.rule_classic">Cũ: FIFO + pad silence giữa câu (hành vi hiện tại).</li>
+                    <li data-i18n="ttp.rule_smooth">Mới: prefill ~360ms rồi ghi liên tục (kiểu Xiaozhi ESP32, ít giật hơn).</li>
+                </ul>
+                <p class="help-warn" data-i18n="ttp.warn">Có hiệu lực từ lần “Hey Vector” / câu TTS tiếp theo. Mặc định = cũ. Có thể đổi lại bất cứ lúc nào.</p>
+            </div>
+            <div id="ttsPlaybackStatus" class="faces-status" style="display:none;"></div>
+            <div class="bot-opt-list">
+                <label><input type="radio" name="ttsPlaybackMode" value="classic" checked onchange="setTTSPlayback('classic')"> <span data-i18n="ttp.classic">Cũ — FIFO + pad giữa câu</span></label>
+                <label><input type="radio" name="ttsPlaybackMode" value="smooth" onchange="setTTSPlayback('smooth')"> <span data-i18n="ttp.smooth">Mới — prefill liên tục (ESP-like)</span></label>
             </div>
         </div>
 
@@ -2148,6 +2191,8 @@
     <script src="js/battery.js"></script>
     <script src="js/whats-new.js"></script>
     <script src="js/face-greet.js"></script>
+    <script src="js/self-control-resume.js"></script>
+    <script src="js/tts-playback.js"></script>
     <script src="js/silence-prompt.js"></script>
     <script src="js/freq.js"></script>
     <script src="js/wake-engine.js"></script>

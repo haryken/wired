@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/digital-dream-labs/vector-go-sdk/pkg/vectorpb"
@@ -34,6 +37,9 @@ func (modu *JdocSettings) Description() string {
 
 func (modu *JdocSettings) Load() error {
 	ctx = context.Background()
+	// Boot: sync codec gain to persisted master_volume so Mute stays silent
+	// across reboot (power-off / Wwise SFX), without waiting for UI.
+	applySpeakerGainForMasterVolume(readMasterVolumeFromDisk())
 	return nil
 }
 
@@ -234,7 +240,41 @@ func getMasterVolume() (int, error) {
 }
 
 func setMasterVolume(level string) error {
-	return setSettingSDKintbool("master_volume", level)
+	if err := setSettingSDKintbool("master_volume", level); err != nil {
+		return err
+	}
+	n, _ := strconv.Atoi(level)
+	applySpeakerGainForMasterVolume(n)
+	return nil
+}
+
+// Keep Wwise MultiMedia1 enabled and repair RX glitches. Do not mute by
+// toggling MM1 Off — AkAlsaSink then fails open (Device busy) and system SFX
+// stay silent after raising volume until vic-anim restart. Real mute is
+// engine GameState/RTPC + power-off AUDIO track lock.
+func applySpeakerGainForMasterVolume(level int) {
+	_ = level
+	cmd := "/anki/bin/wireos-speaker-gain"
+	if _, err := os.Stat(cmd); err != nil {
+		_ = exec.Command("/usr/bin/tinymix", "set", "PRI_MI2S_RX Audio Mixer MultiMedia1", "1").Run()
+		return
+	}
+	_ = exec.Command(cmd, "84").Run()
+}
+
+func readMasterVolumeFromDisk() int {
+	const path = "/data/data/com.anki.victor/persistent/jdocs/vic.RobotSettings.json"
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return 1 // default LOW-ish; don't force mute on read error
+	}
+	var doc struct {
+		MasterVolume int `json:"master_volume"`
+	}
+	if err := json.Unmarshal(b, &doc); err != nil {
+		return 1
+	}
+	return doc.MasterVolume
 }
 
 func getEyeColorSetting() (eyeColorSettingResponse, error) {

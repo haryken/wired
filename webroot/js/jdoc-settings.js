@@ -306,6 +306,8 @@ function showBotSection(id) {
         if (typeof loadSilencePrompt === 'function') loadSilencePrompt();
     }
     if (id === 'bot-facegreet' && typeof loadFaceGreet === 'function') loadFaceGreet();
+    if (id === 'bot-selfctrl' && typeof loadSelfControlResume === 'function') loadSelfControlResume();
+    if (id === 'bot-ttsplays' && typeof loadTTSPlayback === 'function') loadTTSPlayback();
     if (id === 'bot-dns' && typeof loadDnsSettings === 'function') loadDnsSettings();
     if (id === 'bot-music' && typeof loadMusicSettings === 'function') loadMusicSettings();
     if (id === 'bot-perf' && typeof GetCurrent === 'function') {
